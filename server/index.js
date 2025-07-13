@@ -8,9 +8,19 @@ const bcrypt = require('bcryptjs');
 const fs = require('fs').promises;
 const path = require('path');
 const { google } = require('googleapis');
+const { createServer } = require('http');
+const { Server } = require('socket.io');
 require('dotenv').config();
 
 const app = express();
+const server = createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: "http://localhost:3000",
+    methods: ["GET", "POST"]
+  }
+});
+
 const PORT = process.env.PORT || 3001;
 
 // Trust proxy for rate limiting
@@ -19,6 +29,9 @@ app.set('trust proxy', 1);
 // Active users tracking
 const activeUsers = new Map(); // userId -> { lastSeen, userInfo }
 const ACTIVE_TIMEOUT = 5 * 60 * 1000; // 5 minutes
+
+// WebSocket connection tracking
+const connectedClients = new Map(); // socketId -> { userId, userInfo }
 
 // Clean up inactive users every minute
 setInterval(() => {
@@ -533,22 +546,22 @@ app.get('/api/stock/overview', async (req, res) => {
   }
 });
 
-app.get('/api/stock/inventory', async (req, res) => {
+app.get('/api/stock/inventory', authenticateToken, async (req, res) => {
   try {
-    const { spreadsheetId } = req.query;
+    const config = await loadConfig();
     
-    if (!spreadsheetId) {
+    if (!config.spreadsheetIds.inventory) {
       return res.status(400).json({ 
-        error: 'Spreadsheet ID is required' 
+        error: 'Inventory spreadsheet ID not configured' 
       });
     }
 
-    const data = await fetchSheetData(spreadsheetId, 'A:Z');
+    const data = await fetchSheetData(config.spreadsheetIds.inventory, 'A:Z');
     const inventory = processInventoryData(data);
 
     res.json({
       success: true,
-      data: inventory
+      inventory: inventory
     });
 
   } catch (error) {
@@ -891,7 +904,7 @@ app.put('/api/stock/inventory/:id', authenticateToken, async (req, res) => {
       spreadsheetId: config.spreadsheetIds.inventory,
       range: 'A:L',
     });
-    const currentData = response.data.values || [];
+    let currentData = response.data.values || [];
     console.log('Current data fetched, rows:', currentData ? currentData.length : 0);
     
     if (!currentData || currentData.length < 2) {
@@ -899,7 +912,7 @@ app.put('/api/stock/inventory/:id', authenticateToken, async (req, res) => {
     }
 
     const headers = currentData[0];
-    const rows = currentData.slice(1);
+    let rows = currentData.slice(1);
     
     // Map Vietnamese headers to English keys
     const headerMapping = {
@@ -921,6 +934,26 @@ app.put('/api/stock/inventory/:id', authenticateToken, async (req, res) => {
     const rowIndex = parseInt(id);
     console.log('Row index to update:', rowIndex, 'Total rows:', rows.length);
     console.log('Row index validation - rowIndex:', rowIndex, 'rows.length:', rows.length);
+    
+    // For newly added rows, the row index might be beyond current data length
+    // In this case, we need to fetch the latest data to get the correct row
+    if (rowIndex > currentData.length) {
+      console.log('Row index beyond current data, fetching latest data...');
+      const latestResponse = await sheets.spreadsheets.values.get({
+        spreadsheetId: config.spreadsheetIds.inventory,
+        range: 'A:Z',
+      });
+      const latestData = latestResponse.data.values || [];
+      
+      if (rowIndex > latestData.length) {
+        console.log('Row index still out of bounds after fetching latest data - rowIndex:', rowIndex, 'latestData.length:', latestData.length);
+        return res.status(404).json({ message: 'Item not found' });
+      }
+      
+      // Update current data with latest data
+      currentData = latestData;
+      rows = currentData.slice(1);
+    }
     
     // Validate row index - should be between 2 and the total number of rows in the sheet
     if (rowIndex < 2 || rowIndex > currentData.length) {
@@ -1085,6 +1118,16 @@ app.put('/api/stock/inventory/:id', authenticateToken, async (req, res) => {
     // Clear the editing session
     editingSessions.delete(req.user.id);
 
+    // After successful update, broadcast the change
+    broadcastInventoryUpdate('UPDATE', {
+      id: id,
+      newData: { ...updatedItem, id: id }
+    });
+    
+    // Broadcast recent changes
+    const recentChanges = changeLog.slice(-5); // Last 5 changes
+    broadcastRecentChanges(recentChanges);
+
     console.log('Google Sheets update successful');
     res.json({
       success: true,
@@ -1207,6 +1250,16 @@ app.post('/api/stock/inventory', authenticateToken, async (req, res) => {
       saveChangeLog(changeLog);
     }
 
+    // After successful add, broadcast the update
+    broadcastInventoryUpdate('ADD', {
+      id: nextRowNumber.toString(),
+      item: newItem
+    });
+    
+    // Broadcast recent changes
+    const recentChanges = changeLog.slice(-5); // Last 5 changes
+    broadcastRecentChanges(recentChanges);
+
     console.log('Google Sheets append successful');
     res.json({
       success: true,
@@ -1253,7 +1306,42 @@ app.delete('/api/stock/inventory/:id', authenticateToken, async (req, res) => {
     
     // Validate row index - should be between 2 and the total number of rows in the sheet
     if (rowIndex < 2 || rowIndex > currentData.length) {
-      return res.status(404).json({ message: 'Item not found' });
+      console.log('❌ Row index out of bounds - rowIndex:', rowIndex, 'currentData.length:', currentData.length);
+      console.log('📋 Current data rows:', currentData.slice(0, 5).map((row, i) => `Row ${i + 1}: ${row.slice(0, 3).join(', ')}`));
+      
+      // Add a small delay and retry once to handle race conditions
+      console.log('⏳ Row index out of bounds, waiting 1 second and retrying...');
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Fetch fresh data after delay
+      try {
+        const retryResponse = await sheets.spreadsheets.values.get({
+          spreadsheetId: config.spreadsheetIds.inventory,
+          range: 'A:L',
+        });
+        
+        const retryData = retryResponse.data.values || [];
+        if (retryData.length >= 2) {
+          const retryHeaders = retryData[0];
+          const retryRows = retryData.slice(1);
+          
+          // Check if the row index is now valid
+          if (rowIndex >= 2 && rowIndex <= retryRows.length + 1) {
+            console.log('✅ Row index valid after retry, proceeding with delete...');
+            currentData = retryData;
+            rows = retryRows;
+          } else {
+            console.log('❌ Row index still out of bounds after retry');
+            return res.status(404).json({ message: 'Item not found - please try again' });
+          }
+        } else {
+          console.log('❌ No data available after retry');
+          return res.status(404).json({ message: 'Item not found - please try again' });
+        }
+      } catch (retryError) {
+        console.log('❌ Error during retry:', retryError.message);
+        return res.status(404).json({ message: 'Item not found - please try again' });
+      }
     }
 
     // Get the sheet ID first
@@ -1312,6 +1400,48 @@ app.delete('/api/stock/inventory/:id', authenticateToken, async (req, res) => {
       saveChangeLog(changeLog);
     }
 
+    // After successful delete, broadcast the update
+    broadcastInventoryUpdate('DELETE', {
+      id: id,
+      deletedData: currentData[rowIndex - 1]
+    });
+    
+    // Also trigger a full refresh to update row indices
+    setTimeout(async () => {
+      try {
+        const refreshResponse = await sheets.spreadsheets.values.get({
+          spreadsheetId: config.spreadsheetIds.inventory,
+          range: 'A:L',
+        });
+        
+        const refreshedData = refreshResponse.data.values || [];
+        if (refreshedData.length >= 2) {
+          const headers = refreshedData[0];
+          const rows = refreshedData.slice(1);
+          
+          const inventory = rows.map((row, index) => {
+            const item = {};
+            headers.forEach((header, colIndex) => {
+              item[header.toLowerCase().replace(/\s+/g, '_')] = row[colIndex] || '';
+            });
+            item.id = (index + 2).toString(); // Row index starts from 2
+            return item;
+          });
+          
+          broadcastInventoryUpdate('REFRESH', {
+            inventory: inventory,
+            changes: [{ action: 'DELETE', rowId: id }]
+          });
+        }
+      } catch (error) {
+        console.error('Error refreshing inventory after delete:', error);
+      }
+    }, 1000); // Wait 1 second for Google Sheets to update
+    
+    // Broadcast recent changes
+    const recentChanges = changeLog.slice(-5); // Last 5 changes
+    broadcastRecentChanges(recentChanges);
+
     console.log('Google Sheets delete successful');
     res.json({
       success: true,
@@ -1328,7 +1458,265 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
-app.listen(PORT, () => {
+// WebSocket event handlers
+io.on('connection', (socket) => {
+  console.log('Client connected:', socket.id);
+
+  // Handle user authentication
+  socket.on('authenticate', (data) => {
+    try {
+      const token = data.token;
+      jwt.verify(token, JWT_SECRET, (err, user) => {
+        if (err) {
+          socket.emit('auth_error', { message: 'Invalid token' });
+          return;
+        }
+        
+        // Store client connection
+        connectedClients.set(socket.id, {
+          userId: user.id,
+          userInfo: user
+        });
+        
+        // Update active users
+        activeUsers.set(user.id, {
+          lastSeen: Date.now(),
+          userInfo: user
+        });
+        
+        socket.emit('authenticated', { user });
+        console.log('User authenticated via WebSocket:', user.email);
+      });
+    } catch (error) {
+      socket.emit('auth_error', { message: 'Authentication failed' });
+    }
+  });
+
+  // Handle disconnection
+  socket.on('disconnect', () => {
+    const clientData = connectedClients.get(socket.id);
+    if (clientData) {
+      console.log('Client disconnected:', clientData.userInfo.email);
+      connectedClients.delete(socket.id);
+    }
+  });
+});
+
+// Real-time data broadcasting functions
+function broadcastInventoryUpdate(action, data) {
+  io.emit('inventory_update', {
+    action,
+    data,
+    timestamp: Date.now()
+  });
+}
+
+function broadcastRecentChanges(changes) {
+  io.emit('recent_changes', {
+    changes,
+    timestamp: Date.now()
+  });
+}
+
+function broadcastUserActivity(userId, action) {
+  const clientData = connectedClients.get(userId);
+  if (clientData) {
+    io.emit('user_activity', {
+      userId,
+      userEmail: clientData.userInfo.email,
+      action,
+      timestamp: Date.now()
+    });
+  }
+}
+
+// Google Sheets polling system
+let lastInventoryData = null;
+let pollingInterval = null;
+
+async function startGoogleSheetsPolling() {
+  try {
+    const config = await loadConfig();
+    if (!config.spreadsheetIds.inventory) {
+      console.log('⚠️ No inventory spreadsheet configured, skipping polling');
+      return;
+    }
+
+    console.log('🔄 Starting Google Sheets polling every 30 seconds...');
+    
+    // Initial fetch
+    await checkForGoogleSheetsChanges();
+    
+    // Set up polling interval
+    pollingInterval = setInterval(async () => {
+      await checkForGoogleSheetsChanges();
+    }, 30000); // 30 seconds
+    
+  } catch (error) {
+    console.error('❌ Error starting Google Sheets polling:', error);
+  }
+}
+
+async function checkForGoogleSheetsChanges() {
+  try {
+    const config = await loadConfig();
+    if (!config.spreadsheetIds.inventory) {
+      return;
+    }
+
+    console.log('📊 Checking Google Sheets for changes...');
+    
+    // Broadcast sync start
+    io.emit('sheets_sync_start', {
+      timestamp: Date.now()
+    });
+    
+    // Fetch current data from Google Sheets
+    const currentData = await fetchSheetData(config.spreadsheetIds.inventory, 'A:Z');
+    const currentInventory = processInventoryData(currentData);
+    
+    // Convert to comparable format (stringify for deep comparison)
+    const currentDataString = JSON.stringify(currentInventory);
+    
+    if (lastInventoryData === null) {
+      // First time loading, just store the data
+      lastInventoryData = currentDataString;
+      console.log('📋 Initial inventory data loaded');
+      
+      // Broadcast sync success
+      io.emit('sheets_sync_success', {
+        timestamp: Date.now(),
+        message: 'Initial data loaded'
+      });
+      return;
+    }
+    
+    // Check if data has changed
+    if (currentDataString !== lastInventoryData) {
+      console.log('🔄 Changes detected in Google Sheets! Broadcasting update...');
+      
+      // Parse the data back to objects for comparison
+      const oldInventory = JSON.parse(lastInventoryData);
+      const newInventory = currentInventory;
+      
+      // Find what changed
+      const changes = detectInventoryChanges(oldInventory, newInventory);
+      
+      // Broadcast the full inventory update
+      broadcastInventoryUpdate('REFRESH', {
+        inventory: newInventory,
+        changes: changes,
+        source: 'google_sheets'
+      });
+      
+      // Update stored data
+      lastInventoryData = currentDataString;
+      
+      // Log changes for debugging
+      if (changes.length > 0) {
+        console.log('📝 Detected changes:', changes.map(c => `${c.action} item ${c.id}`));
+      }
+      
+      // Broadcast sync success with changes
+      io.emit('sheets_sync_success', {
+        timestamp: Date.now(),
+        changes: changes.length,
+        message: `Found ${changes.length} changes`
+      });
+      
+    } else {
+      console.log('✅ No changes detected in Google Sheets');
+      
+      // Broadcast sync success with no changes
+      io.emit('sheets_sync_success', {
+        timestamp: Date.now(),
+        changes: 0,
+        message: 'No changes detected'
+      });
+    }
+    
+  } catch (error) {
+    console.error('❌ Error checking Google Sheets changes:', error);
+    
+    // Broadcast sync error
+    io.emit('sheets_sync_error', {
+      timestamp: Date.now(),
+      error: error.message
+    });
+  }
+}
+
+function detectInventoryChanges(oldInventory, newInventory) {
+  const changes = [];
+  
+  // Create maps for easy lookup
+  const oldMap = new Map(oldInventory.map(item => [item.id, item]));
+  const newMap = new Map(newInventory.map(item => [item.id, item]));
+  
+  // Check for deleted items
+  for (const [id, oldItem] of oldMap) {
+    if (!newMap.has(id)) {
+      changes.push({
+        action: 'DELETE',
+        id: id,
+        oldData: oldItem,
+        newData: null
+      });
+    }
+  }
+  
+  // Check for added and updated items
+  for (const [id, newItem] of newMap) {
+    if (!oldMap.has(id)) {
+      changes.push({
+        action: 'ADD',
+        id: id,
+        oldData: null,
+        newData: newItem
+      });
+    } else {
+      const oldItem = oldMap.get(id);
+      // Check if any field has changed
+      const hasChanges = Object.keys(newItem).some(key => 
+        newItem[key] !== oldItem[key]
+      );
+      
+      if (hasChanges) {
+        changes.push({
+          action: 'UPDATE',
+          id: id,
+          oldData: oldItem,
+          newData: newItem
+        });
+      }
+    }
+  }
+  
+  return changes;
+}
+
+// Start polling when server starts
+startGoogleSheetsPolling();
+
+// Clean up polling on server shutdown
+process.on('SIGINT', () => {
+  if (pollingInterval) {
+    clearInterval(pollingInterval);
+    console.log('🛑 Google Sheets polling stopped');
+  }
+  process.exit(0);
+});
+
+process.on('SIGTERM', () => {
+  if (pollingInterval) {
+    clearInterval(pollingInterval);
+    console.log('🛑 Google Sheets polling stopped');
+  }
+  process.exit(0);
+});
+
+server.listen(PORT, () => {
   console.log(`Stock Management Server running on port ${PORT}`);
   console.log(`Health check: http://localhost:${PORT}/api/health`);
+  console.log(`WebSocket server ready for real-time updates`);
 }); 
