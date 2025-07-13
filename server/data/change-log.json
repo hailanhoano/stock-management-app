@@ -177,5 +177,69 @@
       "admin@example.com",
       "0"
     ]
+  },
+  {
+    "timestamp": 1752396519224,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "ADD",
+    "rowId": "605",
+    "newValue": {
+      "brand": "test1",
+      "product_code": "wrt",
+      "product_name": "tata",
+      "lot_number": "tat",
+      "date": "tata",
+      "quantity": "tattat",
+      "unit": "tatat",
+      "expiry_date": "tattat"
+    },
+    "changedFields": {
+      "brand": {
+        "old": "",
+        "new": "test1",
+        "fieldName": "brand"
+      },
+      "product_code": {
+        "old": "",
+        "new": "wrt",
+        "fieldName": "product_code"
+      },
+      "product_name": {
+        "old": "",
+        "new": "tata",
+        "fieldName": "product_name"
+      },
+      "lot_number": {
+        "old": "",
+        "new": "tat",
+        "fieldName": "lot_number"
+      },
+      "date": {
+        "old": "",
+        "new": "tata",
+        "fieldName": "date"
+      },
+      "quantity": {
+        "old": "",
+        "new": "tattat",
+        "fieldName": "quantity"
+      },
+      "unit": {
+        "old": "",
+        "new": "tatat",
+        "fieldName": "unit"
+      },
+      "expiry_date": {
+        "old": "",
+        "new": "tattat",
+        "fieldName": "expiry_date"
+      }
+    },
+    "metadata": [
+      "2025-07-13T08:48:39.224Z",
+      "admin@example.com",
+      "1"
+    ]
   }
 ]

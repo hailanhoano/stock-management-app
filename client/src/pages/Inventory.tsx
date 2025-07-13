@@ -75,8 +75,13 @@ const Inventory: React.FC = () => {
     }
   };
 
-  // Get recent changes
+  // Get recent changes - only when countdown is within 30 seconds
   const getRecentChanges = useCallback(async () => {
+    // Only check for changes when countdown is within 30 seconds
+    if (countdown > 30) {
+      return;
+    }
+    
     try {
       const token = localStorage.getItem('token');
       const since = Date.now() - (5 * 60 * 1000); // Last 5 minutes
@@ -90,19 +95,21 @@ const Inventory: React.FC = () => {
       const newChanges = data.changes || [];
       const previousCount = recentChanges.length;
       
-      setRecentChanges(newChanges);
-      
-      // Show notification for new changes
-      if (newChanges.length > previousCount && previousCount > 0) {
-        const newChangeCount = newChanges.length - previousCount;
-        // Use setNotifications directly to avoid dependency issues
-        const id = Date.now().toString();
-        setNotifications(prev => [...prev, { id, message: `${newChangeCount} thay đổi mới được phát hiện`, type: 'info' }]);
+      // Only update if there are actual new changes
+      if (newChanges.length > previousCount) {
+        setRecentChanges(newChanges);
+        
+        // Show notification for new changes only when countdown is within 30 seconds
+        if (countdown <= 30 && previousCount > 0) {
+          const newChangeCount = newChanges.length - previousCount;
+          const id = Date.now().toString();
+          setNotifications(prev => [...prev, { id, message: `${newChangeCount} thay đổi mới được phát hiện`, type: 'info' }]);
+        }
       }
     } catch (error) {
       console.error('Error getting recent changes:', error);
     }
-  }, [recentChanges.length]);
+  }, [recentChanges.length, countdown]);
 
   // Add notification
   const addNotification = (message: string, type: 'success' | 'error' | 'warning' | 'info') => {
@@ -127,6 +134,8 @@ const Inventory: React.FC = () => {
               // Only refresh if we have data and not editing to avoid conflicts
               if (state.spreadsheetIds.inventory && visibleInventory.length > 0 && !editingId) {
                 fetchInventory();
+                // Clear recent changes when we do a full refresh
+                setRecentChanges([]);
               }
             } catch (error) {
               // Silent error handling
@@ -206,33 +215,24 @@ const Inventory: React.FC = () => {
     // Initial calls only once
     checkActiveUsers();
     getEditingSessions();
-    getRecentChanges();
     
-    // Smart background checks - only refresh when countdown is within 30 seconds
+    // Much less frequent background checks - only when countdown is within 30 seconds
     const backgroundInterval = setInterval(async () => {
       const now = Date.now();
       
-      // Only run background checks if:
-      // 1. Countdown is within 30 seconds (meaning we're close to refresh time), OR
-      // 2. Multiple users are active, OR
-      // 3. We haven't checked recently (60+ seconds), OR
-      // 4. User is not currently editing
-      const shouldRefresh = countdown <= 30 || hasMultipleUsers || now - lastFetchTime > 60000 || !editingId;
-      
-      if (shouldRefresh) {
+      // Only run background checks if countdown is within 30 seconds (close to refresh time)
+      if (countdown <= 30) {
         // Check active users
         await checkActiveUsers();
         
         // Get editing sessions
         await getEditingSessions();
         
-        // Get recent changes - only if countdown is within 30 seconds
-        if (countdown <= 30) {
-          await getRecentChanges();
-        }
+        // Get recent changes - only when countdown is within 30 seconds
+        await getRecentChanges();
         
-        // Background refresh for inventory data - only if countdown is within 30 seconds and not editing
-        if (countdown <= 30 && !editingId) {
+        // Background refresh for inventory data - only if not editing
+        if (!editingId) {
           try {
             const token = localStorage.getItem('token');
             if (!state.spreadsheetIds.inventory) {
@@ -262,7 +262,7 @@ const Inventory: React.FC = () => {
           }
         }
       }
-    }, 30000); // 30-second interval for background checks
+    }, 60000); // 60-second interval for background checks (much less frequent)
     
     return () => {
       clearInterval(backgroundInterval);
@@ -700,19 +700,19 @@ const Inventory: React.FC = () => {
               <span>Cập nhật lần cuối: {lastUpdated.toLocaleTimeString()}</span>
               <span className="text-blue-400">●</span>
               <span>
-                {countdown <= 30 ? 'Kiểm tra nền (30s' : 'Chế độ tiết kiệm ('}
+                {countdown <= 30 ? 'Chế độ kiểm tra (30s' : 'Chế độ tiết kiệm ('}
                 <span className="font-mono w-6 inline-block text-right text-xs">{Math.floor(countdown)}s</span>
                 {countdown <= 30 ? ')' : ')'}
               </span>
             </span>
           </div>
           
-          {/* Recent Changes Indicator - only show when countdown is within 30 seconds */}
+          {/* Recent Changes Indicator - only show when countdown is within 30 seconds AND there are changes */}
           {recentChanges.length > 0 && countdown <= 30 && (
             <div className="text-xs text-orange-600 mt-1">
               <span className="flex items-center gap-1 cursor-pointer" onClick={() => setShowChangeHistory(true)}>
                 <span className="text-orange-500">●</span>
-                <span>{recentChanges.length} thay đổi gần đây</span>
+                <span>{recentChanges.length} thay đổi gần đây (chỉ hiển thị trong 30s)</span>
               </span>
             </div>
           )}
