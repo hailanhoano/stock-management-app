@@ -18,7 +18,7 @@ cd "$(dirname "$0")"
 if [ ! -d ".git" ]; then
     echo -e "${YELLOW}Git repository not initialized. Initializing...${NC}"
     git init
-    git remote add origin https://github.com/YOUR_USERNAME/stock-management-app.git
+    git remote add origin https://github.com/hailanhoano/stock-management-app.git
 fi
 
 # Add all files except those in .gitignore
@@ -44,7 +44,7 @@ echo -e "${GREEN}Pushing backup to GitHub...${NC}"
 if git push origin main; then
     echo -e "${GREEN}✅ Backup completed successfully!${NC}"
     echo -e "${GREEN}📅 Backup time: $TIMESTAMP${NC}"
-    echo -e "${GREEN}🌐 View your backup at: https://github.com/YOUR_USERNAME/stock-management-app${NC}"
+    echo -e "${GREEN}🌐 View your backup at: https://github.com/hailanhoano/stock-management-app${NC}"
 else
     echo -e "${RED}❌ Failed to push backup to GitHub${NC}"
     echo -e "${YELLOW}Please check your GitHub credentials and repository settings${NC}"
