@@ -115,37 +115,17 @@ const Inventory: React.FC = () => {
     setNotifications(prev => prev.filter(n => n.id !== id));
   };
 
-  // Countdown timer effect - always 30 seconds
+  // Disabled countdown timer to prevent visual flashing
   useEffect(() => {
-    const interval = 30000; // Always 30 seconds
-    const timer = setInterval(() => {
-      setCountdown(prev => {
-        if (prev <= 1) {
-          // Silent refresh when countdown reaches 0 - no visual feedback
-          setTimeout(() => {
-            try {
-              // Only refresh if we have data to avoid unnecessary calls
-              if (state.spreadsheetIds.inventory && visibleInventory.length > 0) {
-                fetchInventory();
-              }
-            } catch (error) {
-              // Silent error handling
-            }
-          }, 100);
-          return interval / 1000; // Reset to 30 seconds
-        }
-        return prev - 1;
-      });
-    }, 1000);
+    // Set countdown to a high value to prevent automatic refreshes
+    setCountdown(999);
+  }, []); // Only run once to disable countdown
 
-    return () => clearInterval(timer);
-  }, [state.spreadsheetIds.inventory, visibleInventory.length]); // Only depend on stable values
-
-  // Reset countdown when data is fetched
-  useEffect(() => {
-    const interval = 30000; // Always 30 seconds
-    setCountdown(interval / 1000);
-  }, [lastUpdated]);
+  // Disabled countdown reset to prevent visual flashing
+  // useEffect(() => {
+  //   const interval = 30000; // Always 30 seconds
+  //   setCountdown(interval / 1000);
+  // }, [lastUpdated]);
 
   // On initial load only, sync local state
   useEffect(() => {
@@ -156,9 +136,9 @@ const Inventory: React.FC = () => {
 
   // Silent update - only update data without triggering re-renders
   const updateChangedItems = useCallback((newInventory: StockItem[]) => {
-    // Debounce rapid updates to prevent flashing
+    // Aggressive debounce to prevent any flashing
     const now = Date.now();
-    if (now - lastFetchTime < 5000) { // Don't update if last update was less than 5 seconds ago
+    if (now - lastFetchTime < 10000) { // Don't update if last update was less than 10 seconds ago
       return;
     }
     
@@ -172,12 +152,24 @@ const Inventory: React.FC = () => {
         index === self.findIndex(t => t.id === item.id)
       );
       
-      // Deep comparison to check if data actually changed
+      // Strict deep comparison to check if data actually changed
       const hasChanges = prevInventory.length !== uniqueNewInventory.length ||
         prevInventory.some((prevItem, index) => {
           const newItem = uniqueNewInventory[index];
           if (!newItem) return true;
-          return JSON.stringify(prevItem) !== JSON.stringify(newItem);
+          // Compare each field individually to avoid false positives
+          return prevItem.brand !== newItem.brand ||
+                 prevItem.product_code !== newItem.product_code ||
+                 prevItem.product_name !== newItem.product_name ||
+                 prevItem.lot_number !== newItem.lot_number ||
+                 prevItem.date !== newItem.date ||
+                 prevItem.quantity !== newItem.quantity ||
+                 prevItem.unit !== newItem.unit ||
+                 prevItem.expiry_date !== newItem.expiry_date ||
+                 prevItem.import_date !== newItem.import_date ||
+                 prevItem.location !== newItem.location ||
+                 prevItem.warehouse !== newItem.warehouse ||
+                 prevItem.notes !== newItem.notes;
         });
       
       // Only update if there are actual changes
@@ -196,12 +188,12 @@ const Inventory: React.FC = () => {
     getEditingSessions();
     getRecentChanges();
     
-    // Single unified interval for all background checks - every 30 seconds
+    // Much less frequent background checks - every 60 seconds
     const backgroundInterval = setInterval(async () => {
       const now = Date.now();
       
-      // Only run background checks if there are multiple users or if we haven't checked recently
-      if (hasMultipleUsers || now - lastFetchTime > 25000) {
+      // Only run background checks if there are multiple users AND we haven't checked recently AND user is not editing
+      if (hasMultipleUsers && now - lastFetchTime > 45000 && !editingId) {
         // Check active users
         await checkActiveUsers();
         
@@ -240,7 +232,7 @@ const Inventory: React.FC = () => {
           // Silent error for background checks
         }
       }
-    }, 30000); // Single 30-second interval for all background operations
+    }, 60000); // Single 60-second interval for all background operations
     
     return () => {
       clearInterval(backgroundInterval);
