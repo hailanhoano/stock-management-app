@@ -115,11 +115,31 @@ const Inventory: React.FC = () => {
     setNotifications(prev => prev.filter(n => n.id !== id));
   };
 
-  // Disabled countdown timer to prevent visual flashing
+  // Smart countdown timer - only refresh when countdown reaches 0
   useEffect(() => {
-    // Set countdown to a high value to prevent automatic refreshes
-    setCountdown(999);
-  }, []); // Only run once to disable countdown
+    const interval = 30000; // Always 30 seconds
+    const timer = setInterval(() => {
+      setCountdown(prev => {
+        if (prev <= 1) {
+          // Only refresh when countdown reaches 0 - this triggers the main refresh
+          setTimeout(() => {
+            try {
+              // Only refresh if we have data and not editing to avoid conflicts
+              if (state.spreadsheetIds.inventory && visibleInventory.length > 0 && !editingId) {
+                fetchInventory();
+              }
+            } catch (error) {
+              // Silent error handling
+            }
+          }, 100);
+          return interval / 1000; // Reset to 30 seconds
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [state.spreadsheetIds.inventory, visibleInventory.length, editingId]); // Added editingId dependency
 
   // Disabled countdown reset to prevent visual flashing
   // useEffect(() => {
@@ -136,9 +156,9 @@ const Inventory: React.FC = () => {
 
   // Silent update - only update data without triggering re-renders
   const updateChangedItems = useCallback((newInventory: StockItem[]) => {
-    // Aggressive debounce to prevent any flashing
+    // Moderate debounce to prevent excessive flashing
     const now = Date.now();
-    if (now - lastFetchTime < 10000) { // Don't update if last update was less than 10 seconds ago
+    if (now - lastFetchTime < 5000) { // Don't update if last update was less than 5 seconds ago
       return;
     }
     
@@ -188,56 +208,66 @@ const Inventory: React.FC = () => {
     getEditingSessions();
     getRecentChanges();
     
-    // Much less frequent background checks - every 60 seconds
+    // Smart background checks - only refresh when countdown is within 30 seconds
     const backgroundInterval = setInterval(async () => {
       const now = Date.now();
       
-      // Only run background checks if there are multiple users AND we haven't checked recently AND user is not editing
-      if (hasMultipleUsers && now - lastFetchTime > 45000 && !editingId) {
+      // Only run background checks if:
+      // 1. Countdown is within 30 seconds (meaning we're close to refresh time), OR
+      // 2. Multiple users are active, OR
+      // 3. We haven't checked recently (60+ seconds), OR
+      // 4. User is not currently editing
+      const shouldRefresh = countdown <= 30 || hasMultipleUsers || now - lastFetchTime > 60000 || !editingId;
+      
+      if (shouldRefresh) {
         // Check active users
         await checkActiveUsers();
         
         // Get editing sessions
         await getEditingSessions();
         
-        // Get recent changes
-        await getRecentChanges();
+        // Get recent changes - only if countdown is within 30 seconds
+        if (countdown <= 30) {
+          await getRecentChanges();
+        }
         
-        // Background refresh for inventory data - only if needed
-        try {
-          const token = localStorage.getItem('token');
-          if (!state.spreadsheetIds.inventory) {
-            return;
-          }
-          
-          const response = await fetch(`/api/stock/inventory?spreadsheetId=${state.spreadsheetIds.inventory}`, {
-            headers: {
-              'Authorization': `Bearer ${token}`
+        // Background refresh for inventory data - only if countdown is within 30 seconds and not editing
+        if (countdown <= 30 && !editingId) {
+          try {
+            const token = localStorage.getItem('token');
+            if (!state.spreadsheetIds.inventory) {
+              return;
             }
-          });
-          
-          if (!response.ok) {
-            return;
+            
+            const response = await fetch(`/api/stock/inventory?spreadsheetId=${state.spreadsheetIds.inventory}`, {
+              headers: {
+                'Authorization': `Bearer ${token}`
+              }
+            });
+            
+            if (!response.ok) {
+              return;
+            }
+            
+            const data = await response.json();
+            
+            if (data.success) {
+              setLastUpdated(new Date());
+              setLastFetchTime(now);
+              // Silent update without visual changes
+              updateChangedItems(data.data || data);
+            }
+          } catch (error) {
+            // Silent error for background checks
           }
-          
-          const data = await response.json();
-          
-          if (data.success) {
-            setLastUpdated(new Date());
-            setLastFetchTime(now);
-            // Silent update without visual changes
-            updateChangedItems(data.data || data);
-          }
-        } catch (error) {
-          // Silent error for background checks
         }
       }
-    }, 60000); // Single 60-second interval for all background operations
+    }, 30000); // 30-second interval for background checks
     
     return () => {
       clearInterval(backgroundInterval);
     };
-  }, [hasMultipleUsers, state.spreadsheetIds.inventory, lastFetchTime]); // Added lastFetchTime to prevent excessive calls
+  }, [hasMultipleUsers, state.spreadsheetIds.inventory, lastFetchTime, editingId, countdown]); // Added countdown dependency
 
   // Fetch inventory when spreadsheet ID becomes available (only if no data exists)
   useEffect(() => {
@@ -488,15 +518,24 @@ const Inventory: React.FC = () => {
       const data = await response.json();
 
       if (data.success) {
-        // Remove the item from local state to prevent flash
+        // Remove the item from local state immediately for responsive UI
         setVisibleInventory(prevInventory => 
           prevInventory.filter(invItem => invItem.id !== item.id)
         );
+        
+        // Refresh data from server to ensure consistency
+        setTimeout(() => {
+          fetchInventory();
+        }, 1000);
+        
+        addNotification('Đã xóa thành công', 'success');
       } else {
         console.error('Failed to delete item:', data.message);
+        addNotification('Lỗi khi xóa sản phẩm', 'error');
       }
     } catch (error) {
       console.error('Error deleting item:', error);
+      addNotification('Lỗi khi xóa sản phẩm', 'error');
     } finally {
       setDeletingId(null);
     }
@@ -660,12 +699,16 @@ const Inventory: React.FC = () => {
             <span className="flex items-center gap-1">
               <span>Cập nhật lần cuối: {lastUpdated.toLocaleTimeString()}</span>
               <span className="text-blue-400">●</span>
-              <span>Kiểm tra nền (30s - <span className="font-mono w-6 inline-block text-right text-xs">{Math.floor(countdown)}s</span>)</span>
+              <span>
+                {countdown <= 30 ? 'Kiểm tra nền (30s' : 'Chế độ tiết kiệm ('}
+                <span className="font-mono w-6 inline-block text-right text-xs">{Math.floor(countdown)}s</span>
+                {countdown <= 30 ? ')' : ')'}
+              </span>
             </span>
           </div>
           
-          {/* Recent Changes Indicator */}
-          {recentChanges.length > 0 && (
+          {/* Recent Changes Indicator - only show when countdown is within 30 seconds */}
+          {recentChanges.length > 0 && countdown <= 30 && (
             <div className="text-xs text-orange-600 mt-1">
               <span className="flex items-center gap-1 cursor-pointer" onClick={() => setShowChangeHistory(true)}>
                 <span className="text-orange-500">●</span>
