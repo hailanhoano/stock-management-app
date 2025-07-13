@@ -1,0 +1,90 @@
+[
+  {
+    "timestamp": 1752394511113,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "DELETE",
+    "rowId": "608",
+    "oldValue": [
+      "test 2",
+      "2",
+      "45"
+    ],
+    "changedFields": {},
+    "metadata": [
+      "2025-07-13T08:15:11.113Z",
+      "admin@example.com",
+      "0"
+    ]
+  },
+  {
+    "timestamp": 1752394514852,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "DELETE",
+    "rowId": "606",
+    "oldValue": [
+      "test",
+      "teat",
+      "teat",
+      "trata"
+    ],
+    "changedFields": {},
+    "metadata": [
+      "2025-07-13T08:15:14.852Z",
+      "admin@example.com",
+      "0"
+    ]
+  },
+  {
+    "timestamp": 1752394538374,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "DELETE",
+    "rowId": "605",
+    "oldValue": [
+      "test",
+      "test",
+      "test 12"
+    ],
+    "changedFields": {},
+    "metadata": [
+      "2025-07-13T08:15:38.374Z",
+      "admin@example.com",
+      "0"
+    ]
+  },
+  {
+    "timestamp": 1752395260139,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "DELETE",
+    "rowId": "605",
+    "oldValue": [
+      "test1",
+      "341"
+    ],
+    "changedFields": {},
+    "metadata": [
+      "2025-07-13T08:27:40.139Z",
+      "admin@example.com",
+      "0"
+    ]
+  },
+  {
+    "timestamp": 1752395263571,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "DELETE",
+    "rowId": "608",
+    "oldValue": [
+      "test3"
+    ],
+    "changedFields": {},
+    "metadata": [
+      "2025-07-13T08:27:43.571Z",
+      "admin@example.com",
+      "0"
+    ]
+  }
+]

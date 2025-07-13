@@ -8,7 +8,7 @@ interface ChangeEntry {
   rowId: string;
   oldValue?: { [key: string]: any };
   newValue?: { [key: string]: any };
-  changedFields?: { [key: string]: { old: any; new: any; fieldName: string } };
+  changedFields?: { [key: string]: { old?: any; new?: any; original?: any; current?: any; fieldName: string } };
   metadata?: string[];
 }
 
@@ -31,7 +31,18 @@ const ChangeHistory: React.FC<ChangeHistoryProps> = ({ isOpen, onClose }) => {
         }
       });
       const data = await response.json();
-      setChanges(data.changes || []);
+      
+      // Remove duplicates based on timestamp, userId, rowId, and action
+      const uniqueChanges = (data.changes || []).filter((change: ChangeEntry, index: number, self: ChangeEntry[]) => {
+        return index === self.findIndex(c => 
+          c.timestamp === change.timestamp &&
+          c.userId === change.userId &&
+          c.rowId === change.rowId &&
+          c.action === change.action
+        );
+      });
+      
+      setChanges(uniqueChanges);
     } catch (error) {
       console.error('Error fetching changes:', error);
     } finally {
@@ -53,6 +64,10 @@ const ChangeHistory: React.FC<ChangeHistoryProps> = ({ isOpen, onClose }) => {
     switch (action) {
       case 'UPDATE':
         return 'Cập nhật';
+      case 'ADD':
+        return 'Thêm mới';
+      case 'DELETE':
+        return 'Xóa';
       case 'CONFLICT_DETECTED':
         return 'Xung đột';
       default:
@@ -89,12 +104,14 @@ const ChangeHistory: React.FC<ChangeHistoryProps> = ({ isOpen, onClose }) => {
             ) : (
               <div className="space-y-3">
                 {changes.map((change, index) => (
-                  <div key={index} className="border border-gray-200 rounded-lg p-3">
+                  <div key={`${change.timestamp}-${change.userId}-${change.rowId}-${change.action}`} className="border border-gray-200 rounded-lg p-3">
                     <div className="flex justify-between items-start mb-2">
                       <div className="flex items-center gap-2">
                         <span className={`px-2 py-1 rounded text-xs font-medium ${
                           change.action === 'UPDATE' ? 'bg-green-100 text-green-800' :
-                          change.action === 'CONFLICT_DETECTED' ? 'bg-red-100 text-red-800' :
+                          change.action === 'ADD' ? 'bg-blue-100 text-blue-800' :
+                          change.action === 'DELETE' ? 'bg-red-100 text-red-800' :
+                          change.action === 'CONFLICT_DETECTED' ? 'bg-orange-100 text-orange-800' :
                           'bg-gray-100 text-gray-800'
                         }`}>
                           {getActionLabel(change.action)}
@@ -110,14 +127,43 @@ const ChangeHistory: React.FC<ChangeHistoryProps> = ({ isOpen, onClose }) => {
                     
                     <div className="text-sm text-gray-700">
                       <span className="font-medium">{change.userEmail}</span>
-                      {change.metadata && (
+                      {change.metadata && change.metadata.length >= 3 && (
                         <span className="text-gray-500 ml-2">
                           (v{change.metadata[2] || 'N/A'})
                         </span>
                       )}
                     </div>
                     
-                    {change.changedFields && Object.keys(change.changedFields).length > 0 && (
+                    {change.action === 'ADD' && change.changedFields && Object.keys(change.changedFields).length > 0 && (
+                      <div className="mt-2 text-xs text-gray-600">
+                        <div className="space-y-2">
+                          <span className="font-medium text-gray-700">Thêm mới:</span>
+                          {Object.entries(change.changedFields).map(([key, field]) => (
+                            <div key={key} className="flex items-center gap-2 p-2 bg-blue-50 rounded">
+                              <div className="flex-1">
+                                <span className="font-medium text-gray-700">{field.fieldName}:</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-green-600 font-medium">{String(field.new || '')}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {change.action === 'DELETE' && change.oldValue && (
+                      <div className="mt-2 text-xs text-gray-600">
+                        <div className="space-y-2">
+                          <span className="font-medium text-gray-700">Đã xóa:</span>
+                          <div className="p-2 bg-red-50 rounded">
+                            <span className="text-red-600">Dòng {change.rowId} đã được xóa</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {change.action === 'UPDATE' && change.changedFields && Object.keys(change.changedFields).length > 0 && (
                       <div className="mt-2 text-xs text-gray-600">
                         <div className="space-y-2">
                           <span className="font-medium text-gray-700">Thay đổi:</span>
@@ -127,9 +173,9 @@ const ChangeHistory: React.FC<ChangeHistoryProps> = ({ isOpen, onClose }) => {
                                 <span className="font-medium text-gray-700">{field.fieldName}:</span>
                               </div>
                               <div className="flex items-center gap-2">
-                                <span className="text-red-600 line-through">{String(field.old)}</span>
+                                <span className="text-red-600 line-through">{String(field.old || field.original || '')}</span>
                                 <span className="text-gray-400">→</span>
-                                <span className="text-green-600 font-medium">{String(field.new)}</span>
+                                <span className="text-green-600 font-medium">{String(field.new || field.current || '')}</span>
                               </div>
                             </div>
                           ))}

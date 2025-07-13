@@ -834,7 +834,35 @@ app.post('/api/config', authenticateToken, async (req, res) => {
 });
 
 // Change logging and conflict tracking
-const changeLog = [];
+const CHANGE_LOG_FILE = path.join(__dirname, 'data', 'change-log.json');
+
+// Load change log from file
+async function loadChangeLog() {
+  try {
+    const data = await fs.readFile(CHANGE_LOG_FILE, 'utf8');
+    return JSON.parse(data);
+  } catch (error) {
+    console.log('No existing change log found, starting fresh');
+    return [];
+  }
+}
+
+// Save change log to file
+async function saveChangeLog(changeLog) {
+  try {
+    await fs.writeFile(CHANGE_LOG_FILE, JSON.stringify(changeLog, null, 2));
+  } catch (error) {
+    console.error('Error saving change log:', error);
+  }
+}
+
+// Initialize change log
+let changeLog = [];
+loadChangeLog().then(log => {
+  changeLog = log;
+  console.log(`Loaded ${changeLog.length} change log entries`);
+});
+
 const editingSessions = new Map(); // userId -> { rowId, startTime, data }
 
 // Update inventory item endpoint
@@ -938,16 +966,30 @@ app.put('/api/stock/inventory/:id', authenticateToken, async (req, res) => {
         });
         
         // Log the conflict
-        changeLog.push({
+        const conflictEntry = {
           timestamp: Date.now(),
           userId: req.user.id,
+          userEmail: req.user.email,
           action: 'CONFLICT_DETECTED',
           rowId: id,
           originalData: originalDataMap,
           attemptedData: attemptedDataMap,
           currentData: currentDataMap,
           changedFields: changedFields
-        });
+        };
+        
+        // Check for duplicates (same user, same row, same timestamp within 1 second)
+        const isDuplicate = changeLog.some(entry => 
+          entry.userId === conflictEntry.userId &&
+          entry.rowId === conflictEntry.rowId &&
+          entry.action === conflictEntry.action &&
+          Math.abs(entry.timestamp - conflictEntry.timestamp) < 1000
+        );
+        
+        if (!isDuplicate) {
+          changeLog.push(conflictEntry);
+          saveChangeLog(changeLog);
+        }
         
         return res.status(409).json({ 
           message: 'Data was modified by another user while you were editing',
@@ -997,12 +1039,9 @@ app.put('/api/stock/inventory/:id', authenticateToken, async (req, res) => {
     const newValueMap = {};
     const changedFields = {};
     
-    // Get the original data from when user started editing
-    const originalData = userSession ? userSession.originalData : currentRowData;
-    
     headers.forEach((header, index) => {
       const englishKey = headerMapping[header] || header.toLowerCase().replace(/\s+/g, '_');
-      const oldValue = originalData[index] || '';
+      const oldValue = currentRowData[index] || '';
       const newValue = updatedRow[index] || '';
       
       // Only include fields that actually changed
@@ -1017,29 +1056,30 @@ app.put('/api/stock/inventory/:id', authenticateToken, async (req, res) => {
       }
     });
     
-    // Only log if there are actual changes
-    if (Object.keys(changedFields).length > 0) {
-      // Check for duplicate recent entries (within 5 seconds)
-      const recentEntry = changeLog.find(entry => 
-        entry.rowId === id && 
-        entry.action === 'UPDATE' && 
-        Date.now() - entry.timestamp < 5000
-      );
-      
-      if (!recentEntry) {
-        // Log the successful change
-        changeLog.push({
-          timestamp: Date.now(),
-          userId: req.user.id,
-          userEmail: req.user.email,
-          action: 'UPDATE',
-          rowId: id,
-          oldValue: oldValueMap,
-          newValue: newValueMap,
-          changedFields: changedFields,
-          metadata: metadataColumns
-        });
-      }
+    // Log the successful change
+    const updateEntry = {
+      timestamp: Date.now(),
+      userId: req.user.id,
+      userEmail: req.user.email,
+      action: 'UPDATE',
+      rowId: id,
+      oldValue: oldValueMap,
+      newValue: newValueMap,
+      changedFields: changedFields,
+      metadata: metadataColumns
+    };
+    
+    // Check for duplicates (same user, same row, same timestamp within 1 second)
+    const isDuplicate = changeLog.some(entry => 
+      entry.userId === updateEntry.userId &&
+      entry.rowId === updateEntry.rowId &&
+      entry.action === updateEntry.action &&
+      Math.abs(entry.timestamp - updateEntry.timestamp) < 1000
+    );
+    
+    if (!isDuplicate) {
+      changeLog.push(updateEntry);
+      saveChangeLog(changeLog);
     }
 
     // Clear the editing session
@@ -1131,11 +1171,48 @@ app.post('/api/stock/inventory', authenticateToken, async (req, res) => {
       }
     });
 
+    // Log the add operation
+    const addEntry = {
+      timestamp: Date.now(),
+      userId: req.user.id,
+      userEmail: req.user.email,
+      action: 'ADD',
+      rowId: nextRowNumber.toString(),
+      newValue: newItem,
+      changedFields: Object.keys(newItem).reduce((acc, key) => {
+        acc[key] = {
+          old: '',
+          new: newItem[key],
+          fieldName: key
+        };
+        return acc;
+      }, {}),
+      metadata: [
+        new Date().toISOString(), // lastModified
+        req.user.email, // modifiedBy
+        '1' // version
+      ]
+    };
+    
+    // Check for duplicates
+    const isDuplicate = changeLog.some(entry => 
+      entry.userId === addEntry.userId &&
+      entry.rowId === addEntry.rowId &&
+      entry.action === addEntry.action &&
+      Math.abs(entry.timestamp - addEntry.timestamp) < 1000
+    );
+    
+    if (!isDuplicate) {
+      changeLog.push(addEntry);
+      saveChangeLog(changeLog);
+    }
+
     console.log('Google Sheets append successful');
     res.json({
       success: true,
       message: 'Item added successfully',
-      data: newItem
+      data: newItem,
+      id: nextRowNumber.toString() // Return the actual row number for deletion
     });
   } catch (error) {
     console.error('Error adding inventory item:', error);
@@ -1205,6 +1282,35 @@ app.delete('/api/stock/inventory/:id', authenticateToken, async (req, res) => {
         ]
       }
     });
+
+    // Log the delete operation
+    const deleteEntry = {
+      timestamp: Date.now(),
+      userId: req.user.id,
+      userEmail: req.user.email,
+      action: 'DELETE',
+      rowId: id,
+      oldValue: currentData[rowIndex - 1], // Store the deleted row data
+      changedFields: {},
+      metadata: [
+        new Date().toISOString(), // lastModified
+        req.user.email, // modifiedBy
+        '0' // version (deleted)
+      ]
+    };
+    
+    // Check for duplicates
+    const isDuplicate = changeLog.some(entry => 
+      entry.userId === deleteEntry.userId &&
+      entry.rowId === deleteEntry.rowId &&
+      entry.action === deleteEntry.action &&
+      Math.abs(entry.timestamp - deleteEntry.timestamp) < 1000
+    );
+    
+    if (!isDuplicate) {
+      changeLog.push(deleteEntry);
+      saveChangeLog(changeLog);
+    }
 
     console.log('Google Sheets delete successful');
     res.json({

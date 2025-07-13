@@ -1,72 +1,258 @@
-import React, { useState, useCallback, useEffect } from 'react';
-import { useStock } from '../context/StockContext';
+import React, { useEffect, useState, useCallback } from 'react';
+import { useStock, StockItem } from '../context/StockContext';
+import EditingIndicator from '../components/EditingIndicator';
 import ChangeHistory from '../components/ChangeHistory';
 import Notification from '../components/Notification';
 
-interface StockItem {
-  id: string;
-  name?: string;
-  quantity?: number;
-  price?: number;
-  category?: string;
-  min_quantity?: number;
-  supplier?: string;
-  last_updated?: string;
-  brand?: string;
-  product_code?: string;
-  product_name?: string;
-  lot_number?: string;
-  date?: string;
-  unit?: string;
-  expiry_date?: string;
-  import_date?: string;
-  location?: string;
-  warehouse?: string;
-  notes?: string;
-}
-
-interface NotificationItem {
-  id: string;
-  message: string;
-  type: 'success' | 'error' | 'warning' | 'info';
-}
-
 const Inventory: React.FC = () => {
   const { state, fetchInventory } = useStock();
+  // Local state for visible inventory
   const [visibleInventory, setVisibleInventory] = useState<StockItem[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editedItem, setEditedItem] = useState<StockItem | null>(null);
-  const [newItem, setNewItem] = useState<Partial<StockItem>>({});
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [sortField, setSortField] = useState<keyof StockItem>('id');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortField, setSortField] = useState<keyof StockItem>('product_name');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
-  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
-  const [showChangeHistory, setShowChangeHistory] = useState(false);
-  const [showConflictDialog, setShowConflictDialog] = useState(false);
+  const [isAdding, setIsAdding] = useState(false);
+  const [newItem, setNewItem] = useState<Partial<StockItem>>({});
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+  const [hasMultipleUsers, setHasMultipleUsers] = useState(false);
+  const [lastFetchTime, setLastFetchTime] = useState(0);
+  const [countdown, setCountdown] = useState(0);
+  
+  // New state for multi-user features
+  const [editingSessions, setEditingSessions] = useState<{[key: string]: {userEmail: string, startTime: number}}>({});
   const [conflictData, setConflictData] = useState<any>(null);
-  const [searchTerm, setSearchTerm] = useState<string>('');
-  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+  const [showConflictDialog, setShowConflictDialog] = useState(false);
+  const [recentChanges, setRecentChanges] = useState<any[]>([]);
+  const [showChangeHistory, setShowChangeHistory] = useState(false);
+  const [notifications, setNotifications] = useState<Array<{
+    id: string;
+    message: string;
+    type: 'success' | 'error' | 'warning' | 'info';
+  }>>([]);
 
-  // Load inventory data when component mounts
-  useEffect(() => {
-    fetchInventory();
-  }, [fetchInventory]);
+  // Check active users count
+  const checkActiveUsers = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/users/active-count', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const data = await response.json();
+      setHasMultipleUsers(data.hasMultipleUsers);
+    } catch (error) {
+      console.error('Error checking active users:', error);
+    }
+  };
 
-  // Sync local state with context state
+  // Get editing sessions
+  const getEditingSessions = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/stock/editing-sessions', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const data = await response.json();
+      
+      if (data.sessions) {
+        const sessionsMap: {[key: string]: {userEmail: string, startTime: number}} = {};
+        data.sessions.forEach((session: any) => {
+          sessionsMap[session.rowId] = {
+            userEmail: session.userEmail,
+            startTime: session.startTime
+          };
+        });
+        setEditingSessions(sessionsMap);
+      }
+    } catch (error) {
+      console.error('Error getting editing sessions:', error);
+    }
+  };
+
+  // Get recent changes
+  const getRecentChanges = useCallback(async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const since = Date.now() - (5 * 60 * 1000); // Last 5 minutes
+      const response = await fetch(`/api/stock/change-log?since=${since}&limit=10`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const data = await response.json();
+      
+      const newChanges = data.changes || [];
+      const previousCount = recentChanges.length;
+      
+      setRecentChanges(newChanges);
+      
+      // Show notification for new changes
+      if (newChanges.length > previousCount && previousCount > 0) {
+        const newChangeCount = newChanges.length - previousCount;
+        // Use setNotifications directly to avoid dependency issues
+        const id = Date.now().toString();
+        setNotifications(prev => [...prev, { id, message: `${newChangeCount} thay đổi mới được phát hiện`, type: 'info' }]);
+      }
+    } catch (error) {
+      console.error('Error getting recent changes:', error);
+    }
+  }, [recentChanges.length]);
+
+  // Add notification
+  const addNotification = (message: string, type: 'success' | 'error' | 'warning' | 'info') => {
+    const id = Date.now().toString();
+    setNotifications(prev => [...prev, { id, message, type }]);
+  };
+
+  // Remove notification
+  const removeNotification = (id: string) => {
+    setNotifications(prev => prev.filter(n => n.id !== id));
+  };
+
+  // Countdown timer effect - always 30 seconds
   useEffect(() => {
-    if (state.inventory.length > 0) {
+    const interval = 30000; // Always 30 seconds
+    const timer = setInterval(() => {
+      setCountdown(prev => {
+        if (prev <= 1) {
+          // Silent refresh when countdown reaches 0 - no visual feedback
+          setTimeout(() => {
+            try {
+              // Only refresh if we have data to avoid unnecessary calls
+              if (state.spreadsheetIds.inventory && visibleInventory.length > 0) {
+                fetchInventory();
+              }
+            } catch (error) {
+              // Silent error handling
+            }
+          }, 100);
+          return interval / 1000; // Reset to 30 seconds
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [state.spreadsheetIds.inventory, visibleInventory.length]); // Only depend on stable values
+
+  // Reset countdown when data is fetched
+  useEffect(() => {
+    const interval = 30000; // Always 30 seconds
+    setCountdown(interval / 1000);
+  }, [lastUpdated]);
+
+  // On initial load only, sync local state
+  useEffect(() => {
+    if (state.inventory.length > 0 && visibleInventory.length === 0) {
       setVisibleInventory(state.inventory);
     }
-  }, [state.inventory]);
+  }, [state.inventory, visibleInventory.length]);
 
-  // Filter inventory based on search term
-  const filteredInventory = visibleInventory.filter(item => {
-    if (!searchTerm) return true;
-    const searchLower = searchTerm.toLowerCase();
-    return Object.values(item).some(value => 
-      value && String(value).toLowerCase().includes(searchLower)
-    );
-  });
+  // Silent update - only update data without triggering re-renders
+  const updateChangedItems = useCallback((newInventory: StockItem[]) => {
+    // Debounce rapid updates to prevent flashing
+    const now = Date.now();
+    if (now - lastFetchTime < 5000) { // Don't update if last update was less than 5 seconds ago
+      return;
+    }
+    
+    setVisibleInventory(prevInventory => {
+      if (prevInventory.length === 0) {
+        return newInventory;
+      }
+      
+      // Remove duplicates by ID
+      const uniqueNewInventory = newInventory.filter((item, index, self) => 
+        index === self.findIndex(t => t.id === item.id)
+      );
+      
+      // Deep comparison to check if data actually changed
+      const hasChanges = prevInventory.length !== uniqueNewInventory.length ||
+        prevInventory.some((prevItem, index) => {
+          const newItem = uniqueNewInventory[index];
+          if (!newItem) return true;
+          return JSON.stringify(prevItem) !== JSON.stringify(newItem);
+        });
+      
+      // Only update if there are actual changes
+      if (!hasChanges) {
+        return prevInventory; // Return same reference to prevent re-render
+      }
+      
+      // Update silently without triggering visual changes
+      return uniqueNewInventory;
+    });
+  }, [lastFetchTime]);
+
+  useEffect(() => {
+    // Initial calls only once
+    checkActiveUsers();
+    getEditingSessions();
+    getRecentChanges();
+    
+    // Single unified interval for all background checks - every 30 seconds
+    const backgroundInterval = setInterval(async () => {
+      const now = Date.now();
+      
+      // Only run background checks if there are multiple users or if we haven't checked recently
+      if (hasMultipleUsers || now - lastFetchTime > 25000) {
+        // Check active users
+        await checkActiveUsers();
+        
+        // Get editing sessions
+        await getEditingSessions();
+        
+        // Get recent changes
+        await getRecentChanges();
+        
+        // Background refresh for inventory data - only if needed
+        try {
+          const token = localStorage.getItem('token');
+          if (!state.spreadsheetIds.inventory) {
+            return;
+          }
+          
+          const response = await fetch(`/api/stock/inventory?spreadsheetId=${state.spreadsheetIds.inventory}`, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          
+          if (!response.ok) {
+            return;
+          }
+          
+          const data = await response.json();
+          
+          if (data.success) {
+            setLastUpdated(new Date());
+            setLastFetchTime(now);
+            // Silent update without visual changes
+            updateChangedItems(data.data || data);
+          }
+        } catch (error) {
+          // Silent error for background checks
+        }
+      }
+    }, 30000); // Single 30-second interval for all background operations
+    
+    return () => {
+      clearInterval(backgroundInterval);
+    };
+  }, [hasMultipleUsers, state.spreadsheetIds.inventory, lastFetchTime]); // Added lastFetchTime to prevent excessive calls
+
+  // Fetch inventory when spreadsheet ID becomes available (only if no data exists)
+  useEffect(() => {
+    if (state.spreadsheetIds.inventory && state.inventory.length === 0) {
+      fetchInventory();
+    }
+  }, [state.spreadsheetIds.inventory, state.inventory.length]); // Removed fetchInventory dependency
 
   // Vietnamese column headers mapping
   const columnHeaders: { [key in keyof StockItem]: string } = {
@@ -82,50 +268,7 @@ const Inventory: React.FC = () => {
     import_date: 'Ngày nhập kho',
     location: 'Vị trí đặt hàng',
     warehouse: 'Tên Kho',
-    notes: 'Ghi chú',
-    name: 'Tên',
-    price: 'Giá',
-    category: 'Danh mục',
-    min_quantity: 'Số lượng tối thiểu',
-    supplier: 'Nhà cung cấp',
-    last_updated: 'Cập nhật lần cuối'
-  };
-
-  // Sort inventory data
-  const sortedInventory = [...filteredInventory].sort((a, b) => {
-    const aValue = a[sortField];
-    const bValue = b[sortField];
-    
-    if (aValue === undefined && bValue === undefined) return 0;
-    if (aValue === undefined) return sortDirection === 'asc' ? -1 : 1;
-    if (bValue === undefined) return sortDirection === 'asc' ? 1 : -1;
-    
-    const comparison = String(aValue).localeCompare(String(bValue));
-    return sortDirection === 'asc' ? comparison : -comparison;
-  });
-
-  // Add notification
-  const addNotification = useCallback((message: string, type: 'success' | 'error' | 'warning' | 'info') => {
-    const id = Date.now().toString();
-    setNotifications(prev => [...prev, { id, message, type }]);
-  }, []);
-
-  // Remove notification
-  const removeNotification = (id: string) => {
-    setNotifications(prev => prev.filter(n => n.id !== id));
-  };
-
-  // Refresh page data
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    try {
-      await fetchInventory();
-      addNotification('Đã làm mới dữ liệu', 'success');
-    } catch (error) {
-      addNotification('Lỗi khi làm mới dữ liệu', 'error');
-    } finally {
-      setIsRefreshing(false);
-    }
+    notes: 'Ghi chú'
   };
 
   const handleEdit = async (item: StockItem) => {
@@ -196,7 +339,7 @@ const Inventory: React.FC = () => {
           }
         });
         
-        addNotification('Lưu thành công', 'success');
+        addNotification('Đã lưu thành công', 'success');
       } else if (response.status === 409) {
         // Conflict detected
         setConflictData(data);
@@ -208,7 +351,7 @@ const Inventory: React.FC = () => {
       }
     } catch (error) {
       console.error('Error saving item:', error);
-      addNotification('Lỗi khi lưu dữ liệu', 'error');
+      // Removed alert - silent error
     }
   };
 
@@ -230,57 +373,52 @@ const Inventory: React.FC = () => {
     setEditedItem(null);
   };
 
+  // Conflict resolution handlers
   const handleConflictResolve = async (useServerData: boolean) => {
-    if (!editedItem) return;
+    if (!conflictData) return;
     
     try {
       const token = localStorage.getItem('token');
       
       if (useServerData) {
-        // Use server data
-        const response = await fetch(`/api/stock/inventory/${editedItem.id}`, {
+        // Use server data, just end the editing session
+        await fetch(`/api/stock/inventory/${editingId}/end-edit`, {
+          method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`
           }
         });
-        const data = await response.json();
         
-        if (data.success) {
-          setVisibleInventory(prevInventory => 
-            prevInventory.map(item => 
-              item.id === editedItem.id ? data.data : item
-            )
-          );
-        }
+        // Refresh the data to show server version
+    fetchInventory();
       } else {
-        // Use local data - force save
-        const response = await fetch(`/api/stock/inventory/${editedItem.id}`, {
+        // Use our data, force the update
+        const response = await fetch(`/api/stock/inventory/${editedItem!.id}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
+            'Authorization': `Bearer ${token}`,
+            'X-Force-Update': 'true' // Custom header to bypass conflict check
           },
           body: JSON.stringify(editedItem)
         });
         
-        const data = await response.json();
-        
-        if (data.success) {
+        if (response.ok) {
+          // Update local state
           setVisibleInventory(prevInventory => 
             prevInventory.map(item => 
-              item.id === editedItem.id ? editedItem : item
+              item.id === editedItem!.id ? editedItem! : item
             )
           );
         }
       }
       
+      setShowConflictDialog(false);
+      setConflictData(null);
       setEditingId(null);
       setEditedItem(null);
-      setShowConflictDialog(false);
-      addNotification('Xung đột đã được giải quyết', 'success');
     } catch (error) {
       console.error('Error resolving conflict:', error);
-      addNotification('Lỗi khi giải quyết xung đột', 'error');
     }
   };
 
@@ -299,13 +437,14 @@ const Inventory: React.FC = () => {
   };
 
   const handleAdd = () => {
-    setShowAddForm(true);
+    setIsAdding(true);
     setNewItem({});
   };
 
   const handleAddSave = async () => {
     try {
       const token = localStorage.getItem('token');
+      
       const response = await fetch('/api/stock/inventory', {
         method: 'POST',
         headers: {
@@ -318,31 +457,35 @@ const Inventory: React.FC = () => {
       const data = await response.json();
 
       if (data.success) {
-        setVisibleInventory(prev => [...prev, data.data]);
-        setShowAddForm(false);
+        // Add the new item to local state to prevent flash
+        const newItemWithId = { ...newItem, id: data.id };
+        setVisibleInventory(prevInventory => [...prevInventory, newItemWithId]);
+        setIsAdding(false);
         setNewItem({});
-        addNotification('Thêm mục thành công', 'success');
+        addNotification('Đã thêm sản phẩm thành công', 'success');
       } else {
-        addNotification('Lỗi khi thêm mục', 'error');
+        console.error('Failed to add item:', data.message);
+        addNotification('Lỗi khi thêm sản phẩm', 'error');
       }
     } catch (error) {
       console.error('Error adding item:', error);
-      addNotification('Lỗi khi thêm mục', 'error');
     }
   };
 
   const handleAddCancel = () => {
-    setShowAddForm(false);
+    setIsAdding(false);
     setNewItem({});
   };
 
   const handleDelete = async (item: StockItem) => {
-    if (!window.confirm('Bạn có chắc chắn muốn xóa mục này?')) {
+    if (!window.confirm('Bạn có chắc chắn muốn xóa sản phẩm này?')) {
       return;
     }
 
     try {
+      setDeletingId(item.id);
       const token = localStorage.getItem('token');
+      
       const response = await fetch(`/api/stock/inventory/${item.id}`, {
         method: 'DELETE',
         headers: {
@@ -353,162 +496,328 @@ const Inventory: React.FC = () => {
       const data = await response.json();
 
       if (data.success) {
-        setVisibleInventory(prev => prev.filter(i => i.id !== item.id));
-        addNotification('Xóa mục thành công', 'success');
+        // Remove the item from local state to prevent flash
+        setVisibleInventory(prevInventory => 
+          prevInventory.filter(invItem => invItem.id !== item.id)
+        );
       } else {
-        addNotification('Lỗi khi xóa mục', 'error');
+        console.error('Failed to delete item:', data.message);
       }
     } catch (error) {
       console.error('Error deleting item:', error);
-      addNotification('Lỗi khi xóa mục', 'error');
+    } finally {
+      setDeletingId(null);
     }
   };
 
   const handleNewItemChange = (field: keyof StockItem, value: string) => {
-    setNewItem(prev => ({ ...prev, [field]: value }));
+    setNewItem({ ...newItem, [field]: value });
   };
 
   const handleSort = (field: keyof StockItem) => {
     if (sortField === field) {
-      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
     } else {
       setSortField(field);
       setSortDirection('asc');
     }
   };
 
+  const filteredAndSortedInventory = visibleInventory
+    .filter((item: StockItem) => {
+      const searchLower = searchTerm.toLowerCase();
+      return (
+        item.product_name?.toLowerCase().includes(searchLower) ||
+        item.brand?.toLowerCase().includes(searchLower) ||
+        item.product_code?.toLowerCase().includes(searchLower) ||
+        item.lot_number?.toLowerCase().includes(searchLower) ||
+        item.location?.toLowerCase().includes(searchLower)
+      );
+    })
+    .sort((a: StockItem, b: StockItem) => {
+      const aValue = a[sortField as keyof StockItem] || '';
+      const bValue = b[sortField as keyof StockItem] || '';
+      
+      if (sortDirection === 'asc') {
+        return aValue.toString().localeCompare(bValue.toString());
+      } else {
+        return bValue.toString().localeCompare(aValue.toString());
+      }
+    });
+
   const renderSortIcon = (field: keyof StockItem) => {
     if (sortField !== field) return null;
-    return sortDirection === 'asc' ? ' ↑' : ' ↓';
+    return sortDirection === 'asc' ? '↑' : '↓';
   };
 
   const renderCell = (item: StockItem, field: keyof StockItem) => {
-    if (editingId === item.id && editedItem) {
+    const isEditing = editingId === item.id;
+    const value = isEditing && editedItem ? editedItem[field as keyof StockItem] : item[field as keyof StockItem];
+
+    if (isEditing) {
       return (
         <input
           type="text"
-          value={editedItem[field] || ''}
+          value={value?.toString() || ''}
           onChange={(e) => handleInputChange(field, e.target.value)}
-          onKeyPress={handleKeyPress}
-          className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+          onKeyDown={handleKeyPress}
+          className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
       );
     }
-    return <span className="text-sm">{item[field] || ''}</span>;
+
+    if (field === 'quantity') {
+      const quantity = parseInt(value?.toString() || '0');
+      return (
+        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+          quantity < 10 
+            ? 'bg-red-100 text-red-800' 
+            : quantity < 50
+            ? 'bg-yellow-100 text-yellow-800'
+            : 'bg-green-100 text-green-800'
+        }`}>
+          {value || ''}
+        </span>
+      );
+    }
+
+    // Special handling for product_name to enable text wrapping
+    if (field === 'product_name') {
+      return <span className="text-sm text-gray-900 break-words whitespace-normal">{value || ''}</span>;
+    }
+
+    return <span className="text-sm text-gray-900">{value || ''}</span>;
   };
 
   return (
     <div className="space-y-6">
+      {/* Conflict Resolution Dialog */}
+      {showConflictDialog && conflictData && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4">
+            <h3 className="text-lg font-semibold text-red-600 mb-4">
+              Xung đột dữ liệu phát hiện
+            </h3>
+            <p className="text-gray-700 mb-4">
+              Dữ liệu đã được thay đổi bởi người dùng khác trong khi bạn đang chỉnh sửa. 
+              Vui lòng chọn phiên bản nào bạn muốn giữ lại.
+            </p>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              <div className="border border-blue-200 rounded-lg p-4">
+                <h4 className="font-medium text-blue-800 mb-2">Dữ liệu của bạn</h4>
+                <div className="text-sm text-gray-600 space-y-1">
+                  {Object.entries(conflictData.attemptedData).map(([key, value]) => (
+                    <div key={key} className="flex justify-between">
+                      <span className="font-medium">{columnHeaders[key as keyof StockItem] || key}:</span>
+                      <span>{String(value)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              
+              <div className="border border-green-200 rounded-lg p-4">
+                <h4 className="font-medium text-green-800 mb-2">Dữ liệu hiện tại (Server)</h4>
+                <div className="text-sm text-gray-600 space-y-1">
+                  {Object.entries(conflictData.serverData).map(([key, value]) => (
+                    <div key={key} className="flex justify-between">
+                      <span className="font-medium">{columnHeaders[key as keyof StockItem] || key}:</span>
+                      <span>{String(value)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => handleConflictResolve(true)}
+                className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+              >
+                Sử dụng dữ liệu Server
+              </button>
+              <button
+                onClick={() => handleConflictResolve(false)}
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              >
+                Giữ dữ liệu của tôi
+              </button>
+              <button
+                onClick={() => setShowConflictDialog(false)}
+                className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
+              >
+                Hủy
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex justify-between items-center">
-        <div>
+      <div>
           <h1 className="text-2xl font-bold text-gray-900">Quản lý kho</h1>
-          <p className="mt-1 text-sm text-gray-500">
-            Quản lý hàng hóa trong kho
+        <p className="mt-1 text-sm text-gray-500">
+            Quản lý và chỉnh sửa dữ liệu kho hàng
           </p>
         </div>
-        <div className="flex gap-2 items-center">
-          <button
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-            className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors disabled:opacity-50"
-          >
-            {isRefreshing ? 'Đang làm mới...' : 'Làm mới'}
-          </button>
-          <button
-            onClick={handleAdd}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-          >
-            Thêm mục
-          </button>
-          <span className="flex items-center gap-1 cursor-pointer" onClick={() => setShowChangeHistory(true)}>
-            <span className="text-sm text-gray-600">Lịch sử thay đổi</span>
-          </span>
+        <div className="text-sm text-gray-500">
+          <div className="flex items-center gap-2">
+            <span>Tổng số: {filteredAndSortedInventory.length} sản phẩm</span>
+          </div>
+          <div className="text-xs text-gray-400 mt-1">
+            <span className="flex items-center gap-1">
+              <span>Cập nhật lần cuối: {lastUpdated.toLocaleTimeString()}</span>
+              <span className="text-blue-400">●</span>
+              <span>Kiểm tra nền (30s - <span className="font-mono w-6 inline-block text-right text-xs">{Math.floor(countdown)}s</span>)</span>
+            </span>
+          </div>
+          
+          {/* Recent Changes Indicator */}
+          {recentChanges.length > 0 && (
+            <div className="text-xs text-orange-600 mt-1">
+              <span className="flex items-center gap-1 cursor-pointer" onClick={() => setShowChangeHistory(true)}>
+                <span className="text-orange-500">●</span>
+                <span>{recentChanges.length} thay đổi gần đây</span>
+              </span>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Search Bar */}
-      <div className="bg-white shadow rounded-lg p-4">
-        <div className="flex items-center gap-4">
-          <div className="flex-1">
-            <input
-              type="text"
-              placeholder="Tìm kiếm trong kho..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+      {!state.spreadsheetIds.inventory && !state.loading && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
+          <div className="flex">
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-yellow-800">Đang tải cấu hình</h3>
+              <div className="mt-2 text-sm text-yellow-700">Đang tải cấu hình spreadsheet...</div>
+            </div>
           </div>
-          {searchTerm && (
-            <button
-              onClick={() => setSearchTerm('')}
-              className="px-4 py-2 text-gray-600 hover:text-gray-800"
-            >
-              Xóa
-            </button>
-          )}
         </div>
-        {searchTerm && (
-          <div className="mt-2 text-sm text-gray-600">
-            Tìm thấy {filteredInventory.length} kết quả
-          </div>
-        )}
-      </div>
+      )}
 
       {state.error && (
         <div className="bg-red-50 border border-red-200 rounded-md p-4">
           <div className="flex">
             <div className="ml-3">
-              <h3 className="text-sm font-medium text-red-800">Error</h3>
+              <h3 className="text-sm font-medium text-red-800">Lỗi</h3>
               <div className="mt-2 text-sm text-red-700">{state.error}</div>
             </div>
           </div>
         </div>
       )}
 
-      {state.loading && (
-        <div className="text-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-2 text-gray-600">Đang tải...</p>
-        </div>
-      )}
 
-      {!state.loading && (
-        <div className="bg-white shadow rounded-lg overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  {Object.entries(columnHeaders).map(([key, header]) => (
-                    <th
-                      key={key}
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                      onClick={() => handleSort(key as keyof StockItem)}
-                    >
-                      <div className="flex items-center gap-1">
-                        {header}
-                        {renderSortIcon(key as keyof StockItem)}
-                      </div>
-                    </th>
-                  ))}
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Hành động
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {sortedInventory.map((item, index) => (
-                  <tr 
-                    key={item.id} 
-                    className={`hover:bg-gray-50 ${
-                      index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
-                    }`}
+
+      {/* Search and Filters */}
+      <div className="bg-white p-4 rounded-lg shadow">
+        <div className="flex gap-4 items-center">
+          <div className="flex-1">
+            <input
+              type="text"
+              placeholder="Tìm kiếm theo tên hàng, hãng, mã hàng..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <button
+            onClick={handleAdd}
+            className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
+          >
+            + Thêm sản phẩm
+          </button>
+          <button
+            onClick={() => {
+              fetchInventory();
+              setCountdown(30); // Reset countdown
+            }}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            Làm mới
+          </button>
+        </div>
+            </div>
+
+      <div className="bg-white shadow overflow-hidden sm:rounded-lg">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                {Object.entries(columnHeaders).map(([key, header]) => (
+                  <th
+                    key={key}
+                    onClick={() => handleSort(key as keyof StockItem)}
+                    className={`px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 ${key === 'product_name' ? 'w-1/6 max-w-xs break-words whitespace-normal' : ''}`}
                   >
+                    <div className="flex items-center gap-1">
+                      {header}
+                      {renderSortIcon(key as keyof StockItem)}
+            </div>
+                  </th>
+                ))}
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Thao tác
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {/* Add new item row */}
+              {isAdding && (
+                <tr className="bg-green-50 border-2 border-green-200">
+                  {Object.keys(columnHeaders).map((field) => (
+                    <td key={field} className="px-3 py-4 whitespace-nowrap">
+                      <input
+                        type="text"
+                        placeholder={`Nhập ${columnHeaders[field as keyof typeof columnHeaders]}`}
+                        value={newItem[field as keyof StockItem]?.toString() || ''}
+                        onChange={(e) => handleNewItemChange(field as keyof StockItem, e.target.value)}
+                        className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
+                      />
+                    </td>
+                  ))}
+                  <td className="px-3 py-4 whitespace-nowrap text-sm font-medium">
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleAddSave}
+                        className="text-green-600 hover:text-green-900"
+                      >
+                        Lưu
+                      </button>
+                      <button
+                        onClick={handleAddCancel}
+                        className="text-gray-600 hover:text-gray-900"
+                      >
+                        Hủy
+                      </button>
+                        </div>
+                  </td>
+                </tr>
+              )}
+              
+              {state.loading ? (
+                <tr>
+                  <td colSpan={Object.keys(columnHeaders).length + 1} className="px-6 py-4 text-center">
+                    <div className="flex items-center justify-center">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                      <span className="ml-2 text-sm text-gray-500">Đang tải dữ liệu...</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : filteredAndSortedInventory.length === 0 ? (
+                <tr>
+                  <td colSpan={Object.keys(columnHeaders).length + 1} className="px-6 py-4 text-center text-sm text-gray-500">
+                    {searchTerm ? 'Không tìm thấy sản phẩm nào' : 'Không có dữ liệu kho hàng'}
+                  </td>
+                </tr>
+              ) : (
+                filteredAndSortedInventory.map((item: StockItem, index: number) => (
+                  <tr key={item.id || index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                     {Object.keys(columnHeaders).map((field) => (
-                      <td key={field} className="px-6 py-4 whitespace-nowrap">
+                      <td key={field} className={`px-3 py-4 whitespace-nowrap ${field === 'product_name' ? 'w-1/6 max-w-xs break-words whitespace-normal' : ''}`}>
                         {renderCell(item, field as keyof StockItem)}
                       </td>
                     ))}
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <td className="px-3 py-4 whitespace-nowrap text-sm font-medium">
                       {editingId === item.id ? (
                         <div className="flex gap-2">
                           <button
@@ -519,7 +828,7 @@ const Inventory: React.FC = () => {
                           </button>
                           <button
                             onClick={handleCancel}
-                            className="text-red-600 hover:text-red-900"
+                            className="text-gray-600 hover:text-gray-900"
                           >
                             Hủy
                           </button>
@@ -534,103 +843,51 @@ const Inventory: React.FC = () => {
                           </button>
                           <button
                             onClick={() => handleDelete(item)}
-                            className="text-red-600 hover:text-red-900"
+                            disabled={deletingId === item.id}
+                            className="text-red-600 hover:text-red-900 disabled:opacity-50"
                           >
-                            Xóa
+                            {deletingId === item.id ? 'Đang xóa...' : 'Xóa'}
                           </button>
                         </div>
                       )}
                     </td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
-      )}
-
-      {/* Add Item Form */}
-      {showAddForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-            <h3 className="text-lg font-semibold mb-4">Thêm mục mới</h3>
-            <div className="grid grid-cols-2 gap-4">
-              {Object.entries(columnHeaders).map(([key, header]) => (
-                <div key={key}>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {header}
-                  </label>
-                  <input
-                    type="text"
-                    value={newItem[key as keyof StockItem] || ''}
-                    onChange={(e) => handleNewItemChange(key as keyof StockItem, e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder={`Nhập ${header.toLowerCase()}`}
-                  />
-                </div>
-              ))}
-            </div>
-            <div className="flex justify-end gap-2 mt-6">
-              <button
-                onClick={handleAddCancel}
-                className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
-              >
-                Hủy
-              </button>
-              <button
-                onClick={handleAddSave}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-              >
-                Thêm
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Conflict Dialog */}
-      {showConflictDialog && conflictData && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 className="text-lg font-semibold mb-4">Xung đột dữ liệu</h3>
-            <p className="text-gray-600 mb-4">
-              Dữ liệu đã được thay đổi bởi người khác. Bạn muốn sử dụng dữ liệu nào?
-            </p>
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={() => handleConflictResolve(true)}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-              >
-                Dữ liệu server
-              </button>
-              <button
-                onClick={() => handleConflictResolve(false)}
-                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
-              >
-                Dữ liệu của tôi
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
+      </div>
+      {/* Editing Indicator */}
+      <EditingIndicator 
+        editingSessions={editingSessions}
+        currentUserEmail={JSON.parse(localStorage.getItem('user') || '{}').email}
+      />
+      
+      {/* Change History Dialog */}
+      <ChangeHistory 
+        isOpen={showChangeHistory}
+        onClose={() => setShowChangeHistory(false)}
+      />
+      
       {/* Notifications */}
-      <div className="fixed top-4 right-4 z-50 space-y-2">
-        {notifications.map((notification) => (
+      {notifications.map((notification, index) => (
+        <div
+          key={notification.id}
+          style={{
+            position: 'fixed',
+            top: `${4 + index * 80}px`,
+            right: '16px',
+            zIndex: 9999 + index
+          }}
+        >
           <Notification
-            key={notification.id}
             message={notification.message}
             type={notification.type}
             onClose={() => removeNotification(notification.id)}
           />
-        ))}
-      </div>
-
-      {/* Change History Modal */}
-      <ChangeHistory
-        isOpen={showChangeHistory}
-        onClose={() => setShowChangeHistory(false)}
-      />
+        </div>
+      ))}
     </div>
   );
 };

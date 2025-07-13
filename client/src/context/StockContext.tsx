@@ -163,9 +163,9 @@ export const StockProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
     try {
       const params = new URLSearchParams({
-        spreadsheetId1: state.spreadsheetIds.inventory,
-        spreadsheetId2: state.spreadsheetIds.sales,
-        spreadsheetId3: state.spreadsheetIds.purchases
+          spreadsheetId1: state.spreadsheetIds.inventory,
+          spreadsheetId2: state.spreadsheetIds.sales,
+          spreadsheetId3: state.spreadsheetIds.purchases
       });
 
       const response = await fetch(`/api/stock/overview?${params}`);
@@ -215,8 +215,8 @@ export const StockProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         }
       } catch (error) {
         console.error('Error loading config:', error);
-        dispatch({ type: 'SET_ERROR', payload: 'Please configure inventory spreadsheet ID' });
-        return;
+      dispatch({ type: 'SET_ERROR', payload: 'Please configure inventory spreadsheet ID' });
+      return;
       }
     }
 
@@ -225,7 +225,7 @@ export const StockProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
     try {
       const params = new URLSearchParams({
-        spreadsheetId: state.spreadsheetIds.inventory
+          spreadsheetId: state.spreadsheetIds.inventory
       });
 
       console.log('Fetching inventory with params:', params.toString());
@@ -299,7 +299,7 @@ export const StockProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       const data = await response.json();
       
       if (data.success) {
-        dispatch({ type: 'SET_SPREADSHEET_IDS', payload: ids });
+    dispatch({ type: 'SET_SPREADSHEET_IDS', payload: ids });
       } else {
         console.error('Failed to save configuration:', data.message);
       }

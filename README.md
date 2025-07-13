@@ -1,124 +1,246 @@
-# Stock Management App
+# Stock Management Web App
 
-A comprehensive stock management application with real-time inventory tracking, user management, and analytics.
+A modern web application for managing stock/inventory using Google Sheets as the backend database. This app integrates with 3 different Google Sheets spreadsheets for comprehensive stock management.
 
 ## Features
 
-- 📊 Real-time inventory management
-- 👥 User management and authentication
-- 📈 Analytics and reporting
-- 🔄 Live data synchronization
-- 🎨 Modern, responsive UI
-- 🔒 Secure authentication system
+- 🔐 **User Authentication**: Secure login system with JWT tokens
+- 👥 **User Management**: Admin can add, edit, and manage users
+- 📊 **Dashboard Overview**: Real-time statistics and summary of your inventory
+- 📦 **Inventory Management**: View and track all inventory items
+- 📈 **Analytics**: Detailed financial analysis and insights
+- ⚙️ **Settings**: Configure Google Sheets integration and manage users
+- 🔄 **Real-time Sync**: Automatic data synchronization with Google Sheets
+- 📱 **Responsive Design**: Works on desktop and mobile devices
 
-## Backup System
+## Tech Stack
 
-This application includes an automated backup system that saves your data to GitHub daily.
+### Backend
+- **Node.js** with Express.js
+- **Google Sheets API** for data integration
+- **TypeScript** for type safety
+- **CORS** and security middleware
 
-### Backup Features
+### Frontend
+- **React 18** with TypeScript
+- **Tailwind CSS** for styling
+- **React Router** for navigation
+- **Heroicons** for icons
+- **Modern Fetch API** for HTTP requests
 
-- ✅ **Daily automated backups** via GitHub Actions
-- ✅ **Manual backup capability** with `./backup.sh`
-- ✅ **Data versioning** - track changes over time
-- ✅ **Secure storage** - private GitHub repository
-- ✅ **Easy restoration** - download any previous version
+## Prerequisites
 
-### What Gets Backed Up
+Before running this application, you need:
 
-- 📁 Application code and configuration
-- 📊 Data files (`server/data/users.json`, `server/data/config.json`)
-- ⚙️ Package configurations
-- 📝 Documentation
+1. **Node.js** (version 16 or higher)
+2. **Google Cloud Project** with Google Sheets API enabled
+3. **Google Service Account** credentials
+4. **3 Google Sheets spreadsheets** (Inventory, Sales, Purchases)
 
-### What's Excluded (for security)
+## Setup Instructions
 
-- 🔒 Environment variables (`.env` files)
-- 🚫 Node modules (`node_modules/`)
-- 🚫 Build outputs and logs
-- 🚫 OS-generated files
+### 1. Install Dependencies
 
-### Setup Instructions
-
-1. **Run the setup script:**
-   ```bash
-   chmod +x setup-backup.sh
-   ./setup-backup.sh
-   ```
-
-2. **Create a GitHub repository:**
-   - Go to https://github.com/new
-   - Name it: `stock-management-app`
-   - Make it private (recommended)
-   - Don't initialize with README
-
-3. **Update the backup script:**
-   - Edit `backup.sh`
-   - Replace `YOUR_USERNAME` with your GitHub username
-
-4. **Connect to GitHub:**
-   ```bash
-   git remote add origin https://github.com/YOUR_USERNAME/stock-management-app.git
-   git add .
-   git commit -m "Initial commit"
-   git push -u origin main
-   ```
-
-5. **Test the backup:**
-   ```bash
-   ./backup.sh
-   ```
-
-### Manual Backup
-
-Run the backup script anytime:
 ```bash
-./backup.sh
+# Install server dependencies
+npm install
+
+# Install client dependencies
+cd client
+npm install
+cd ..
 ```
 
-### GitHub Actions
+### 2. Google Cloud Setup
 
-The backup system uses GitHub Actions to run daily at 2:00 AM UTC. You can:
-- View backup history in the Actions tab
-- Trigger manual backups from the Actions tab
-- Download backup artifacts
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create a new project or select an existing one
+3. Enable the Google Sheets API
+4. Create a Service Account:
+   - Go to "IAM & Admin" > "Service Accounts"
+   - Click "Create Service Account"
+   - Download the JSON credentials file
+   - Rename it to `credentials.json` and place it in the `server/` directory
 
-### Restore from Backup
+### 3. Google Sheets Setup
 
-To restore from a previous backup:
-1. Go to your GitHub repository
-2. Browse commit history
-3. Download the files you need
-4. Replace your local files
+Create 3 Google Sheets with the following structure:
 
-## Installation
+#### Inventory Spreadsheet
+| Name | Quantity | Price | Category | Min_Quantity | Supplier | Last_Updated |
+|------|----------|-------|----------|--------------|----------|--------------|
+| Laptop | 10 | 999.99 | Electronics | 5 | TechCorp | 2024-01-15 |
 
-1. Clone the repository
-2. Install dependencies:
-   ```bash
-   npm install
-   cd client && npm install
-   ```
-3. Set up environment variables (see `env.example`)
-4. Start the server:
-   ```bash
-   npm start
-   ```
+#### Sales Spreadsheet
+| Item_Name | Quantity | Amount | Date | Customer |
+|-----------|----------|--------|------|----------|
+| Laptop | 2 | 1999.98 | 2024-01-15 | John Doe |
 
-## Development
+#### Purchases Spreadsheet
+| Item_Name | Quantity | Amount | Date | Supplier |
+|-----------|----------|--------|------|----------|
+| Laptop | 5 | 4500.00 | 2024-01-10 | TechCorp |
 
-- Frontend: React with TypeScript
-- Backend: Node.js with Express
-- Database: JSON files (with backup system)
-- Styling: Tailwind CSS
+### 4. Configure Spreadsheet Access
 
-## Security
+1. Share each Google Sheet with your Service Account email (found in credentials.json)
+2. Give the Service Account "Viewer" access to all spreadsheets
 
-- Environment variables are excluded from backups
-- Private repository recommended
-- No sensitive data in version control
-- Regular automated backups
+### 5. Environment Configuration
+
+1. Copy `env.example` to `.env`:
+```bash
+cp env.example .env
+```
+
+2. Update the `.env` file with your spreadsheet IDs:
+```env
+PORT=5000
+NODE_ENV=development
+GOOGLE_APPLICATION_CREDENTIALS=./credentials.json
+SPREADSHEET_ID_1=your_inventory_spreadsheet_id
+SPREADSHEET_ID_2=your_sales_spreadsheet_id
+SPREADSHEET_ID_3=your_purchases_spreadsheet_id
+```
+
+### 6. Get Spreadsheet IDs
+
+The spreadsheet ID is in the URL of your Google Sheet:
+```
+https://docs.google.com/spreadsheets/d/SPREADSHEET_ID_HERE/edit
+```
+
+## Running the Application
+
+### Development Mode
+
+```bash
+# Start both server and client in development mode
+npm run dev
+
+# Or run them separately:
+npm run server    # Backend on port 5000
+npm run client    # Frontend on port 3000
+```
+
+### Production Mode
+
+```bash
+# Build the client
+npm run build
+
+# Start the server
+npm start
+```
+
+## API Endpoints
+
+### Authentication
+- `POST /api/auth/login` - User login
+- `GET /api/auth/me` - Get current user info
+
+### User Management (Admin Only)
+- `GET /api/users` - Get all users
+- `POST /api/users` - Create new user
+- `PUT /api/users/:id` - Update user
+- `DELETE /api/users/:id` - Delete user
+- `PUT /api/users/:id/password` - Reset user password
+
+### Stock Management
+- `GET /api/stock/overview` - Get combined data from all spreadsheets
+- `GET /api/stock/inventory` - Get inventory data
+- `GET /api/stock/analytics` - Get analytics and financial data
+
+### Health Check
+- `GET /api/health` - Server health status
+
+## Project Structure
+
+```
+stock-management-app/
+├── server/
+│   ├── index.js              # Express server with authentication & Google Sheets API
+│   └── data/
+│       └── users.json        # User data storage
+├── client/
+│   ├── src/
+│   │   ├── components/       # React components (Sidebar, UserManagement, etc.)
+│   │   ├── pages/           # Page components (Dashboard, Inventory, etc.)
+│   │   ├── context/         # React context for state management
+│   │   └── ...
+│   └── ...
+├── credentials.json          # Google Service Account credentials
+├── .env                     # Environment variables
+└── README.md
+```
+
+## Features in Detail
+
+### Dashboard
+- Overview statistics (total items, low stock, sales, purchases)
+- Low stock alerts
+- Recent sales activity
+- Financial summary
+
+### Inventory
+- Complete inventory list
+- Stock levels and pricing
+- Low stock indicators
+- Category and supplier information
+
+### Analytics
+- Financial summary (inventory value, sales, purchases, profit)
+- Top selling items
+- Low stock analysis
+- Recent activity timeline
+
+### Settings
+- Google Sheets configuration
+- Spreadsheet ID management
+- User management (add, edit, delete users)
+- Password reset functionality
+- Setup instructions
+
+## Troubleshooting
+
+### Common Issues
+
+1. **"Failed to fetch stock data"**
+   - Check if credentials.json is in the server directory
+   - Verify spreadsheet IDs are correct
+   - Ensure Service Account has access to spreadsheets
+
+2. **"Please configure spreadsheet IDs"**
+   - Go to Settings page and enter your spreadsheet IDs
+   - Make sure all three IDs are provided
+
+3. **CORS errors**
+   - Ensure the server is running on port 5000
+   - Check that the client is configured to proxy to the server
+
+### Google Sheets API Quotas
+
+- Free tier: 100 requests per 100 seconds per user
+- Consider implementing caching for production use
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Submit a pull request
+
+## License
+
+MIT License - see LICENSE file for details
+
+## Support
+
+For issues and questions:
+1. Check the troubleshooting section
+2. Review Google Sheets API documentation
+3. Open an issue on GitHub
 
 ---
 
-**Backup Status**: ✅ Automated daily backups enabled
-**Last Backup**: Check GitHub Actions for latest status 
+**Note**: This application requires proper Google Cloud setup and Google Sheets API access. Make sure to follow the setup instructions carefully. 

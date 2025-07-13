@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 
 interface NotificationProps {
   message: string;
@@ -20,32 +20,20 @@ const Notification: React.FC<NotificationProps> = ({
                          4000;
   
   const finalDuration = duration || defaultDuration;
-  const [isVisible, setIsVisible] = useState(false);
-  const [isExiting, setIsExiting] = useState(false);
-
-  const handleClose = useCallback(() => {
-    setIsExiting(true);
-    setTimeout(() => {
-      onClose?.();
-    }, 300);
-  }, [onClose]);
+  const [isVisible, setIsVisible] = useState(true);
 
   useEffect(() => {
-    // Start with slide-in animation
-    const showTimer = setTimeout(() => {
-      setIsVisible(true);
-    }, 100);
-
-    // Auto-hide after duration
-    const hideTimer = setTimeout(() => {
-      handleClose();
+    const timer = setTimeout(() => {
+      setIsVisible(false);
+      setTimeout(() => {
+        onClose?.();
+      }, 300);
     }, finalDuration);
 
     return () => {
-      clearTimeout(showTimer);
-      clearTimeout(hideTimer);
+      clearTimeout(timer);
     };
-  }, [finalDuration, handleClose]); // Include dependencies
+  }, []); // Only run once on mount
 
   const getTypeStyles = () => {
     switch (type) {
@@ -78,17 +66,9 @@ const Notification: React.FC<NotificationProps> = ({
   };
 
   return (
-    <div 
-      className={`transition-all duration-300 ease-out transform ${
-        isVisible && !isExiting 
-          ? 'translate-x-0 opacity-100' 
-          : 'translate-x-full opacity-0'
-      }`}
-      style={{
-        transform: isVisible && !isExiting ? 'translateX(0)' : 'translateX(100%)',
-        opacity: isVisible && !isExiting ? 1 : 0
-      }}
-    >
+    <div className={`transition-all duration-300 ${
+      isVisible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-full'
+    }`}>
       <div className={`border rounded-lg p-4 shadow-lg max-w-sm ${getTypeStyles()}`}>
         <div className="flex items-start gap-3">
           <div className="flex-shrink-0 text-lg font-bold">
@@ -98,8 +78,11 @@ const Notification: React.FC<NotificationProps> = ({
             <p className="text-sm font-medium">{message}</p>
           </div>
           <button
-            onClick={handleClose}
-            className="flex-shrink-0 text-lg opacity-70 hover:opacity-100 transition-opacity"
+            onClick={() => {
+              setIsVisible(false);
+              setTimeout(() => onClose?.(), 300);
+            }}
+            className="flex-shrink-0 text-lg opacity-70 hover:opacity-100"
           >
             ×
           </button>
