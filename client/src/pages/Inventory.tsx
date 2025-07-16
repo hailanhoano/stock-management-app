@@ -617,7 +617,7 @@ const Inventory: React.FC = () => {
         }}
         title="Click to edit"
       >
-        {`${item.quantity} ${item.unit}`}
+        {`${item.quantity ?? ''} ${item.unit ?? ''}`}
       </div>
     );
   };
@@ -707,7 +707,7 @@ const Inventory: React.FC = () => {
             <input
               type="number"
               placeholder="Qty"
-              value={newItem.quantity || ''}
+              value={newItem.quantity ?? ''}
               onChange={(e) => setNewItem({...newItem, quantity: e.target.value})}
               className="w-16 border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
               onKeyDown={(e) => {
@@ -723,7 +723,7 @@ const Inventory: React.FC = () => {
             <input
               type="text"
               placeholder="Unit"
-              value={newItem.unit || ''}
+              value={newItem.unit ?? ''}
               onChange={(e) => setNewItem({...newItem, unit: e.target.value})}
               className="w-12 border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
               onKeyDown={(e) => {

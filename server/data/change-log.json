@@ -9223,5 +9223,615 @@
       "admin@example.com",
       "0"
     ]
+  },
+  {
+    "timestamp": 1752653234089,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "3",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "2025-07-16T08:07:13.755Z",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752653237984,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "3",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "2025-07-16T08:07:17.642Z",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752653247927,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "4",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "2025-07-16T08:07:27.592Z",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752653261163,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "ADD",
+    "rowId": "605",
+    "newValue": {
+      "brand": "test",
+      "product_code": "2",
+      "product_name": "24",
+      "quantity": ""
+    },
+    "changedFields": {
+      "brand": {
+        "old": "",
+        "new": "test",
+        "fieldName": "brand"
+      },
+      "product_code": {
+        "old": "",
+        "new": "2",
+        "fieldName": "product_code"
+      },
+      "product_name": {
+        "old": "",
+        "new": "24",
+        "fieldName": "product_name"
+      },
+      "quantity": {
+        "old": "",
+        "new": "",
+        "fieldName": "quantity"
+      }
+    },
+    "metadata": [
+      "2025-07-16T08:07:41.163Z",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752653275368,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "DELETE",
+    "rowId": "605",
+    "oldValue": [
+      "test",
+      "2",
+      "24"
+    ],
+    "changedFields": {},
+    "metadata": [
+      "2025-07-16T08:07:55.368Z",
+      "admin@example.com",
+      "0"
+    ]
+  },
+  {
+    "timestamp": 1752653294279,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "ADD",
+    "rowId": "605",
+    "newValue": {
+      "brand": "test",
+      "product_code": "test",
+      "product_name": "test"
+    },
+    "changedFields": {
+      "brand": {
+        "old": "",
+        "new": "test",
+        "fieldName": "brand"
+      },
+      "product_code": {
+        "old": "",
+        "new": "test",
+        "fieldName": "product_code"
+      },
+      "product_name": {
+        "old": "",
+        "new": "test",
+        "fieldName": "product_name"
+      }
+    },
+    "metadata": [
+      "2025-07-16T08:08:14.279Z",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752653395276,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "ADD",
+    "rowId": "606",
+    "newValue": {
+      "brand": "test",
+      "product_code": "4",
+      "product_name": "4"
+    },
+    "changedFields": {
+      "brand": {
+        "old": "",
+        "new": "test",
+        "fieldName": "brand"
+      },
+      "product_code": {
+        "old": "",
+        "new": "4",
+        "fieldName": "product_code"
+      },
+      "product_name": {
+        "old": "",
+        "new": "4",
+        "fieldName": "product_name"
+      }
+    },
+    "metadata": [
+      "2025-07-16T08:09:55.276Z",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752653401417,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "ADD",
+    "rowId": "607",
+    "newValue": {
+      "brand": "test ",
+      "product_code": "3",
+      "product_name": "3"
+    },
+    "changedFields": {
+      "brand": {
+        "old": "",
+        "new": "test ",
+        "fieldName": "brand"
+      },
+      "product_code": {
+        "old": "",
+        "new": "3",
+        "fieldName": "product_code"
+      },
+      "product_name": {
+        "old": "",
+        "new": "3",
+        "fieldName": "product_name"
+      }
+    },
+    "metadata": [
+      "2025-07-16T08:10:01.418Z",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752653422276,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "ADD",
+    "rowId": "608",
+    "newValue": {
+      "brand": "test",
+      "product_code": "5",
+      "product_name": "5"
+    },
+    "changedFields": {
+      "brand": {
+        "old": "",
+        "new": "test",
+        "fieldName": "brand"
+      },
+      "product_code": {
+        "old": "",
+        "new": "5",
+        "fieldName": "product_code"
+      },
+      "product_name": {
+        "old": "",
+        "new": "5",
+        "fieldName": "product_name"
+      }
+    },
+    "metadata": [
+      "2025-07-16T08:10:22.276Z",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752653533391,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "ADD",
+    "rowId": "609",
+    "newValue": {
+      "brand": "test",
+      "product_code": "5",
+      "product_name": "4"
+    },
+    "changedFields": {
+      "brand": {
+        "old": "",
+        "new": "test",
+        "fieldName": "brand"
+      },
+      "product_code": {
+        "old": "",
+        "new": "5",
+        "fieldName": "product_code"
+      },
+      "product_name": {
+        "old": "",
+        "new": "4",
+        "fieldName": "product_name"
+      }
+    },
+    "metadata": [
+      "2025-07-16T08:12:13.391Z",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752653541120,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "ADD",
+    "rowId": "610",
+    "newValue": {
+      "brand": "test",
+      "product_code": "6",
+      "product_name": "6"
+    },
+    "changedFields": {
+      "brand": {
+        "old": "",
+        "new": "test",
+        "fieldName": "brand"
+      },
+      "product_code": {
+        "old": "",
+        "new": "6",
+        "fieldName": "product_code"
+      },
+      "product_name": {
+        "old": "",
+        "new": "6",
+        "fieldName": "product_name"
+      }
+    },
+    "metadata": [
+      "2025-07-16T08:12:21.120Z",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752653573836,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "DELETE",
+    "rowId": "605",
+    "oldValue": [
+      "test",
+      "test",
+      "test"
+    ],
+    "changedFields": {},
+    "metadata": [
+      "2025-07-16T08:12:53.836Z",
+      "admin@example.com",
+      "0"
+    ]
+  },
+  {
+    "timestamp": 1752653581876,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "DELETE",
+    "rowId": "606",
+    "oldValue": [
+      "test ",
+      "3",
+      "3"
+    ],
+    "changedFields": {},
+    "metadata": [
+      "2025-07-16T08:13:01.876Z",
+      "admin@example.com",
+      "0"
+    ]
+  },
+  {
+    "timestamp": 1752653587063,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "DELETE",
+    "rowId": "607",
+    "oldValue": [
+      "test",
+      "5",
+      "4"
+    ],
+    "changedFields": {},
+    "metadata": [
+      "2025-07-16T08:13:07.063Z",
+      "admin@example.com",
+      "0"
+    ]
+  },
+  {
+    "timestamp": 1752653599260,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "DELETE",
+    "rowId": "605",
+    "oldValue": [
+      "test",
+      "4",
+      "4"
+    ],
+    "changedFields": {},
+    "metadata": [
+      "2025-07-16T08:13:19.260Z",
+      "admin@example.com",
+      "0"
+    ]
+  },
+  {
+    "timestamp": 1752653608530,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "DELETE",
+    "rowId": "606",
+    "oldValue": [
+      "test",
+      "6",
+      "6"
+    ],
+    "changedFields": {},
+    "metadata": [
+      "2025-07-16T08:13:28.530Z",
+      "admin@example.com",
+      "0"
+    ]
+  },
+  {
+    "timestamp": 1752653620445,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "DELETE",
+    "rowId": "605",
+    "oldValue": [
+      "test",
+      "5",
+      "5"
+    ],
+    "changedFields": {},
+    "metadata": [
+      "2025-07-16T08:13:40.445Z",
+      "admin@example.com",
+      "0"
+    ]
+  },
+  {
+    "timestamp": 1752653689813,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "2",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "2025-07-16T08:14:49.497Z",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752653694021,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "3",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "2025-07-16T08:14:53.722Z",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752653697585,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "4",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "2025-07-16T08:14:57.288Z",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752653700445,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "6",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "2025-07-16T08:15:00.089Z",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752653704322,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "9",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "2025-07-16T08:15:04.011Z",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752653712305,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "24",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "2025-07-16T08:15:11.965Z",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752653715293,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "37",
+    "oldValue": {
+      "date": "31/08/2026"
+    },
+    "newValue": {
+      "date": ""
+    },
+    "changedFields": {
+      "date": {
+        "old": "31/08/2026",
+        "new": "",
+        "fieldName": "Date"
+      }
+    },
+    "metadata": [
+      "2025-07-16T08:15:14.988Z",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752653718502,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "45",
+    "oldValue": {
+      "date": "31/10/26"
+    },
+    "newValue": {
+      "date": ""
+    },
+    "changedFields": {
+      "date": {
+        "old": "31/10/26",
+        "new": "",
+        "fieldName": "Date"
+      }
+    },
+    "metadata": [
+      "2025-07-16T08:15:18.189Z",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752653723127,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "53",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "2025-07-16T08:15:22.818Z",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752653727032,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "67",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "2025-07-16T08:15:26.720Z",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752653742987,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "82",
+    "oldValue": {
+      "date": "31/01/2025"
+    },
+    "newValue": {
+      "date": ""
+    },
+    "changedFields": {
+      "date": {
+        "old": "31/01/2025",
+        "new": "",
+        "fieldName": "Date"
+      }
+    },
+    "metadata": [
+      "2025-07-16T08:15:42.680Z",
+      "admin@example.com",
+      "1"
+    ]
   }
 ]
