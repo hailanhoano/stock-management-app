@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useWebSocket } from '../context/WebSocketContext';
+import { useLocation } from 'react-router-dom';
 
 interface InventoryItem {
   id: string;
@@ -41,6 +42,9 @@ const Inventory: React.FC = () => {
     key: keyof InventoryItem | null;
     direction: 'asc' | 'desc';
   }>({ key: null, direction: 'asc' });
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+
+  const location = useLocation();
 
   // Connect to WebSocket when component mounts
   useEffect(() => {
@@ -295,10 +299,12 @@ const Inventory: React.FC = () => {
 
   // Handle starting edit mode for a specific field
   const handleStartEdit = (item: InventoryItem, field: keyof InventoryItem) => {
+    if (isSavingEdit) return; // Prevent starting a new edit while saving
     // If we're already editing a different field, save it first
     if (editingItem && editingField && (editingItem.id !== item.id || editingField !== field)) {
-      // Save the current edit before starting a new one
+      setIsSavingEdit(true);
       handleSaveEdit().then(() => {
+        setIsSavingEdit(false);
         // After saving, start editing the new field
         setEditingItem(item);
         setEditingField(field);
@@ -314,6 +320,8 @@ const Inventory: React.FC = () => {
           warehouse: item.warehouse,
           notes: item.notes
         });
+      }).catch(() => {
+        setIsSavingEdit(false);
       });
     } else {
       // No current edit, start editing immediately
@@ -344,7 +352,7 @@ const Inventory: React.FC = () => {
   // Handle saving edit
   const handleSaveEdit = useCallback(async () => {
     if (!editingItem) return Promise.resolve();
-
+    setIsSavingEdit(true);
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`http://localhost:3001/api/stock/inventory/${editingItem.id}`, {
@@ -365,18 +373,19 @@ const Inventory: React.FC = () => {
       setEditingItem(null);
       setEditingField(null);
       setEditingData({});
-      
+      setIsSavingEdit(false);
       // Note: The WebSocket will handle updating the UI automatically
       return Promise.resolve();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update item');
+      setIsSavingEdit(false);
       return Promise.reject(err);
     }
   }, [editingItem, editingData]);
 
 
 
-  // Handle clicking outside to save
+  // Enhance click outside handler to always save if editing
   const handleClickOutside = useCallback((event: MouseEvent) => {
     if (editingItem && editingField) {
       const target = event.target as HTMLElement;
@@ -398,7 +407,7 @@ const Inventory: React.FC = () => {
         return;
       }
       
-      // Save when clicking outside any editable cell
+      // Save when clicking outside any editable cell (including outside the table)
       handleSaveEdit();
     }
   }, [editingItem, editingField, handleSaveEdit]);
@@ -410,6 +419,14 @@ const Inventory: React.FC = () => {
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
   }, [editingItem, editingField, handleClickOutside]);
+
+  // Save edit on route (tab) change
+  useEffect(() => {
+    if (editingItem) {
+      handleSaveEdit();
+    }
+    // eslint-disable-next-line
+  }, [location.pathname]);
 
   // Sorting functions
   const handleSort = (key: keyof InventoryItem) => {
@@ -448,7 +465,7 @@ const Inventory: React.FC = () => {
 
   const getSortIcon = (key: keyof InventoryItem) => {
     if (sortConfig.key !== key) {
-      return '↕️'; // Neutral sort icon
+      return null; // No icon if not sorted
     }
     return sortConfig.direction === 'asc' ? '↑' : '↓';
   };
@@ -487,6 +504,7 @@ const Inventory: React.FC = () => {
               handleCancelEdit();
             }
           }}
+          disabled={isSavingEdit}
         />
       );
     }
@@ -526,6 +544,7 @@ const Inventory: React.FC = () => {
               handleCancelEdit();
             }
           }}
+          disabled={isSavingEdit}
         />
       );
     }
@@ -566,6 +585,7 @@ const Inventory: React.FC = () => {
                 handleCancelEdit();
               }
             }}
+            disabled={isSavingEdit}
           />
           <input
             type="text"
@@ -582,6 +602,7 @@ const Inventory: React.FC = () => {
                 handleCancelEdit();
               }
             }}
+            disabled={isSavingEdit}
           />
         </div>
       );
@@ -608,7 +629,10 @@ const Inventory: React.FC = () => {
         <tr className="bg-blue-50 hover:bg-blue-100 transition-colors duration-150">
           <td colSpan={7} className="px-6 py-4">
             <button
-              onClick={handleStartAdd}
+              onClick={async () => {
+                if (editingItem) await handleSaveEdit();
+                handleStartAdd();
+              }}
               className="flex items-center space-x-2 text-blue-600 hover:text-blue-800 font-medium"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -867,7 +891,10 @@ const Inventory: React.FC = () => {
                 type="text"
                 placeholder="Search by product name, brand, code, lot number, or location..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={async (e) => {
+                  if (editingItem) await handleSaveEdit();
+                  setSearchTerm(e.target.value);
+                }}
                 className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
               {searchTerm && (
@@ -900,7 +927,9 @@ const Inventory: React.FC = () => {
                 >
                   <div className="flex items-center space-x-1">
                     <span>Brand</span>
-                    <span className="text-xs">{getSortIcon('brand')}</span>
+                    {getSortIcon('brand') && (
+                      <span className="text-xs">{getSortIcon('brand')}</span>
+                    )}
                   </div>
                 </th>
                 <th 
@@ -909,7 +938,9 @@ const Inventory: React.FC = () => {
                 >
                   <div className="flex items-center space-x-1">
                     <span>Product Code</span>
-                    <span className="text-xs">{getSortIcon('product_code')}</span>
+                    {getSortIcon('product_code') && (
+                      <span className="text-xs">{getSortIcon('product_code')}</span>
+                    )}
                   </div>
                 </th>
                 <th 
@@ -918,7 +949,9 @@ const Inventory: React.FC = () => {
                 >
                   <div className="flex items-center space-x-1">
                     <span>Product Name</span>
-                    <span className="text-xs">{getSortIcon('product_name')}</span>
+                    {getSortIcon('product_name') && (
+                      <span className="text-xs">{getSortIcon('product_name')}</span>
+                    )}
                   </div>
                 </th>
                 <th 
@@ -927,8 +960,10 @@ const Inventory: React.FC = () => {
                 >
                   <div className="flex items-center space-x-1">
                     <span>Quantity</span>
-                    <span className="text-xs">{getSortIcon('quantity')}</span>
-                        </div>
+                    {getSortIcon('quantity') && (
+                      <span className="text-xs">{getSortIcon('quantity')}</span>
+                    )}
+                  </div>
                 </th>
                 <th 
                   className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
@@ -936,8 +971,10 @@ const Inventory: React.FC = () => {
                 >
                   <div className="flex items-center space-x-1">
                     <span>Location</span>
-                    <span className="text-xs">{getSortIcon('location')}</span>
-                        </div>
+                    {getSortIcon('location') && (
+                      <span className="text-xs">{getSortIcon('location')}</span>
+                    )}
+                  </div>
                 </th>
                 <th 
                   className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
@@ -945,8 +982,10 @@ const Inventory: React.FC = () => {
                 >
                   <div className="flex items-center space-x-1">
                     <span>Expiry Date</span>
-                    <span className="text-xs">{getSortIcon('expiry_date')}</span>
-                      </div>
+                    {getSortIcon('expiry_date') && (
+                      <span className="text-xs">{getSortIcon('expiry_date')}</span>
+                    )}
+                  </div>
                 </th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Actions
@@ -1013,9 +1052,9 @@ const Inventory: React.FC = () => {
                           onClick={() => handleDeleteItem(item.id)}
                           disabled={deletingItem === item.id}
                           className="text-red-600 hover:text-red-900 disabled:opacity-50"
-                          title={deletingItem === item.id ? 'Deleting (2s delay)...' : 'Delete item'}
+                          title="Delete item"
                         >
-                          {deletingItem === item.id ? '⏳ Deleting...' : '🗑️ Delete'}
+                          {deletingItem === item.id ? '⏳ Deleting...' : '🗑️'}
                         </button>
                   </div>
                     </td>
