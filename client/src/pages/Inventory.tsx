@@ -703,40 +703,22 @@ const Inventory: React.FC = () => {
           />
         </td>
         <td className="px-6 py-4">
-          <div className="flex space-x-1">
-            <input
-              type="number"
-              placeholder="Qty"
-              value={newItem.quantity ?? ''}
-              onChange={(e) => setNewItem({...newItem, quantity: e.target.value})}
-              className="w-16 border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  handleSaveAdd();
-                } else if (e.key === 'Escape') {
-                  e.preventDefault();
-                  handleCancelAdd();
-                }
-              }}
-            />
-            <input
-              type="text"
-              placeholder="Unit"
-              value={newItem.unit ?? ''}
-              onChange={(e) => setNewItem({...newItem, unit: e.target.value})}
-              className="w-12 border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  handleSaveAdd();
-                } else if (e.key === 'Escape') {
-                  e.preventDefault();
-                  handleCancelAdd();
-                }
-              }}
-            />
-          </div>
+          <input
+            type="number"
+            placeholder="Qty"
+            value={newItem.quantity ?? ''}
+            onChange={(e) => setNewItem({...newItem, quantity: e.target.value})}
+            className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                handleSaveAdd();
+              } else if (e.key === 'Escape') {
+                e.preventDefault();
+                handleCancelAdd();
+              }
+            }}
+          />
         </td>
         <td className="px-6 py-4">
           <input
@@ -989,11 +971,6 @@ const Inventory: React.FC = () => {
                 </th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Actions
-                  {editingItem && (
-                    <span className="ml-2 text-xs text-blue-600 font-normal">
-                      (Press Ctrl+Enter to save, Esc to cancel)
-                    </span>
-                  )}
                 </th>
               </tr>
             </thead>
@@ -1029,34 +1006,133 @@ const Inventory: React.FC = () => {
                 filteredInventory.map((item, index) => (
                   <tr key={item.id} data-item-id={item.id} className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 transition-colors duration-150`}>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900" data-field="brand">
-                      {renderEditableCell(item, 'brand', item.brand)}
+                      {editingItem?.id === item.id ? (
+                        <input
+                          type="text"
+                          value={editingData.brand ?? ''}
+                          onChange={e => setEditingData({ ...editingData, brand: e.target.value })}
+                          className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          disabled={isSavingEdit}
+                        />
+                      ) : (
+                        renderEditableCell(item, 'brand', item.brand)
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500" data-field="product_code">
-                      {renderEditableCell(item, 'product_code', item.product_code)}
+                      {editingItem?.id === item.id ? (
+                        <input
+                          type="text"
+                          value={editingData.product_code ?? ''}
+                          onChange={e => setEditingData({ ...editingData, product_code: e.target.value })}
+                          className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          disabled={isSavingEdit}
+                        />
+                      ) : (
+                        renderEditableCell(item, 'product_code', item.product_code)
+                      )}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-900 w-1/3" data-field="product_name">
-                      {renderEditableTextarea(item, 'product_name', item.product_name)}
+                      {editingItem?.id === item.id ? (
+                        <textarea
+                          value={editingData.product_name ?? ''}
+                          onChange={e => setEditingData({ ...editingData, product_name: e.target.value })}
+                          className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none"
+                          rows={2}
+                          disabled={isSavingEdit}
+                        />
+                      ) : (
+                        renderEditableTextarea(item, 'product_name', item.product_name)
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500" data-field="quantity">
-                      {renderQuantityCell(item)}
+                      {editingItem?.id === item.id ? (
+                        <input
+                          type="number"
+                          value={editingData.quantity ?? ''}
+                          onChange={e => setEditingData({ ...editingData, quantity: e.target.value })}
+                          className="w-16 border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          disabled={isSavingEdit}
+                        />
+                      ) : (
+                        item.quantity ?? ''
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500" data-field="location">
-                      {renderEditableCell(item, 'location', item.location)}
+                      {editingItem?.id === item.id ? (
+                        <input
+                          type="text"
+                          value={editingData.location ?? ''}
+                          onChange={e => setEditingData({ ...editingData, location: e.target.value })}
+                          className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          disabled={isSavingEdit}
+                        />
+                      ) : (
+                        renderEditableCell(item, 'location', item.location)
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500" data-field="expiry_date">
-                      {renderEditableCell(item, 'expiry_date', item.expiry_date)}
+                      {editingItem?.id === item.id ? (
+                        <input
+                          type="date"
+                          value={editingData.expiry_date ?? ''}
+                          onChange={e => setEditingData({ ...editingData, expiry_date: e.target.value })}
+                          className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          disabled={isSavingEdit}
+                        />
+                      ) : (
+                        renderEditableCell(item, 'expiry_date', item.expiry_date)
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex space-x-2 justify-end">
+                        {editingItem?.id === item.id ? (
+                          <>
+                            <button
+                              onClick={handleSaveEdit}
+                              className="text-green-600 hover:text-green-900"
+                              disabled={isSavingEdit}
+                              title="Save"
+                            >
+                              💾
+                            </button>
+                            <button
+                              onClick={handleCancelEdit}
+                              className="text-gray-600 hover:text-gray-900"
+                              disabled={isSavingEdit}
+                              title="Cancel"
+                            >
+                              ✕
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              setEditingItem(item);
+                              setEditingField(null);
+                              setEditingData({ ...item });
+                            }}
+                            className="text-blue-600 hover:text-blue-900"
+                            title="Edit row"
+                          >
+                            ✏️
+                          </button>
+                        )}
                         <button
                           onClick={() => handleDeleteItem(item.id)}
                           disabled={deletingItem === item.id}
                           className="text-red-600 hover:text-red-900 disabled:opacity-50"
                           title="Delete item"
                         >
-                          {deletingItem === item.id ? '⏳ Deleting...' : '🗑️'}
+                          {deletingItem === item.id ? (
+                            <svg className="animate-spin h-5 w-5 text-red-600" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                            </svg>
+                          ) : (
+                            '🗑️'
+                          )}
                         </button>
-                  </div>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -1109,16 +1185,6 @@ const Inventory: React.FC = () => {
                     type="number"
                     value={newItem.quantity || ''}
                     onChange={(e) => setNewItem({...newItem, quantity: e.target.value})}
-                    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Unit</label>
-                  <input
-                    type="text"
-                    value={newItem.unit || ''}
-                    onChange={(e) => setNewItem({...newItem, unit: e.target.value})}
                     className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                     required
                   />

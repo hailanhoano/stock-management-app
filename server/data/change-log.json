@@ -9833,5 +9833,1251 @@
       "admin@example.com",
       "1"
     ]
+  },
+  {
+    "timestamp": 1752822851562,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "ADD",
+    "rowId": "605",
+    "newValue": {
+      "brand": "test",
+      "product_code": "test 1",
+      "product_name": "1"
+    },
+    "changedFields": {
+      "brand": {
+        "old": "",
+        "new": "test",
+        "fieldName": "brand"
+      },
+      "product_code": {
+        "old": "",
+        "new": "test 1",
+        "fieldName": "product_code"
+      },
+      "product_name": {
+        "old": "",
+        "new": "1",
+        "fieldName": "product_name"
+      }
+    },
+    "metadata": [
+      "2025-07-18T07:14:11.563Z",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752822859278,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "ADD",
+    "rowId": "606",
+    "newValue": {
+      "brand": "test 2",
+      "product_code": "2",
+      "product_name": "2"
+    },
+    "changedFields": {
+      "brand": {
+        "old": "",
+        "new": "test 2",
+        "fieldName": "brand"
+      },
+      "product_code": {
+        "old": "",
+        "new": "2",
+        "fieldName": "product_code"
+      },
+      "product_name": {
+        "old": "",
+        "new": "2",
+        "fieldName": "product_name"
+      }
+    },
+    "metadata": [
+      "2025-07-18T07:14:19.278Z",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752822863170,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "605",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "2025-07-18T07:14:22.841Z",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752822866143,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "605",
+    "oldValue": {
+      "quantity": ""
+    },
+    "newValue": {
+      "quantity": "2"
+    },
+    "changedFields": {
+      "quantity": {
+        "old": "",
+        "new": "2",
+        "fieldName": "Số lượng"
+      }
+    },
+    "metadata": [
+      "2025-07-18T07:14:25.833Z",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752822881380,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "606",
+    "oldValue": {
+      "quantity": ""
+    },
+    "newValue": {
+      "quantity": "24"
+    },
+    "changedFields": {
+      "quantity": {
+        "old": "",
+        "new": "24",
+        "fieldName": "Số lượng"
+      }
+    },
+    "metadata": [
+      "2025-07-18T07:14:41.031Z",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752822888375,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "605",
+    "oldValue": {
+      "quantity": "2"
+    },
+    "newValue": {
+      "quantity": "4"
+    },
+    "changedFields": {
+      "quantity": {
+        "old": "2",
+        "new": "4",
+        "fieldName": "Số lượng"
+      }
+    },
+    "metadata": [
+      "2025-07-18T07:14:48.026Z",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752822897665,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "605",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "2025-07-18T07:14:57.317Z",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752822900670,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "605",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "2025-07-18T07:15:00.321Z",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752823098120,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "605",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "2025-07-18T07:18:17.756Z",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752823128948,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "605",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "2025-07-18T07:18:48.568Z",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752823139818,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "606",
+    "oldValue": {
+      "brand": "test 2",
+      "product_code": "2",
+      "product_name": "2",
+      "quantity": "24",
+      "location": ""
+    },
+    "newValue": {
+      "brand": "test4 2",
+      "product_code": "24",
+      "product_name": "24",
+      "quantity": "244",
+      "location": "4"
+    },
+    "changedFields": {
+      "brand": {
+        "old": "test 2",
+        "new": "test4 2",
+        "fieldName": "Tên hãng"
+      },
+      "product_code": {
+        "old": "2",
+        "new": "24",
+        "fieldName": "Mã hàng"
+      },
+      "product_name": {
+        "old": "2",
+        "new": "24",
+        "fieldName": "Tên hàng"
+      },
+      "quantity": {
+        "old": "24",
+        "new": "244",
+        "fieldName": "Số lượng"
+      },
+      "location": {
+        "old": "",
+        "new": "4",
+        "fieldName": "Vị trí đặt hàng"
+      }
+    },
+    "metadata": [
+      "2025-07-18T07:18:59.470Z",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752823145746,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "605",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "2025-07-18T07:19:05.301Z",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752823148637,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "606",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "2025-07-18T07:19:08.078Z",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752823166845,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "605",
+    "oldValue": {
+      "expiry_date": ""
+    },
+    "newValue": {
+      "expiry_date": "2019-12-15"
+    },
+    "changedFields": {
+      "expiry_date": {
+        "old": "",
+        "new": "2019-12-15",
+        "fieldName": "Ngày hết hạn"
+      }
+    },
+    "metadata": [
+      "2025-07-18T07:19:26.473Z",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752823195045,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "DELETE",
+    "rowId": "605",
+    "oldValue": [
+      "test",
+      "test 1",
+      "1",
+      "",
+      "",
+      "4",
+      "",
+      "2019-12-15"
+    ],
+    "changedFields": {},
+    "metadata": [
+      "2025-07-18T07:19:55.045Z",
+      "admin@example.com",
+      "0"
+    ]
+  },
+  {
+    "timestamp": 1752823209005,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "DELETE",
+    "rowId": "605",
+    "oldValue": [
+      "test4 2",
+      "24",
+      "24",
+      "",
+      "",
+      "244",
+      "",
+      "",
+      "",
+      "4"
+    ],
+    "changedFields": {},
+    "metadata": [
+      "2025-07-18T07:20:09.005Z",
+      "admin@example.com",
+      "0"
+    ]
+  },
+  {
+    "timestamp": 1752823246285,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "ADD",
+    "rowId": "605",
+    "newValue": {
+      "brand": "test",
+      "product_code": "f",
+      "product_name": "f",
+      "quantity": "2",
+      "location": "f"
+    },
+    "changedFields": {
+      "brand": {
+        "old": "",
+        "new": "test",
+        "fieldName": "brand"
+      },
+      "product_code": {
+        "old": "",
+        "new": "f",
+        "fieldName": "product_code"
+      },
+      "product_name": {
+        "old": "",
+        "new": "f",
+        "fieldName": "product_name"
+      },
+      "quantity": {
+        "old": "",
+        "new": "2",
+        "fieldName": "quantity"
+      },
+      "location": {
+        "old": "",
+        "new": "f",
+        "fieldName": "location"
+      }
+    },
+    "metadata": [
+      "2025-07-18T07:20:46.285Z",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752823253620,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "ADD",
+    "rowId": "606",
+    "newValue": {
+      "brand": "test ",
+      "product_code": "5",
+      "product_name": "5"
+    },
+    "changedFields": {
+      "brand": {
+        "old": "",
+        "new": "test ",
+        "fieldName": "brand"
+      },
+      "product_code": {
+        "old": "",
+        "new": "5",
+        "fieldName": "product_code"
+      },
+      "product_name": {
+        "old": "",
+        "new": "5",
+        "fieldName": "product_name"
+      }
+    },
+    "metadata": [
+      "2025-07-18T07:20:53.621Z",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752823264052,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "605",
+    "oldValue": {
+      "product_code": "f",
+      "product_name": "f",
+      "quantity": "2",
+      "location": "f"
+    },
+    "newValue": {
+      "product_code": "ffaf",
+      "product_name": "ffa",
+      "quantity": "4",
+      "location": "ffafa"
+    },
+    "changedFields": {
+      "product_code": {
+        "old": "f",
+        "new": "ffaf",
+        "fieldName": "Mã hàng"
+      },
+      "product_name": {
+        "old": "f",
+        "new": "ffa",
+        "fieldName": "Tên hàng"
+      },
+      "quantity": {
+        "old": "2",
+        "new": "4",
+        "fieldName": "Số lượng"
+      },
+      "location": {
+        "old": "f",
+        "new": "ffafa",
+        "fieldName": "Vị trí đặt hàng"
+      }
+    },
+    "metadata": [
+      "2025-07-18T07:21:03.649Z",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752823271530,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "606",
+    "oldValue": {
+      "product_code": "5",
+      "product_name": "5",
+      "quantity": "",
+      "location": ""
+    },
+    "newValue": {
+      "product_code": "5faf",
+      "product_name": "5faf",
+      "quantity": "1",
+      "location": "fafaf"
+    },
+    "changedFields": {
+      "product_code": {
+        "old": "5",
+        "new": "5faf",
+        "fieldName": "Mã hàng"
+      },
+      "product_name": {
+        "old": "5",
+        "new": "5faf",
+        "fieldName": "Tên hàng"
+      },
+      "quantity": {
+        "old": "",
+        "new": "1",
+        "fieldName": "Số lượng"
+      },
+      "location": {
+        "old": "",
+        "new": "fafaf",
+        "fieldName": "Vị trí đặt hàng"
+      }
+    },
+    "metadata": [
+      "2025-07-18T07:21:11.207Z",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752823369555,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "605",
+    "oldValue": {
+      "product_code": "ffaf"
+    },
+    "newValue": {
+      "product_code": "ffafadda"
+    },
+    "changedFields": {
+      "product_code": {
+        "old": "ffaf",
+        "new": "ffafadda",
+        "fieldName": "Mã hàng"
+      }
+    },
+    "metadata": [
+      "2025-07-18T07:22:49.205Z",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752823381090,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "605",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "2025-07-18T07:23:00.730Z",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752823475314,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "388",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "2025-07-18T07:24:35.001Z",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752823485446,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "389",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "2025-07-18T07:24:45.093Z",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752823489877,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "606",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "2025-07-18T07:24:49.515Z",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752823572333,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "388",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "2025-07-18T07:26:11.956Z",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752823578742,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "606",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "2025-07-18T07:26:18.426Z",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752823589700,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "605",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "2025-07-18T07:26:29.389Z",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752823593858,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "389",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "2025-07-18T07:26:33.542Z",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752823605432,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "388",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "2025-07-18T07:26:45.067Z",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752823611407,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "389",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "2025-07-18T07:26:51.065Z",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752823627075,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "2",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "2025-07-18T07:27:06.703Z",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752823638153,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "2",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "2025-07-18T07:27:17.818Z",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752823642581,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "11",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "2025-07-18T07:27:22.248Z",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752823659829,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "2",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "2025-07-18T07:27:39.486Z",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752823663046,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "3",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "2025-07-18T07:27:42.704Z",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752823670184,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "581",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "2025-07-18T07:27:49.862Z",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752823750574,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "581",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "2025-07-18T07:29:10.209Z",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752823797117,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "581",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "2025-07-18T07:29:56.777Z",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752823805123,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "605",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "2025-07-18T07:30:04.763Z",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752823815196,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "606",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "2025-07-18T07:30:14.857Z",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752823822728,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "606",
+    "oldValue": {
+      "product_code": "5faf",
+      "product_name": "5faf",
+      "quantity": "1"
+    },
+    "newValue": {
+      "product_code": "5faffaf ",
+      "product_name": "5faffafafa",
+      "quantity": "4"
+    },
+    "changedFields": {
+      "product_code": {
+        "old": "5faf",
+        "new": "5faffaf ",
+        "fieldName": "Mã hàng"
+      },
+      "product_name": {
+        "old": "5faf",
+        "new": "5faffafafa",
+        "fieldName": "Tên hàng"
+      },
+      "quantity": {
+        "old": "1",
+        "new": "4",
+        "fieldName": "Số lượng"
+      }
+    },
+    "metadata": [
+      "2025-07-18T07:30:22.407Z",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752824125406,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "388",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "2025-07-18T07:35:25.090Z",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752824128803,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "389",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "2025-07-18T07:35:28.477Z",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752824134445,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "91",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "2025-07-18T07:35:34.130Z",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752824137430,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "605",
+    "oldValue": {
+      "product_name": "ffa"
+    },
+    "newValue": {
+      "product_name": "ffa fafa"
+    },
+    "changedFields": {
+      "product_name": {
+        "old": "ffa",
+        "new": "ffa fafa",
+        "fieldName": "Tên hàng"
+      }
+    },
+    "metadata": [
+      "2025-07-18T07:35:37.105Z",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752824147175,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "606",
+    "oldValue": {
+      "product_code": "5faffaf ",
+      "product_name": "5faffafafa",
+      "quantity": "4",
+      "location": "fafaf"
+    },
+    "newValue": {
+      "product_code": "5faffaf fafaf",
+      "product_name": "5faffafafaf afaf",
+      "quantity": "6",
+      "location": "fafaffaf"
+    },
+    "changedFields": {
+      "product_code": {
+        "old": "5faffaf ",
+        "new": "5faffaf fafaf",
+        "fieldName": "Mã hàng"
+      },
+      "product_name": {
+        "old": "5faffafafa",
+        "new": "5faffafafaf afaf",
+        "fieldName": "Tên hàng"
+      },
+      "quantity": {
+        "old": "4",
+        "new": "6",
+        "fieldName": "Số lượng"
+      },
+      "location": {
+        "old": "fafaf",
+        "new": "fafaffaf",
+        "fieldName": "Vị trí đặt hàng"
+      }
+    },
+    "metadata": [
+      "2025-07-18T07:35:46.831Z",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752824154058,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "DELETE",
+    "rowId": "605",
+    "oldValue": [
+      "test",
+      "ffafadda",
+      "ffa fafa",
+      "",
+      "",
+      "4",
+      "",
+      "",
+      "",
+      "ffafa"
+    ],
+    "changedFields": {},
+    "metadata": [
+      "2025-07-18T07:35:54.058Z",
+      "admin@example.com",
+      "0"
+    ]
+  },
+  {
+    "timestamp": 1752824269507,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "605",
+    "oldValue": {
+      "brand": "test ",
+      "product_code": "5faffaf fafaf",
+      "product_name": "5faffafafaf afaf",
+      "quantity": "6",
+      "location": "fafaffaf"
+    },
+    "newValue": {
+      "brand": "test",
+      "product_code": "ffafadda",
+      "product_name": "ffa",
+      "quantity": "4",
+      "location": "ffafa"
+    },
+    "changedFields": {
+      "brand": {
+        "old": "test ",
+        "new": "test",
+        "fieldName": "Tên hãng"
+      },
+      "product_code": {
+        "old": "5faffaf fafaf",
+        "new": "ffafadda",
+        "fieldName": "Mã hàng"
+      },
+      "product_name": {
+        "old": "5faffafafaf afaf",
+        "new": "ffa",
+        "fieldName": "Tên hàng"
+      },
+      "quantity": {
+        "old": "6",
+        "new": "4",
+        "fieldName": "Số lượng"
+      },
+      "location": {
+        "old": "fafaffaf",
+        "new": "ffafa",
+        "fieldName": "Vị trí đặt hàng"
+      }
+    },
+    "metadata": [
+      "2025-07-18T07:37:49.162Z",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752824285972,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "DELETE",
+    "rowId": "605",
+    "oldValue": [
+      "test",
+      "ffafadda",
+      "ffa",
+      "",
+      "",
+      "4",
+      "",
+      "",
+      "",
+      "ffafa"
+    ],
+    "changedFields": {},
+    "metadata": [
+      "2025-07-18T07:38:05.972Z",
+      "admin@example.com",
+      "0"
+    ]
+  },
+  {
+    "timestamp": 1752824328223,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "ADD",
+    "rowId": "605",
+    "newValue": {
+      "brand": "test",
+      "product_code": "te",
+      "product_name": "4",
+      "location": "4"
+    },
+    "changedFields": {
+      "brand": {
+        "old": "",
+        "new": "test",
+        "fieldName": "brand"
+      },
+      "product_code": {
+        "old": "",
+        "new": "te",
+        "fieldName": "product_code"
+      },
+      "product_name": {
+        "old": "",
+        "new": "4",
+        "fieldName": "product_name"
+      },
+      "location": {
+        "old": "",
+        "new": "4",
+        "fieldName": "location"
+      }
+    },
+    "metadata": [
+      "2025-07-18T07:38:48.223Z",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752824339481,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "ADD",
+    "rowId": "606",
+    "newValue": {
+      "brand": "test ",
+      "product_code": "2",
+      "product_name": "5"
+    },
+    "changedFields": {
+      "brand": {
+        "old": "",
+        "new": "test ",
+        "fieldName": "brand"
+      },
+      "product_code": {
+        "old": "",
+        "new": "2",
+        "fieldName": "product_code"
+      },
+      "product_name": {
+        "old": "",
+        "new": "5",
+        "fieldName": "product_name"
+      }
+    },
+    "metadata": [
+      "2025-07-18T07:38:59.481Z",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752824346094,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "DELETE",
+    "rowId": "606",
+    "oldValue": [
+      "test ",
+      "2",
+      "5"
+    ],
+    "changedFields": {},
+    "metadata": [
+      "2025-07-18T07:39:06.094Z",
+      "admin@example.com",
+      "0"
+    ]
+  },
+  {
+    "timestamp": 1752824350995,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "DELETE",
+    "rowId": "605",
+    "oldValue": [
+      "test",
+      "te",
+      "4",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "4"
+    ],
+    "changedFields": {},
+    "metadata": [
+      "2025-07-18T07:39:10.995Z",
+      "admin@example.com",
+      "0"
+    ]
   }
 ]
