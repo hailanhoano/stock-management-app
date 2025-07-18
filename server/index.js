@@ -1041,8 +1041,9 @@ app.put('/api/stock/inventory/:id', authenticateToken, async (req, res) => {
     });
 
     // Add metadata columns if they don't exist
+    // Update the metadata creation to use Melbourne timezone
     const metadataColumns = [
-      new Date().toISOString(), // lastModified
+      new Date().toLocaleString('en-AU', { timeZone: 'Australia/Melbourne' }), // lastModified
       req.user.email, // modifiedBy
       (parseInt(currentRowData[headers.length] || '0') + 1).toString() // version
     ];
@@ -1231,7 +1232,7 @@ app.post('/api/stock/inventory', authenticateToken, async (req, res) => {
         return acc;
       }, {}),
       metadata: [
-        new Date().toISOString(), // lastModified
+        new Date().toLocaleString('en-AU', { timeZone: 'Australia/Melbourne' }), // lastModified
         req.user.email, // modifiedBy
         '1' // version
       ]
@@ -1381,7 +1382,7 @@ app.delete('/api/stock/inventory/:id', authenticateToken, async (req, res) => {
       oldValue: currentData[rowIndex - 1], // Store the deleted row data
       changedFields: {},
       metadata: [
-        new Date().toISOString(), // lastModified
+        new Date().toLocaleString('en-AU', { timeZone: 'Australia/Melbourne' }), // lastModified
         req.user.email, // modifiedBy
         '0' // version (deleted)
       ]

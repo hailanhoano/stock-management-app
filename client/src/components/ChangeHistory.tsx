@@ -57,7 +57,15 @@ const ChangeHistory: React.FC<ChangeHistoryProps> = ({ isOpen, onClose }) => {
   }, [isOpen]);
 
   const formatTimestamp = (timestamp: number) => {
-    return new Date(timestamp).toLocaleString('vi-VN');
+    return new Date(timestamp).toLocaleString('en-AU', {
+      timeZone: 'Australia/Melbourne',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    });
   };
 
   const getActionLabel = (action: string) => {

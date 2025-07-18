@@ -44,6 +44,10 @@ const Inventory: React.FC = () => {
   }>({ key: null, direction: 'asc' });
   const [isSavingEdit, setIsSavingEdit] = useState(false);
 
+  // Add new state for bulk selection
+  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
+  const [isBulkActionMode, setIsBulkActionMode] = useState(false);
+
   const location = useLocation();
 
   // Connect to WebSocket when component mounts
@@ -470,6 +474,55 @@ const Inventory: React.FC = () => {
     return sortConfig.direction === 'asc' ? '↑' : '↓';
   };
 
+  // Add a helper function to format date strings as DD/MM/YYYY
+  const formatDateDisplay = (dateStr: string | undefined) => {
+    if (!dateStr) return '';
+    // Accept both YYYY-MM-DD and DD/MM/YYYY, but always display as DD-MM-YYYY
+    if (dateStr.includes('-')) {
+      const [y, m, d] = dateStr.split('-');
+      return `${d}-${m}-${y}`;
+    }
+    if (dateStr.includes('/')) {
+      const [d, m, y] = dateStr.split('/');
+      return `${d}-${m}-${y}`;
+    }
+    return dateStr; // fallback for already formatted
+  };
+
+  // Add bulk selection handlers
+  const handleSelectItem = (itemId: string) => {
+    const newSelected = new Set(selectedItems);
+    if (newSelected.has(itemId)) {
+      newSelected.delete(itemId);
+    } else {
+      newSelected.add(itemId);
+    }
+    setSelectedItems(newSelected);
+  };
+
+  const handleSelectAll = () => {
+    if (selectedItems.size === filteredInventory.length) {
+      setSelectedItems(new Set());
+    } else {
+      setSelectedItems(new Set(filteredInventory.map(item => item.id)));
+    }
+  };
+
+  const handleBulkCheckout = () => {
+    // TODO: Implement bulk checkout logic
+    console.log('Bulk checkout for items:', Array.from(selectedItems));
+    // Clear selection after action
+    setSelectedItems(new Set());
+    setIsBulkActionMode(false);
+  };
+
+  const handleBulkSendOut = () => {
+    // TODO: Implement bulk send out logic
+    console.log('Bulk send out for items:', Array.from(selectedItems));
+    // Clear selection after action
+    setSelectedItems(new Set());
+    setIsBulkActionMode(false);
+  };
 
 
   if (loading) {
@@ -739,22 +792,26 @@ const Inventory: React.FC = () => {
           />
         </td>
         <td className="px-6 py-4">
-          <input
-            type="date"
-            placeholder="Expiry Date"
-            value={newItem.expiry_date || ''}
-            onChange={(e) => setNewItem({...newItem, expiry_date: e.target.value})}
-            className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                handleSaveAdd();
-              } else if (e.key === 'Escape') {
-                e.preventDefault();
-                handleCancelAdd();
-              }
-            }}
-          />
+          {isAddingItem ? (
+            <input
+              type="date"
+              placeholder="dd-mm-yyyy"
+              value={newItem.expiry_date || ''}
+              onChange={(e) => setNewItem({...newItem, expiry_date: e.target.value})}
+              className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleSaveAdd();
+                } else if (e.key === 'Escape') {
+                  e.preventDefault();
+                  handleCancelAdd();
+                }
+              }}
+            />
+          ) : (
+            formatDateDisplay(newItem.expiry_date)
+          )}
         </td>
         <td className="px-6 py-4 text-right">
           <div className="flex space-x-2">
@@ -791,16 +848,18 @@ const Inventory: React.FC = () => {
                   <div className="mt-4 sm:mt-0 flex items-center space-x-4">
             <div className="flex flex-col space-y-1 text-sm relative">
               {/* Row 1: Last sync timestamp */}
-              <div className="text-xs text-gray-500">
+              <div className="text-xs text-gray-500 flex items-center">
                 Last sync: {lastSyncTime ? lastSyncTime.toLocaleTimeString() : 'Unknown'}
-                {syncStatus === 'syncing' && <span className="ml-2 text-blue-600">🔄</span>}
-                {syncStatus === 'error' && <span className="ml-2 text-red-600">❌</span>}
+                <span style={{ display: 'inline-block', width: 20 }}>
+                  {syncStatus === 'syncing' && <span className="text-blue-600">🔄</span>}
+                  {syncStatus === 'error' && <span className="text-red-600">❌</span>}
+                </span>
               </div>
               
               {/* Row 2: Live Updates Active */}
               <div className="flex items-center space-x-2">
                 <span className="text-green-500">●</span>
-                <span className="text-green-600 font-medium">Live Updates Active</span>
+                <span className="text-green-600 font-medium">Live</span>
               </div>
               
               {/* Row 3: Google Sheets changes - positioned absolutely to avoid layout shifts */}
@@ -897,12 +956,53 @@ const Inventory: React.FC = () => {
                       </div>
                     </div>
 
+      {/* Add bulk action UI after the search bar and before the table */}
+      {selectedItems.size > 0 && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <span className="text-sm font-medium text-blue-900">
+                {selectedItems.size} item(s) selected
+              </span>
+              <button
+                onClick={() => setSelectedItems(new Set())}
+                className="text-sm text-blue-600 hover:text-blue-800"
+              >
+                Clear selection
+              </button>
+            </div>
+            <div className="flex space-x-2">
+              <button
+                onClick={handleBulkCheckout}
+                className="px-4 py-2 bg-green-600 text-white text-sm rounded hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
+              >
+                🛒 Checkout ({selectedItems.size})
+              </button>
+              <button
+                onClick={handleBulkSendOut}
+                className="px-4 py-2 bg-orange-600 text-white text-sm rounded hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500"
+              >
+                📦 Send Out ({selectedItems.size})
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Inventory Table */}
       <div className="bg-white shadow overflow-hidden sm:rounded-md">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <input
+                    type="checkbox"
+                    checked={selectedItems.size === filteredInventory.length && filteredInventory.length > 0}
+                    onChange={handleSelectAll}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                </th>
                 <th 
                   className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
                   onClick={() => handleSort('brand')}
@@ -1005,6 +1105,14 @@ const Inventory: React.FC = () => {
               ) : (
                 filteredInventory.map((item, index) => (
                   <tr key={item.id} data-item-id={item.id} className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 transition-colors duration-150`}>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <input
+                        type="checkbox"
+                        checked={selectedItems.has(item.id)}
+                        onChange={() => handleSelectItem(item.id)}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900" data-field="brand">
                       {editingItem?.id === item.id ? (
                         <input
@@ -1080,7 +1188,7 @@ const Inventory: React.FC = () => {
                           disabled={isSavingEdit}
                         />
                       ) : (
-                        renderEditableCell(item, 'expiry_date', item.expiry_date)
+                        formatDateDisplay(item.expiry_date)
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -1203,6 +1311,7 @@ const Inventory: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-700">Expiry Date</label>
                   <input
                     type="date"
+                    placeholder="dd-mm-yyyy"
                     value={newItem.expiry_date || ''}
                     onChange={(e) => setNewItem({...newItem, expiry_date: e.target.value})}
                     className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
