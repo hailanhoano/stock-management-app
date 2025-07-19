@@ -182,6 +182,12 @@ const Inventory: React.FC = () => {
       }
 
       const data = await response.json();
+      console.log('📊 Loaded inventory data:', data.inventory?.length || 0, 'items');
+      console.log('📋 Sample items:', data.inventory?.slice(0, 3)?.map((item: any) => ({
+        product_name: item.product_name,
+        warehouse: item.warehouse,
+        source: item.source
+      })));
       setInventory(data.inventory || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load inventory');
@@ -201,7 +207,24 @@ const Inventory: React.FC = () => {
     
     // Apply selected items filter first
     if (showOnlySelected && selectedItems.size > 0) {
-      filtered = inventory.filter(item => selectedItems.has(item.id));
+      console.log('🔍 Showing only selected items:', selectedItems.size, 'selected');
+      console.log('📋 Selected item IDs:', Array.from(selectedItems));
+      console.log('📊 Total inventory items:', inventory.length);
+      
+      filtered = inventory.filter(item => {
+        const isSelected = selectedItems.has(item.id);
+        if (isSelected) {
+          console.log('✅ Found selected item:', {
+            id: item.id,
+            product_name: item.product_name,
+            warehouse: item.warehouse,
+            source: item.source
+          });
+        }
+        return isSelected;
+      });
+      
+      console.log('📊 Filtered to selected items:', filtered.length);
     }
     
     // Apply search filter
@@ -213,7 +236,8 @@ const Inventory: React.FC = () => {
           item.brand?.toLowerCase().includes(searchLower) ||
           item.product_code?.toLowerCase().includes(searchLower) ||
           item.lot_number?.toLowerCase().includes(searchLower) ||
-          item.location?.toLowerCase().includes(searchLower)
+          item.location?.toLowerCase().includes(searchLower) ||
+          item.warehouse?.toLowerCase().includes(searchLower)
         );
       });
     }
@@ -654,6 +678,7 @@ const handleSelectItem = (itemId: string) => {
     newSelected.add(itemId);
     console.log('➕ Selected item:', itemId);
   }
+  console.log('📋 Current selected items:', Array.from(newSelected));
   setSelectedItems(newSelected);
 };
 
@@ -690,6 +715,9 @@ const handleClearSelection = () => {
 
   const handleShowSelectedItems = () => {
     if (selectedItems.size > 0) {
+      console.log('🔍 Toggling show only selected items');
+      console.log('📋 Selected items count:', selectedItems.size);
+      console.log('📋 Selected item IDs:', Array.from(selectedItems));
       setShowOnlySelected(!showOnlySelected);
     }
   };
@@ -1776,7 +1804,13 @@ const handleBulkSendOut = async () => {
                             disabled={isSavingEdit}
                           />
                         ) : (
-                          renderEditableCell(item, 'warehouse', item.warehouse)
+                          <div className={`px-2 py-1 rounded text-center font-medium ${
+                            item.warehouse === 'TH' ? 'bg-blue-100 text-blue-800' :
+                            item.warehouse === 'VKT' ? 'bg-green-100 text-green-800' :
+                            'bg-gray-100 text-gray-800'
+                          }`}>
+                            {item.warehouse}
+                          </div>
                         )}
                       </td>
                     )}

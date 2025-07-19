@@ -14212,5 +14212,772 @@
       "admin@example.com",
       "1"
     ]
+  },
+  {
+    "timestamp": 1752919290094,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "2",
+    "oldValue": {
+      "import_date": "26/02/2025"
+    },
+    "newValue": {
+      "import_date": ""
+    },
+    "changedFields": {
+      "import_date": {
+        "old": "26/02/2025",
+        "new": "",
+        "fieldName": "Ngày nhập kho"
+      }
+    },
+    "metadata": [
+      "19/07/2025, 8:01:29 pm",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752919299904,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "3",
+    "oldValue": {
+      "import_date": "26/02/2025"
+    },
+    "newValue": {
+      "import_date": ""
+    },
+    "changedFields": {
+      "import_date": {
+        "old": "26/02/2025",
+        "new": "",
+        "fieldName": "Ngày nhập kho"
+      }
+    },
+    "metadata": [
+      "19/07/2025, 8:01:39 pm",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752921068697,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "vkt_129",
+    "oldValue": {
+      "product_name": "hóa chất tinh khiết phân tích theo",
+      "import_date": "24/04/2025"
+    },
+    "newValue": {
+      "product_name": "hóa chất tinh khiết phân tích theo 133",
+      "import_date": ""
+    },
+    "changedFields": {
+      "product_name": {
+        "old": "hóa chất tinh khiết phân tích theo",
+        "new": "hóa chất tinh khiết phân tích theo 133",
+        "fieldName": "Tên hàng"
+      },
+      "import_date": {
+        "old": "24/04/2025",
+        "new": "",
+        "fieldName": "Ngày nhập kho"
+      }
+    },
+    "metadata": [
+      "19/07/2025, 8:31:08 pm",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752922574441,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "vkt_32",
+    "oldValue": {
+      "import_date": "26/02/2025"
+    },
+    "newValue": {
+      "import_date": ""
+    },
+    "changedFields": {
+      "import_date": {
+        "old": "26/02/2025",
+        "new": "",
+        "fieldName": "Ngày nhập kho"
+      }
+    },
+    "metadata": [
+      "19/07/2025, 8:56:13 pm",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752922607271,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "vkt_2",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "19/07/2025, 8:56:46 pm",
+      "admin@example.com",
+      "20"
+    ]
+  },
+  {
+    "timestamp": 1752922613806,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "vkt_2",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "19/07/2025, 8:56:53 pm",
+      "admin@example.com",
+      "20"
+    ]
+  },
+  {
+    "timestamp": 1752922618480,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "vkt_6",
+    "oldValue": {
+      "import_date": "04/03/2025"
+    },
+    "newValue": {
+      "import_date": ""
+    },
+    "changedFields": {
+      "import_date": {
+        "old": "04/03/2025",
+        "new": "",
+        "fieldName": "Ngày nhập kho"
+      }
+    },
+    "metadata": [
+      "19/07/2025, 8:56:58 pm",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752922625475,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "th_511",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "19/07/2025, 8:57:04 pm",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752922629205,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "th_510",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "19/07/2025, 8:57:08 pm",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752922635215,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "th_511",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "19/07/2025, 8:57:14 pm",
+      "admin@example.com",
+      "20"
+    ]
+  },
+  {
+    "timestamp": 1752922707657,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "th_512",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "19/07/2025, 8:58:27 pm",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752922711592,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "vkt_2",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "19/07/2025, 8:58:31 pm",
+      "admin@example.com",
+      "20"
+    ]
+  },
+  {
+    "timestamp": 1752922718409,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "vkt_6",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "19/07/2025, 8:58:38 pm",
+      "admin@example.com",
+      "20"
+    ]
+  },
+  {
+    "timestamp": 1752922802570,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "vkt_2",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "19/07/2025, 9:00:02 pm",
+      "admin@example.com",
+      "20"
+    ]
+  },
+  {
+    "timestamp": 1752922811536,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "th_512",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "19/07/2025, 9:00:11 pm",
+      "admin@example.com",
+      "20"
+    ]
+  },
+  {
+    "timestamp": 1752922822759,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "th_511",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "19/07/2025, 9:00:22 pm",
+      "admin@example.com",
+      "20"
+    ]
+  },
+  {
+    "timestamp": 1752922826281,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "th_512",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "19/07/2025, 9:00:25 pm",
+      "admin@example.com",
+      "20"
+    ]
+  },
+  {
+    "timestamp": 1752922942123,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "vkt_2",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "19/07/2025, 9:02:21 pm",
+      "admin@example.com",
+      "20"
+    ]
+  },
+  {
+    "timestamp": 1752922952219,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "th_512",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "19/07/2025, 9:02:31 pm",
+      "admin@example.com",
+      "20"
+    ]
+  },
+  {
+    "timestamp": 1752922955942,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "th_511",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "19/07/2025, 9:02:35 pm",
+      "admin@example.com",
+      "20"
+    ]
+  },
+  {
+    "timestamp": 1752922971768,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "vkt_2",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "19/07/2025, 9:02:51 pm",
+      "admin@example.com",
+      "20"
+    ]
+  },
+  {
+    "timestamp": 1752923034306,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "th_2",
+    "oldValue": {
+      "product_name": "       1 Pentane Sulphonic acid sodium salt HPLC (Chai 25g)"
+    },
+    "newValue": {
+      "product_name": "       1 Pentane Sulphonic acid sodium salt HPLC (Chai 25g) anh yeu em"
+    },
+    "changedFields": {
+      "product_name": {
+        "old": "       1 Pentane Sulphonic acid sodium salt HPLC (Chai 25g)",
+        "new": "       1 Pentane Sulphonic acid sodium salt HPLC (Chai 25g) anh yeu em",
+        "fieldName": "Tên hàng"
+      }
+    },
+    "metadata": [
+      "19/07/2025, 9:03:53 pm",
+      "admin@example.com",
+      "20"
+    ]
+  },
+  {
+    "timestamp": 1752923057688,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "th_2",
+    "oldValue": {
+      "product_name": "       1 Pentane Sulphonic acid sodium salt HPLC (Chai 25g) anh yeu em"
+    },
+    "newValue": {
+      "product_name": "       1 Pentane Sulphonic acid sodium salt HPLC (Chai 25g) anh yeu"
+    },
+    "changedFields": {
+      "product_name": {
+        "old": "       1 Pentane Sulphonic acid sodium salt HPLC (Chai 25g) anh yeu em",
+        "new": "       1 Pentane Sulphonic acid sodium salt HPLC (Chai 25g) anh yeu",
+        "fieldName": "Tên hàng"
+      }
+    },
+    "metadata": [
+      "19/07/2025, 9:04:17 pm",
+      "admin@example.com",
+      "20"
+    ]
+  },
+  {
+    "timestamp": 1752923118996,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "th_3",
+    "oldValue": {
+      "product_name": "        2-Propanol\n"
+    },
+    "newValue": {
+      "product_name": "        2-Propanol anh yeu em\n"
+    },
+    "changedFields": {
+      "product_name": {
+        "old": "        2-Propanol\n",
+        "new": "        2-Propanol anh yeu em\n",
+        "fieldName": "Tên hàng"
+      }
+    },
+    "metadata": [
+      "19/07/2025, 9:05:18 pm",
+      "admin@example.com",
+      "20"
+    ]
+  },
+  {
+    "timestamp": 1752923355868,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "th_2",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "19/07/2025, 9:09:15 pm",
+      "admin@example.com",
+      "20"
+    ]
+  },
+  {
+    "timestamp": 1752923365427,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "th_3",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "19/07/2025, 9:09:25 pm",
+      "admin@example.com",
+      "20"
+    ]
+  },
+  {
+    "timestamp": 1752923748876,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "th_510",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "19/07/2025, 9:15:48 pm",
+      "admin@example.com",
+      "20"
+    ]
+  },
+  {
+    "timestamp": 1752923767764,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "th_510",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "19/07/2025, 9:16:07 pm",
+      "admin@example.com",
+      "20"
+    ]
+  },
+  {
+    "timestamp": 1752923774915,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "th_511",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "19/07/2025, 9:16:14 pm",
+      "admin@example.com",
+      "20"
+    ]
+  },
+  {
+    "timestamp": 1752923781629,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "th_512",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "19/07/2025, 9:16:21 pm",
+      "admin@example.com",
+      "20"
+    ]
+  },
+  {
+    "timestamp": 1752923791029,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "vkt_2",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "19/07/2025, 9:16:30 pm",
+      "admin@example.com",
+      "20"
+    ]
+  },
+  {
+    "timestamp": 1752923802533,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "vkt_43",
+    "oldValue": {
+      "import_date": "09/04/2025"
+    },
+    "newValue": {
+      "import_date": ""
+    },
+    "changedFields": {
+      "import_date": {
+        "old": "09/04/2025",
+        "new": "",
+        "fieldName": "Ngày nhập kho"
+      }
+    },
+    "metadata": [
+      "19/07/2025, 9:16:42 pm",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752923966126,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "th_2",
+    "oldValue": {
+      "product_name": "       1 Pentane Sulphonic acid sodium salt HPLC (Chai 25g) anh yeu"
+    },
+    "newValue": {
+      "product_name": "       1 Pentane Sulphonic acid sodium salt HPLC (Chai 25g)"
+    },
+    "changedFields": {
+      "product_name": {
+        "old": "       1 Pentane Sulphonic acid sodium salt HPLC (Chai 25g) anh yeu",
+        "new": "       1 Pentane Sulphonic acid sodium salt HPLC (Chai 25g)",
+        "fieldName": "Tên hàng"
+      }
+    },
+    "metadata": [
+      "19/07/2025, 9:19:25 pm",
+      "admin@example.com",
+      "20"
+    ]
+  },
+  {
+    "timestamp": 1752923972209,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "th_3",
+    "oldValue": {
+      "product_name": "        2-Propanol anh yeu em\n"
+    },
+    "newValue": {
+      "product_name": "        2-Propano\n"
+    },
+    "changedFields": {
+      "product_name": {
+        "old": "        2-Propanol anh yeu em\n",
+        "new": "        2-Propano\n",
+        "fieldName": "Tên hàng"
+      }
+    },
+    "metadata": [
+      "19/07/2025, 9:19:31 pm",
+      "admin@example.com",
+      "20"
+    ]
+  },
+  {
+    "timestamp": 1752923984917,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "th_2",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "19/07/2025, 9:19:44 pm",
+      "admin@example.com",
+      "20"
+    ]
+  },
+  {
+    "timestamp": 1752923991311,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "th_3",
+    "oldValue": {
+      "product_name": "        2-Propano\n"
+    },
+    "newValue": {
+      "product_name": "        2-Propanol anh yeu em\n"
+    },
+    "changedFields": {
+      "product_name": {
+        "old": "        2-Propano\n",
+        "new": "        2-Propanol anh yeu em\n",
+        "fieldName": "Tên hàng"
+      }
+    },
+    "metadata": [
+      "19/07/2025, 9:19:50 pm",
+      "admin@example.com",
+      "20"
+    ]
+  },
+  {
+    "timestamp": 1752924024212,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "vkt_123",
+    "oldValue": {
+      "import_date": "24/04/2025"
+    },
+    "newValue": {
+      "import_date": ""
+    },
+    "changedFields": {
+      "import_date": {
+        "old": "24/04/2025",
+        "new": "",
+        "fieldName": "Ngày nhập kho"
+      }
+    },
+    "metadata": [
+      "19/07/2025, 9:20:23 pm",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752924032376,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "vkt_2",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "19/07/2025, 9:20:31 pm",
+      "admin@example.com",
+      "20"
+    ]
+  },
+  {
+    "timestamp": 1752924268682,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "th_2",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "19/07/2025, 9:24:28 pm",
+      "admin@example.com",
+      "20"
+    ]
+  },
+  {
+    "timestamp": 1752924273434,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "th_4",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "19/07/2025, 9:24:33 pm",
+      "admin@example.com",
+      "20"
+    ]
+  },
+  {
+    "timestamp": 1752924280014,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "th_5",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "19/07/2025, 9:24:39 pm",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752924286836,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "th_27",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "19/07/2025, 9:24:46 pm",
+      "admin@example.com",
+      "1"
+    ]
   }
 ]

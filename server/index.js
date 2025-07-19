@@ -584,23 +584,36 @@ app.get('/api/stock/inventory', authenticateToken, async (req, res) => {
     // Fetch data from both inventory sources
     const inventoryPromises = [];
     
+    console.log('🔍 Config loaded:', {
+      inventory: config.spreadsheetIds.inventory,
+      inventory2: config.spreadsheetIds.inventory2
+    });
+    
     if (config.spreadsheetIds.inventory) {
+      console.log('📊 Fetching from source 1:', config.spreadsheetIds.inventory);
       inventoryPromises.push(
         fetchSheetData(config.spreadsheetIds.inventory, 'A:Z')
-          .then(data => processInventoryData(data, 'source1'))
+          .then(data => {
+            console.log('✅ Source 1 data fetched, rows:', data.length);
+            return processInventoryData(data, 'source1');
+          })
           .catch(error => {
-            console.error('Error fetching from inventory source 1:', error);
+            console.error('❌ Error fetching from inventory source 1:', error);
             return [];
           })
       );
     }
     
     if (config.spreadsheetIds.inventory2) {
+      console.log('📊 Fetching from source 2:', config.spreadsheetIds.inventory2);
       inventoryPromises.push(
-        fetchSheetData(config.spreadsheetIds.inventory2, 'A:Z')
-          .then(data => processInventoryData(data, 'source2'))
+        fetchSheetData(config.spreadsheetIds.inventory2, 'A:Z', 'VKT')
+          .then(data => {
+            console.log('✅ Source 2 data fetched, rows:', data.length);
+            return processInventoryData(data, 'source2');
+          })
           .catch(error => {
-            console.error('Error fetching from inventory source 2:', error);
+            console.error('❌ Error fetching from inventory source 2:', error);
             return [];
           })
       );
@@ -611,6 +624,11 @@ app.get('/api/stock/inventory', authenticateToken, async (req, res) => {
     
     // Combine all inventory data
     const combinedInventory = inventoryArrays.flat();
+    
+    console.log('📊 Combined inventory results:');
+    console.log('  - Source 1 items:', inventoryArrays[0]?.length || 0);
+    console.log('  - Source 2 items:', inventoryArrays[1]?.length || 0);
+    console.log('  - Total combined items:', combinedInventory.length);
 
     res.json({
       success: true,
@@ -659,16 +677,25 @@ app.get('/api/stock/analytics', async (req, res) => {
 });
 
 // Helper functions
-async function fetchSheetData(spreadsheetId, range) {
+async function fetchSheetData(spreadsheetId, range, tabName = null) {
   try {
-    const response = await sheets.spreadsheets.values.get({
-      spreadsheetId,
-      range,
-    });
+    // If tabName is provided, use it in the range
+    const fullRange = tabName ? `${tabName}!${range}` : range;
+    
+    const response = await Promise.race([
+      sheets.spreadsheets.values.get({
+        spreadsheetId,
+        range: fullRange,
+      }),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Google Sheets API timeout')), 30000)
+      )
+    ]);
     return response.data.values || [];
   } catch (error) {
     console.error(`Error fetching data from spreadsheet ${spreadsheetId}:`, error);
-    throw error;
+    // Return empty array instead of throwing to prevent crashes
+    return [];
   }
 }
 
@@ -690,9 +717,6 @@ function processInventoryData(data, source = 'source1') {
   const headers = data[0];
   const rows = data.slice(1);
   
-  // Debug: Log the actual headers from Google Sheets
-  // console.log('📋 Google Sheets Headers:', headers);
-  
   // Map Vietnamese headers to English keys
   const headerMapping = {
     'Tên hãng': 'brand',
@@ -709,33 +733,48 @@ function processInventoryData(data, source = 'source1') {
     'Ghi chú': 'notes'
   };
   
+  // Special mapping for source 2
+  const source2Mapping = {
+    '': 'brand', // First column is brand
+    'Mã HH': 'product_code',
+    'Tên HH': 'product_name',
+    'Đvt': 'unit',
+    'Qui cách đóng gói': 'notes',
+    'Số Lot/Batch': 'lot_number',
+    'Tồn cuối': 'quantity',
+    'Ngày hết hạn': 'expiry_date',
+    'Ngày nhập kho': 'import_date',
+    'Tình trạng': 'notes',
+    'tên': 'product_name',
+    'mã': 'product_code'
+  };
+  
   return rows.map((row, index) => {
     const item = {};
+    
+    // Use the same mapping for both sources since headers are identical
     headers.forEach((header, colIndex) => {
       const englishKey = headerMapping[header] || header.toLowerCase().replace(/\s+/g, '_');
       item[englishKey] = row[colIndex] || '';
     });
-    // Use actual row number in sheet (index + 2 because sheets are 1-indexed and we skip header)
+    
+    // Set warehouse based on source
+    if (source === 'source2') {
+      item.warehouse = 'VKT'; // Set warehouse to VKT for source 2
+    }
+    
+        // Use actual row number in sheet (index + 2 because sheets are 1-indexed and we skip header)
     item.id = (index + 2).toString();
     // Add source tracking
     item.source = source;
     item.sourceId = `${source}_${item.id}`;
     
-    // Debug: Log first 3 items to see the data structure
-    // if (index < 3) {
-    //   console.log(`📦 Item ${item.id}:`, {
-    //     brand: item.brand,
-    //     product_code: item.product_code,
-    //     lot_number: item.lot_number,
-    //     quantity: item.quantity,
-    //     unit: item.unit,
-    //     expiry_date: item.expiry_date,
-    //     import_date: item.import_date,
-    //     location: item.location,
-    //     warehouse: item.warehouse,
-    //     notes: item.notes
-    //   });
-    // }
+    // Make ID unique across sources by prefixing with source
+    if (source === 'source2') {
+      item.id = `vkt_${item.id}`;
+    } else {
+      item.id = `th_${item.id}`;
+    }
     
     return item;
   });
@@ -1015,7 +1054,16 @@ app.put('/api/stock/inventory/:id', authenticateToken, async (req, res) => {
     };
     
     // Find the row to update (id corresponds to the actual row number in the sheet)
-    const rowIndex = parseInt(id);
+    // Handle new ID format: vkt_125, th_2, etc.
+    let rowIndex;
+    if (id.includes('_')) {
+      // New format: extract the number after the underscore
+      const parts = id.split('_');
+      rowIndex = parseInt(parts[parts.length - 1]);
+    } else {
+      // Old format: direct number
+      rowIndex = parseInt(id);
+    }
     console.log('Row index to update:', rowIndex, 'Total rows:', rows.length);
     console.log('Row index validation - rowIndex:', rowIndex, 'rows.length:', rows.length);
     
@@ -1963,9 +2011,14 @@ async function startGoogleSheetsPolling() {
     // Initial fetch
     await checkForGoogleSheetsChanges();
     
-    // Set up polling interval
+    // Set up polling interval with error handling
     pollingInterval = setInterval(async () => {
-      await checkForGoogleSheetsChanges();
+      try {
+        await checkForGoogleSheetsChanges();
+      } catch (error) {
+        console.error('❌ Error in polling cycle:', error);
+        // Don't let polling errors crash the server
+      }
     }, 30000); // 30 seconds
     
   } catch (error) {
@@ -2003,7 +2056,7 @@ async function checkForGoogleSheetsChanges() {
     
     if (config.spreadsheetIds.inventory2) {
       inventoryPromises.push(
-        fetchSheetData(config.spreadsheetIds.inventory2, 'A:Z')
+        fetchSheetData(config.spreadsheetIds.inventory2, 'A:Z', 'VKT')
           .then(data => processInventoryData(data, 'source2'))
           .catch(error => {
             console.error('Error fetching from inventory source 2:', error);
@@ -2140,21 +2193,21 @@ function detectInventoryChanges(oldInventory, newInventory) {
 startGoogleSheetsPolling();
 
 // Clean up polling on server shutdown
-process.on('SIGINT', () => {
+const cleanup = () => {
   if (pollingInterval) {
     clearInterval(pollingInterval);
     console.log('🛑 Google Sheets polling stopped');
   }
+  if (server) {
+    server.close();
+    console.log('🛑 Server closed');
+  }
   process.exit(0);
-});
+};
 
-process.on('SIGTERM', () => {
-  if (pollingInterval) {
-    clearInterval(pollingInterval);
-    console.log('🛑 Google Sheets polling stopped');
-  }
-  process.exit(0);
-});
+process.on('SIGINT', cleanup);
+process.on('SIGTERM', cleanup);
+// Remove the 'exit' event listener as it can cause premature shutdown
 
 server.listen(PORT, () => {
   console.log(`Stock Management Server running on port ${PORT}`);
