@@ -13674,5 +13674,498 @@
       "admin@example.com",
       "1"
     ]
+  },
+  {
+    "timestamp": 1752911892108,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "605",
+    "oldValue": {
+      "product_code": "54",
+      "product_name": "51",
+      "import_date": "16-02-2017"
+    },
+    "newValue": {
+      "product_code": "544",
+      "product_name": "5144",
+      "import_date": ""
+    },
+    "changedFields": {
+      "product_code": {
+        "old": "54",
+        "new": "544",
+        "fieldName": "Mã hàng"
+      },
+      "product_name": {
+        "old": "51",
+        "new": "5144",
+        "fieldName": "Tên hàng"
+      },
+      "import_date": {
+        "old": "16-02-2017",
+        "new": "",
+        "fieldName": "Ngày nhập kho"
+      }
+    },
+    "metadata": [
+      "19/07/2025, 5:58:11 pm",
+      "admin@example.com",
+      "20"
+    ]
+  },
+  {
+    "timestamp": 1752911916613,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "606",
+    "oldValue": {
+      "product_code": "test1",
+      "product_name": "11",
+      "import_date": "17-08-2014"
+    },
+    "newValue": {
+      "product_code": "test12",
+      "product_name": "1122",
+      "import_date": ""
+    },
+    "changedFields": {
+      "product_code": {
+        "old": "test1",
+        "new": "test12",
+        "fieldName": "Mã hàng"
+      },
+      "product_name": {
+        "old": "11",
+        "new": "1122",
+        "fieldName": "Tên hàng"
+      },
+      "import_date": {
+        "old": "17-08-2014",
+        "new": "",
+        "fieldName": "Ngày nhập kho"
+      }
+    },
+    "metadata": [
+      "19/07/2025, 5:58:36 pm",
+      "admin@example.com",
+      "20"
+    ]
+  },
+  {
+    "timestamp": 1752911942647,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "606",
+    "oldValue": {
+      "brand": "fdaafafafafaf"
+    },
+    "newValue": {
+      "brand": "test2"
+    },
+    "changedFields": {
+      "brand": {
+        "old": "fdaafafafafaf",
+        "new": "test2",
+        "fieldName": "Tên hãng"
+      }
+    },
+    "metadata": [
+      "19/07/2025, 5:59:02 pm",
+      "admin@example.com",
+      "20"
+    ]
+  },
+  {
+    "timestamp": 1752912022135,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "606",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "19/07/2025, 6:00:21 pm",
+      "admin@example.com",
+      "20"
+    ]
+  },
+  {
+    "timestamp": 1752912668372,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "2",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "19/07/2025, 6:11:07 pm",
+      "admin@example.com",
+      "20"
+    ]
+  },
+  {
+    "timestamp": 1752912678769,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "2",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "19/07/2025, 6:11:18 pm",
+      "admin@example.com",
+      "20"
+    ]
+  },
+  {
+    "timestamp": 1752912687016,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "3",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "19/07/2025, 6:11:26 pm",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752912712026,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "4",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "19/07/2025, 6:11:50 pm",
+      "admin@example.com",
+      "20"
+    ]
+  },
+  {
+    "timestamp": 1752912800183,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "13",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "19/07/2025, 6:13:19 pm",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752912812188,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "2",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "19/07/2025, 6:13:31 pm",
+      "admin@example.com",
+      "20"
+    ]
+  },
+  {
+    "timestamp": 1752912815494,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "3",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "19/07/2025, 6:13:35 pm",
+      "admin@example.com",
+      "20"
+    ]
+  },
+  {
+    "timestamp": 1752912822244,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "4",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "19/07/2025, 6:13:41 pm",
+      "admin@example.com",
+      "20"
+    ]
+  },
+  {
+    "timestamp": 1752912878132,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "13",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "19/07/2025, 6:14:37 pm",
+      "admin@example.com",
+      "20"
+    ]
+  },
+  {
+    "timestamp": 1752912889152,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "2",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "19/07/2025, 6:14:48 pm",
+      "admin@example.com",
+      "20"
+    ]
+  },
+  {
+    "timestamp": 1752912892573,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "3",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "19/07/2025, 6:14:52 pm",
+      "admin@example.com",
+      "20"
+    ]
+  },
+  {
+    "timestamp": 1752912999620,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "4",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "19/07/2025, 6:16:39 pm",
+      "admin@example.com",
+      "20"
+    ]
+  },
+  {
+    "timestamp": 1752913024385,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "2",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "19/07/2025, 6:17:03 pm",
+      "admin@example.com",
+      "20"
+    ]
+  },
+  {
+    "timestamp": 1752913055630,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "3",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "19/07/2025, 6:17:35 pm",
+      "admin@example.com",
+      "20"
+    ]
+  },
+  {
+    "timestamp": 1752913070046,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "2",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "19/07/2025, 6:17:49 pm",
+      "admin@example.com",
+      "20"
+    ]
+  },
+  {
+    "timestamp": 1752913073409,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "3",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "19/07/2025, 6:17:52 pm",
+      "admin@example.com",
+      "20"
+    ]
+  },
+  {
+    "timestamp": 1752913090620,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "2",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "19/07/2025, 6:18:10 pm",
+      "admin@example.com",
+      "20"
+    ]
+  },
+  {
+    "timestamp": 1752913093858,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "3",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "19/07/2025, 6:18:13 pm",
+      "admin@example.com",
+      "20"
+    ]
+  },
+  {
+    "timestamp": 1752913106060,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "4",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "19/07/2025, 6:18:25 pm",
+      "admin@example.com",
+      "20"
+    ]
+  },
+  {
+    "timestamp": 1752913123945,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "7",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "19/07/2025, 6:18:43 pm",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752913281279,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "91",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "19/07/2025, 6:21:20 pm",
+      "admin@example.com",
+      "20"
+    ]
+  },
+  {
+    "timestamp": 1752913283809,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "388",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "19/07/2025, 6:21:23 pm",
+      "admin@example.com",
+      "20"
+    ]
+  },
+  {
+    "timestamp": 1752913286873,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "389",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "19/07/2025, 6:21:26 pm",
+      "admin@example.com",
+      "20"
+    ]
+  },
+  {
+    "timestamp": 1752913330690,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "605",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "19/07/2025, 6:22:10 pm",
+      "admin@example.com",
+      "20"
+    ]
+  },
+  {
+    "timestamp": 1752913621633,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "605",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "19/07/2025, 6:27:01 pm",
+      "admin@example.com",
+      "20"
+    ]
   }
 ]

@@ -1345,12 +1345,12 @@ const handleBulkSendOut = async () => {
                   className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-gray-100 transition-colors"
                 >
                   <div className="flex items-center space-x-2">
-                    <span className="text-sm font-medium text-gray-700">📊 Column Visibility</span>
+                    <span className="text-sm font-medium text-gray-700">⊞ Column Visibility</span>
                     <span className="text-xs text-gray-500">
                       ({Object.values(columnVisibility).filter(Boolean).length} of {Object.keys(columnVisibility).length} columns shown)
                     </span>
                   </div>
-                  <span className={`transform transition-transform duration-200 ${showColumnVisibility ? 'rotate-180' : ''}`}>
+                  <span className={`transform transition-transform duration-200 text-gray-400 ${showColumnVisibility ? 'rotate-180' : ''}`}>
                     ▼
                   </span>
                 </button>
@@ -1451,9 +1451,9 @@ const handleBulkSendOut = async () => {
 
       {/* Inventory Table */}
       <div className="bg-white shadow overflow-hidden sm:rounded-md">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto max-h-[70vh] overflow-y-auto">
           <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+            <thead className="bg-gray-50 sticky top-0 z-10">
               <tr>
                 {columnVisibility.checkbox && (
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -1480,7 +1480,7 @@ const handleBulkSendOut = async () => {
                 )}
                 {columnVisibility.product_code && (
                   <th 
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5 cursor-pointer hover:bg-gray-100 select-none"
                     onClick={() => handleSort('product_code')}
                   >
                     <div className="flex items-center space-x-1">
@@ -1493,7 +1493,7 @@ const handleBulkSendOut = async () => {
                 )}
                 {columnVisibility.product_name && (
                   <th 
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/3 cursor-pointer hover:bg-gray-100 select-none"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[300px] w-1/3 cursor-pointer hover:bg-gray-100 select-none"
                     onClick={() => handleSort('product_name')}
                   >
                     <div className="flex items-center space-x-1">
@@ -1672,7 +1672,7 @@ const handleBulkSendOut = async () => {
                       </td>
                     )}
                     {columnVisibility.product_code && (
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500" data-field="product_code">
+                      <td className="px-4 py-4 text-sm text-gray-500 w-1/5 break-words" data-field="product_code">
                         {editingItem?.id === item.id ? (
                           <input
                             type="text"
@@ -1682,12 +1682,14 @@ const handleBulkSendOut = async () => {
                             disabled={isSavingEdit}
                           />
                         ) : (
-                          renderEditableCell(item, 'product_code', item.product_code)
+                          <div className="break-words">
+                            {renderEditableCell(item, 'product_code', item.product_code)}
+                          </div>
                         )}
                       </td>
                     )}
                     {columnVisibility.product_name && (
-                      <td className="px-6 py-4 text-sm text-gray-900 w-1/3" data-field="product_name">
+                      <td className="px-6 py-4 text-sm text-gray-900 min-w-[300px] w-1/3" data-field="product_name">
                         {editingItem?.id === item.id ? (
                           <textarea
                             value={editingData.product_name ?? ''}
