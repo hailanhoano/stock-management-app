@@ -43,10 +43,35 @@ setInterval(() => {
   }
 }, 60000); // Check every minute
 
+// Custom morgan format with Melbourne timezone
+const morganFormat = ':remote-addr - - [:date[clf]] ":method :url HTTP/:http-version" :status :res[content-length] ":referrer" ":user-agent"';
+
 // Middleware
 app.use(helmet());
 app.use(cors());
-app.use(morgan('combined'));
+app.use(morgan(morganFormat, {
+  stream: {
+    write: (message) => {
+      // Convert UTC to Melbourne time
+      const melbourneTime = new Date().toLocaleString('en-AU', {
+        timeZone: 'Australia/Melbourne',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+      });
+      
+      // Replace the date part with Melbourne time
+      const melbourneFormatted = melbourneTime.replace(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2}):(\d{2})/, '[$1/$2/$3:$4:$5:$6 +1100]');
+      const updatedMessage = message.replace(/\[.*?\]/, melbourneFormatted);
+      
+      process.stdout.write(updatedMessage);
+    }
+  }
+}));
 app.use(express.json());
 
 // Rate limiting - temporarily disabled for development
@@ -638,7 +663,7 @@ function processInventoryData(data) {
   const rows = data.slice(1);
   
   // Debug: Log the actual headers from Google Sheets
-  console.log('📋 Google Sheets Headers:', headers);
+  // console.log('📋 Google Sheets Headers:', headers);
   
   // Map Vietnamese headers to English keys
   const headerMapping = {
@@ -666,20 +691,20 @@ function processInventoryData(data) {
     item.id = (index + 2).toString();
     
     // Debug: Log first 3 items to see the data structure
-    if (index < 3) {
-      console.log(`📦 Item ${item.id}:`, {
-        brand: item.brand,
-        product_code: item.product_code,
-        lot_number: item.lot_number,
-        quantity: item.quantity,
-        unit: item.unit,
-        expiry_date: item.expiry_date,
-        import_date: item.import_date,
-        location: item.location,
-        warehouse: item.warehouse,
-        notes: item.notes
-      });
-    }
+    // if (index < 3) {
+    //   console.log(`📦 Item ${item.id}:`, {
+    //     brand: item.brand,
+    //     product_code: item.product_code,
+    //     lot_number: item.lot_number,
+    //     quantity: item.quantity,
+    //     unit: item.unit,
+    //     expiry_date: item.expiry_date,
+    //     import_date: item.import_date,
+    //     location: item.location,
+    //     warehouse: item.warehouse,
+    //     notes: item.notes
+    //   });
+    // }
     
     return item;
   });

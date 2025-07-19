@@ -1363,7 +1363,7 @@ const handleBulkSendOut = async () => {
                         onClick={resetColumnVisibility}
                         className="text-xs text-blue-600 hover:text-blue-800 px-2 py-1 rounded hover:bg-blue-50 border border-blue-200"
                       >
-                        Reset to Default
+                        Reset
                       </button>
                     </div>
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
