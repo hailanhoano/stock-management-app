@@ -1350,25 +1350,23 @@ const handleBulkSendOut = async () => {
                       ({Object.values(columnVisibility).filter(Boolean).length} of {Object.keys(columnVisibility).length} columns shown)
                     </span>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        resetColumnVisibility();
-                      }}
-                      className="text-xs text-blue-600 hover:text-blue-800 px-2 py-1 rounded hover:bg-blue-50"
-                    >
-                      Reset
-                    </button>
-                    <span className={`transform transition-transform duration-200 ${showColumnVisibility ? 'rotate-180' : ''}`}>
-                      ▼
-                    </span>
-                  </div>
+                  <span className={`transform transition-transform duration-200 ${showColumnVisibility ? 'rotate-180' : ''}`}>
+                    ▼
+                  </span>
                 </button>
                 
                 {showColumnVisibility && (
                   <div className="px-4 pb-4 border-t border-gray-200">
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 mt-3">
+                    <div className="flex items-center justify-between mb-3 mt-3">
+                      <span className="text-xs text-gray-600">Select columns to show/hide:</span>
+                      <button
+                        onClick={resetColumnVisibility}
+                        className="text-xs text-blue-600 hover:text-blue-800 px-2 py-1 rounded hover:bg-blue-50 border border-blue-200"
+                      >
+                        Reset to Default
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
                       {Object.entries({
                         checkbox: 'Checkbox',
                         brand: 'Brand',
