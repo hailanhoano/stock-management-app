@@ -49,6 +49,7 @@ const Inventory: React.FC = () => {
   const [isBulkActionMode, setIsBulkActionMode] = useState(false);
   const [hasInitialized, setHasInitialized] = useState(false);
   const [showOnlySelected, setShowOnlySelected] = useState(false);
+  const [showColumnVisibility, setShowColumnVisibility] = useState(false);
 
   // Column visibility state - initialize from localStorage
   const [columnVisibility, setColumnVisibility] = useState(() => {
@@ -1337,44 +1338,65 @@ const handleBulkSendOut = async () => {
                       </div>
                     </div>
 
-              {/* Column Visibility Toggle */}
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-4">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-medium text-gray-700">Column Visibility</h3>
-                  <button
-                    onClick={resetColumnVisibility}
-                    className="text-xs text-blue-600 hover:text-blue-800"
-                  >
-                    Reset to Default
-                  </button>
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
-                  {Object.entries({
-                    checkbox: 'Checkbox',
-                    brand: 'Brand',
-                    product_code: 'Product Code',
-                    product_name: 'Product Name',
-                    quantity: 'Quantity',
-                    unit: 'Unit',
-                    location: 'Location',
-                    warehouse: 'Places',
-                    lot_number: 'Lot Number',
-                    expiry_date: 'Expiry Date',
-                    import_date: 'Entry Date',
-                    notes: 'Notes',
-                    actions: 'Actions'
-                  }).map(([key, label]) => (
-                    <label key={key} className="flex items-center space-x-2 text-xs">
-                      <input
-                        type="checkbox"
-                        checked={columnVisibility[key as keyof typeof columnVisibility]}
-                        onChange={() => toggleColumnVisibility(key as keyof typeof columnVisibility)}
-                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                      />
-                      <span className="text-gray-700">{label}</span>
-                    </label>
-                  ))}
-                </div>
+              {/* Column Visibility Toggle - Expandable */}
+              <div className="bg-gray-50 border border-gray-200 rounded-lg mb-4">
+                <button
+                  onClick={() => setShowColumnVisibility(!showColumnVisibility)}
+                  className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-gray-100 transition-colors"
+                >
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm font-medium text-gray-700">📊 Column Visibility</span>
+                    <span className="text-xs text-gray-500">
+                      ({Object.values(columnVisibility).filter(Boolean).length} of {Object.keys(columnVisibility).length} columns shown)
+                    </span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        resetColumnVisibility();
+                      }}
+                      className="text-xs text-blue-600 hover:text-blue-800 px-2 py-1 rounded hover:bg-blue-50"
+                    >
+                      Reset
+                    </button>
+                    <span className={`transform transition-transform duration-200 ${showColumnVisibility ? 'rotate-180' : ''}`}>
+                      ▼
+                    </span>
+                  </div>
+                </button>
+                
+                {showColumnVisibility && (
+                  <div className="px-4 pb-4 border-t border-gray-200">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 mt-3">
+                      {Object.entries({
+                        checkbox: 'Checkbox',
+                        brand: 'Brand',
+                        product_code: 'Product Code',
+                        product_name: 'Product Name',
+                        quantity: 'Quantity',
+                        unit: 'Unit',
+                        location: 'Location',
+                        warehouse: 'Places',
+                        lot_number: 'Lot Number',
+                        expiry_date: 'Expiry Date',
+                        import_date: 'Entry Date',
+                        notes: 'Notes',
+                        actions: 'Actions'
+                      }).map(([key, label]) => (
+                        <label key={key} className="flex items-center space-x-2 text-xs">
+                          <input
+                            type="checkbox"
+                            checked={columnVisibility[key as keyof typeof columnVisibility]}
+                            onChange={() => toggleColumnVisibility(key as keyof typeof columnVisibility)}
+                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                          />
+                          <span className="text-gray-700">{label}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Add bulk action UI after the search bar and before the table */}
