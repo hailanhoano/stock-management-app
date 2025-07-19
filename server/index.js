@@ -1444,7 +1444,16 @@ app.delete('/api/stock/inventory/:id', authenticateToken, async (req, res) => {
       return res.status(400).json({ message: 'Invalid spreadsheet data' });
     }
 
-    const rowIndex = parseInt(id);
+    // Parse row index from ID (handle prefixed IDs like 'th_636' or 'vkt_125')
+    let rowIndex;
+    if (id.includes('_')) {
+      const parts = id.split('_');
+      rowIndex = parseInt(parts[parts.length - 1]);
+    } else {
+      rowIndex = parseInt(id);
+    }
+    
+    console.log('Parsed row index:', rowIndex, 'from ID:', id);
     
     // Validate row index - should be between 2 and the total number of rows in the sheet
     if (rowIndex < 2 || rowIndex > currentData.length) {
@@ -1488,7 +1497,7 @@ app.delete('/api/stock/inventory/:id', authenticateToken, async (req, res) => {
 
     // Get the sheet ID first
     const spreadsheet = await sheets.spreadsheets.get({
-      spreadsheetId: config.spreadsheetIds.inventory
+      spreadsheetId: spreadsheetId
     });
     
     const sheetId = spreadsheet.data.sheets[0].properties.sheetId;
@@ -1496,7 +1505,7 @@ app.delete('/api/stock/inventory/:id', authenticateToken, async (req, res) => {
     
     // Delete the specific row
     await sheets.spreadsheets.batchUpdate({
-      spreadsheetId: config.spreadsheetIds.inventory,
+      spreadsheetId: spreadsheetId,
       resource: {
         requests: [
           {
@@ -1552,7 +1561,7 @@ app.delete('/api/stock/inventory/:id', authenticateToken, async (req, res) => {
     setTimeout(async () => {
       try {
         const refreshResponse = await sheets.spreadsheets.values.get({
-          spreadsheetId: config.spreadsheetIds.inventory,
+          spreadsheetId: spreadsheetId,
           range: 'A:L',
         });
         

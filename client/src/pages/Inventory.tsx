@@ -184,11 +184,23 @@ const Inventory: React.FC = () => {
       const data = await response.json();
       console.log('📊 Loaded inventory data:', data.inventory?.length || 0, 'items');
       console.log('📋 Sample items:', data.inventory?.slice(0, 3)?.map((item: any) => ({
+        id: item.id,
         product_name: item.product_name,
         warehouse: item.warehouse,
         source: item.source
       })));
-      setInventory(data.inventory || []);
+      console.log('🔍 Full inventory data:', data.inventory?.slice(0, 5));
+      
+      // Remove duplicates from loaded data
+      const uniqueInventory = data.inventory?.filter((item: any, index: number, self: any[]) => 
+        index === self.findIndex((t: any) => t.id === item.id)
+      ) || [];
+      
+      if (uniqueInventory.length !== (data.inventory?.length || 0)) {
+        console.log('🧹 Removed duplicates from loaded inventory data');
+      }
+      
+      setInventory(uniqueInventory);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load inventory');
     } finally {
@@ -244,6 +256,12 @@ const Inventory: React.FC = () => {
     
     // Apply sorting
     const sorted = getSortedInventory(filtered);
+    console.log('🔍 Filtering debug - inventory length:', inventory.length);
+    console.log('🔍 Filtering debug - filtered length:', filtered.length);
+    console.log('🔍 Filtering debug - sorted length:', sorted.length);
+    console.log('🔍 Filtering debug - search term:', searchTerm);
+    console.log('🔍 Filtering debug - show only selected:', showOnlySelected);
+    console.log('🔍 Filtering debug - selected items count:', selectedItems.size);
     setFilteredInventory(sorted);
   }, [inventory, searchTerm, sortConfig, showOnlySelected, selectedItems]);
 
@@ -252,24 +270,46 @@ const Inventory: React.FC = () => {
     if (inventoryUpdates.length > 0) {
       const latestUpdate = inventoryUpdates[inventoryUpdates.length - 1];
       console.log('🔄 Processing inventory update:', latestUpdate);
+      console.log('📦 Full update data:', JSON.stringify(latestUpdate, null, 2));
       
       switch (latestUpdate.action) {
         case 'ADD':
-          // Add new item to the list
+          // Add new item to the list (check for duplicates first)
           const newItem = {
             ...latestUpdate.data.item,
             id: latestUpdate.data.id
           };
           console.log('➕ Adding new item:', newItem);
-          setInventory(prev => [...prev, newItem]);
+          setInventory(prev => {
+            // Check if item already exists to prevent duplicates
+            const existingItem = prev.find(item => item.id === latestUpdate.data.id);
+            if (existingItem) {
+              console.log('⚠️ Item already exists, skipping duplicate:', latestUpdate.data.id);
+              return prev;
+            }
+            console.log('✅ Adding new item to inventory');
+            return [...prev, newItem];
+          });
           break;
           
         case 'DELETE':
           // Remove item from the list
           console.log('🗑️ Removing item from inventory:', latestUpdate.data.id);
           setInventory(prev => {
+            console.log('📋 Current inventory items:', prev.map((item: any) => ({ id: item.id, product_name: item.product_name })));
             const filtered = prev.filter(item => item.id !== latestUpdate.data.id);
             console.log('📊 Inventory after delete - before:', prev.length, 'after:', filtered.length);
+            console.log('🔍 Looking for item with ID:', latestUpdate.data.id);
+            console.log('📋 Available IDs:', prev.map(item => item.id));
+            
+            // If no items found to delete, reload the inventory to ensure consistency
+            if (prev.length === filtered.length) {
+              console.log('⚠️ Item not found in current inventory, reloading data...');
+              setTimeout(() => {
+                loadInventory();
+              }, 1000);
+            }
+            
             return filtered;
           });
           break;
@@ -285,7 +325,28 @@ const Inventory: React.FC = () => {
           // Full refresh from Google Sheets (handles all types of changes)
           if (latestUpdate.data.inventory) {
             console.log('🔄 Received full inventory refresh from Google Sheets');
-            setInventory(latestUpdate.data.inventory);
+            console.log('📊 Refresh data - inventory length:', latestUpdate.data.inventory.length);
+            
+            // Only update if the refresh has more items than current (prevents clearing during delete)
+            setInventory(prev => {
+              if (latestUpdate.data.inventory.length >= prev.length) {
+                console.log('✅ Accepting refresh update - more or equal items');
+                
+                // Remove any duplicates that might exist
+                const uniqueItems = latestUpdate.data.inventory.filter((item: any, index: number, self: any[]) => 
+                  index === self.findIndex((t: any) => t.id === item.id)
+                );
+                
+                if (uniqueItems.length !== latestUpdate.data.inventory.length) {
+                  console.log('🧹 Removed duplicates from refresh data');
+                }
+                
+                return uniqueItems;
+              } else {
+                console.log('⚠️ Ignoring refresh update - fewer items (likely during delete)');
+                return prev;
+              }
+            });
             
             // Show notification if there were changes
             if (latestUpdate.data.changes && latestUpdate.data.changes.length > 0) {
