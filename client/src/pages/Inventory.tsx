@@ -16,7 +16,7 @@ interface InventoryItem {
   location: string;
   warehouse: string;
   notes: string;
-  source?: string; // 'source1' or 'source2'
+  source?: string; // 'source1' or 'source2' (internal tracking only)
   sourceId?: string; // Combined source and id for unique identification
   targetSource?: string; // For add form - which source to add to
 }
@@ -69,7 +69,6 @@ const Inventory: React.FC = () => {
     return {
       checkbox: true,
       brand: true,
-      source: true, // Add source column visibility
       product_code: true,
       product_name: true,
       quantity: true,
@@ -338,7 +337,7 @@ const Inventory: React.FC = () => {
         },
         body: JSON.stringify({
           ...newItem,
-          targetSource: newItem.targetSource || 'source1' // Default to source1
+          targetSource: 'source1' // Default to source1
         }),
       });
 
@@ -998,17 +997,7 @@ const handleBulkSendOut = async () => {
             />
           </td>
         )}
-        {/* Source selector for add form */}
-        <td className="px-6 py-4">
-          <select
-            value={newItem.targetSource || 'source1'}
-            onChange={(e) => setNewItem({...newItem, targetSource: e.target.value})}
-            className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-          >
-            <option value="source1">Source 1 (Main Inventory)</option>
-            <option value="source2">Source 2 (Secondary Inventory)</option>
-          </select>
-        </td>
+
         {columnVisibility.product_code && (
           <td className="px-6 py-4">
             <input
@@ -1396,7 +1385,6 @@ const handleBulkSendOut = async () => {
                       {Object.entries({
                         checkbox: 'Checkbox',
                         brand: 'Brand',
-                        source: 'Source',
                         product_code: 'Product Code',
                         product_name: 'Product Name',
                         quantity: 'Quantity',
@@ -1505,10 +1493,7 @@ const handleBulkSendOut = async () => {
                     </div>
                   </th>
                 )}
-                {/* Source column */}
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  <span>Source</span>
-                </th>
+
                 {columnVisibility.product_code && (
                   <th 
                     className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5 cursor-pointer hover:bg-gray-100 select-none"
@@ -1702,18 +1687,7 @@ const handleBulkSendOut = async () => {
                         )}
                       </td>
                     )}
-                    {/* Source column */}
-                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
-                      <span className={`px-2 py-1 rounded text-xs font-medium ${
-                        item.source === 'source1' ? 'bg-blue-100 text-blue-800' :
-                        item.source === 'source2' ? 'bg-green-100 text-green-800' :
-                        'bg-gray-100 text-gray-800'
-                      }`}>
-                        {item.source === 'source1' ? 'Main' : 
-                         item.source === 'source2' ? 'Secondary' : 
-                         'Unknown'}
-                      </span>
-                    </td>
+
                     {columnVisibility.product_code && (
                       <td className="px-4 py-4 text-sm text-gray-500 w-1/5 break-words" data-field="product_code">
                         {editingItem?.id === item.id ? (

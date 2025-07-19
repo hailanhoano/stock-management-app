@@ -14197,5 +14197,20 @@
       "admin@example.com",
       "1"
     ]
+  },
+  {
+    "timestamp": 1752916147060,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "18",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "19/07/2025, 7:09:06 pm",
+      "admin@example.com",
+      "1"
+    ]
   }
 ]
