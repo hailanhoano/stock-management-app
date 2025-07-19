@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useWebSocket } from '../context/WebSocketContext';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 interface InventoryItem {
   id: string;
@@ -21,7 +21,7 @@ interface InventoryItem {
 
 
 const Inventory: React.FC = () => {
-
+  const navigate = useNavigate();
   const { isConnected, inventoryUpdates, lastSyncTime, syncStatus, connect } = useWebSocket();
   
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
@@ -47,8 +47,93 @@ const Inventory: React.FC = () => {
   // Add new state for bulk selection
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const [isBulkActionMode, setIsBulkActionMode] = useState(false);
+  const [hasInitialized, setHasInitialized] = useState(false);
+  const [showOnlySelected, setShowOnlySelected] = useState(false);
+
+  // Column visibility state - initialize from localStorage
+  const [columnVisibility, setColumnVisibility] = useState(() => {
+    const savedVisibility = localStorage.getItem('inventoryColumnVisibility');
+    if (savedVisibility) {
+      try {
+        const parsed = JSON.parse(savedVisibility);
+        return parsed;
+      } catch (error) {
+        console.error('Error loading column visibility preferences:', error);
+      }
+    }
+    // Default visibility
+    return {
+      checkbox: true,
+      brand: true,
+      product_code: true,
+      product_name: true,
+      quantity: true,
+      unit: true,
+      location: true,
+      warehouse: true,
+      lot_number: true,
+      expiry_date: true,
+      import_date: true,
+      notes: true,
+      actions: true
+    };
+  });
+
+  // Save selected items to localStorage whenever they change
+  useEffect(() => {
+    // Only save/clear if component has been initialized
+    if (hasInitialized) {
+      if (selectedItems.size > 0) {
+        localStorage.setItem('inventorySelectedItems', JSON.stringify(Array.from(selectedItems)));
+        console.log('💾 Saved selected items to localStorage:', selectedItems.size, 'items');
+      } else {
+        // Only clear if we're not in the initial loading state
+        const currentSaved = localStorage.getItem('inventorySelectedItems');
+        if (currentSaved) {
+          localStorage.removeItem('inventorySelectedItems');
+          console.log('🗑️ Cleared selected items from localStorage');
+        }
+      }
+    }
+  }, [selectedItems, hasInitialized]);
+
+  // Load selected items from localStorage on component mount
+  useEffect(() => {
+    const savedSelectedItems = localStorage.getItem('inventorySelectedItems');
+    console.log('🔍 Checking localStorage for saved items:', !!savedSelectedItems);
+    if (savedSelectedItems) {
+      try {
+        const items = JSON.parse(savedSelectedItems);
+        console.log('📦 Found saved items:', items.length, 'items');
+        setSelectedItems(new Set(items));
+        setIsBulkActionMode(true);
+        console.log('✅ Restored selected items from localStorage');
+      } catch (error) {
+        console.error('❌ Error loading saved selected items:', error);
+        localStorage.removeItem('inventorySelectedItems');
+      }
+    } else {
+      console.log('📭 No saved items found in localStorage');
+    }
+    
+    // Mark as initialized after loading
+    setHasInitialized(true);
+  }, []);
 
   const location = useLocation();
+
+  // Handle preserved selection from checkout page
+  useEffect(() => {
+    if (location.state?.preserveSelection && location.state?.selectedItems) {
+      const preservedItems = location.state.selectedItems;
+      const preservedSet = new Set<string>(preservedItems.map((item: { id: string }) => item.id));
+      setSelectedItems(preservedSet);
+      setIsBulkActionMode(true);
+      
+      // Clear the state to prevent re-applying on subsequent renders
+      navigate(location.pathname, { replace: true });
+    }
+  }, [location.state, navigate]);
 
   // Connect to WebSocket when component mounts
   useEffect(() => {
@@ -106,13 +191,18 @@ const Inventory: React.FC = () => {
     loadInventory();
   }, [loadInventory]);
 
-  // Filter and sort inventory based on search term and sort config
+  // Filter and sort inventory based on search term, selected items filter, and sort config
   useEffect(() => {
     let filtered = inventory;
     
+    // Apply selected items filter first
+    if (showOnlySelected && selectedItems.size > 0) {
+      filtered = inventory.filter(item => selectedItems.has(item.id));
+    }
+    
     // Apply search filter
     if (searchTerm.trim()) {
-      filtered = inventory.filter(item => {
+      filtered = filtered.filter(item => {
         const searchLower = searchTerm.toLowerCase();
         return (
           item.product_name?.toLowerCase().includes(searchLower) ||
@@ -127,7 +217,7 @@ const Inventory: React.FC = () => {
     // Apply sorting
     const sorted = getSortedInventory(filtered);
     setFilteredInventory(sorted);
-  }, [inventory, searchTerm, sortConfig]);
+  }, [inventory, searchTerm, sortConfig, showOnlySelected, selectedItems]);
 
   // Handle real-time inventory updates
   useEffect(() => {
@@ -476,53 +566,207 @@ const Inventory: React.FC = () => {
 
   // Add a helper function to format date strings as DD/MM/YYYY
   const formatDateDisplay = (dateStr: string | undefined) => {
-    if (!dateStr) return '';
-    // Accept both YYYY-MM-DD and DD/MM/YYYY, but always display as DD-MM-YYYY
-    if (dateStr.includes('-')) {
-      const [y, m, d] = dateStr.split('-');
-      return `${d}-${m}-${y}`;
+    if (!dateStr || dateStr === 'undefined' || dateStr.includes('undefined')) return '';
+    
+    // Clean the date string
+    const cleanDate = dateStr.replace(/undefined/g, '').trim();
+    if (!cleanDate) return '';
+    
+    // Check if it's already in DD-MM-YYYY format
+    if (cleanDate.match(/^\d{2}-\d{2}-\d{4}$/)) {
+      return cleanDate;
     }
-    if (dateStr.includes('/')) {
-      const [d, m, y] = dateStr.split('/');
-      return `${d}-${m}-${y}`;
+    
+    // Convert YYYY-MM-DD to DD-MM-YYYY
+    if (cleanDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      const parts = cleanDate.split('-');
+      const [year, month, day] = parts;
+      return `${day}-${month}-${year}`;
     }
-    return dateStr; // fallback for already formatted
+    
+    // Convert DD/MM/YYYY to DD-MM-YYYY
+    if (cleanDate.includes('/')) {
+      const parts = cleanDate.split('/');
+      if (parts.length === 3) {
+        const [day, month, year] = parts;
+        return `${day}-${month}-${year}`;
+      }
+    }
+    
+    // For any other format, just return the cleaned string
+    return cleanDate;
+  };
+
+  // Convert date to YYYY-MM-DD format for HTML date inputs
+  const formatDateForInput = (dateStr: string | undefined) => {
+    if (!dateStr || dateStr === 'undefined' || dateStr.includes('undefined')) return '';
+    
+    // Clean the date string
+    const cleanDate = dateStr.replace(/undefined/g, '').trim();
+    if (!cleanDate) return '';
+    
+    // If it's already in YYYY-MM-DD format, return as is
+    if (cleanDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      return cleanDate;
+    }
+    
+    // Convert DD-MM-YYYY to YYYY-MM-DD
+    if (cleanDate.includes('-')) {
+      const parts = cleanDate.split('-');
+      if (parts.length === 3 && parts[0].length <= 2) {
+        return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+      }
+    }
+    
+    // Convert DD/MM/YYYY to YYYY-MM-DD
+    if (cleanDate.includes('/')) {
+      const parts = cleanDate.split('/');
+      if (parts.length === 3) {
+        return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+      }
+    }
+    
+    return cleanDate; // fallback
   };
 
   // Add bulk selection handlers
-  const handleSelectItem = (itemId: string) => {
-    const newSelected = new Set(selectedItems);
-    if (newSelected.has(itemId)) {
-      newSelected.delete(itemId);
-    } else {
-      newSelected.add(itemId);
+const handleSelectItem = (itemId: string) => {
+  const newSelected = new Set(selectedItems);
+  if (newSelected.has(itemId)) {
+    newSelected.delete(itemId);
+    console.log('➖ Deselected item:', itemId);
+  } else {
+    newSelected.add(itemId);
+    console.log('➕ Selected item:', itemId);
+  }
+  setSelectedItems(newSelected);
+};
+
+const handleSelectAll = () => {
+  if (selectedItems.size === filteredInventory.length) {
+    setSelectedItems(new Set());
+    setIsBulkActionMode(false);
+  } else {
+    setSelectedItems(new Set(filteredInventory.map(item => item.id)));
+    setIsBulkActionMode(true);
+  }
+};
+
+const handleBulkCheckout = () => {
+  if (selectedItems.size === 0) {
+    alert('Please select items to checkout');
+    return;
+  }
+
+  // Navigate to checkout page with selected items
+  navigate('/checkout', { 
+    state: { selectedItems: Array.from(selectedItems) }
+  });
+};
+
+const handleClearSelection = () => {
+  console.log('🧹 Manually clearing selection');
+  setSelectedItems(new Set());
+  setIsBulkActionMode(false);
+  setShowOnlySelected(false);
+  localStorage.removeItem('inventorySelectedItems');
+  console.log('✅ Selection cleared');
+};
+
+  const handleShowSelectedItems = () => {
+    if (selectedItems.size > 0) {
+      setShowOnlySelected(!showOnlySelected);
     }
-    setSelectedItems(newSelected);
   };
 
-  const handleSelectAll = () => {
-    if (selectedItems.size === filteredInventory.length) {
+  // Column visibility functions
+  const toggleColumnVisibility = (column: keyof typeof columnVisibility) => {
+    setColumnVisibility((prev: typeof columnVisibility) => ({
+      ...prev,
+      [column]: !prev[column]
+    }));
+  };
+
+  const resetColumnVisibility = () => {
+    setColumnVisibility({
+      checkbox: true,
+      brand: true,
+      product_code: true,
+      product_name: true,
+      quantity: true,
+      unit: true,
+      location: true,
+      warehouse: true,
+      lot_number: true,
+      expiry_date: true,
+      import_date: true,
+      notes: true,
+      actions: true
+    });
+  };
+
+  // Save column visibility to localStorage
+  useEffect(() => {
+    localStorage.setItem('inventoryColumnVisibility', JSON.stringify(columnVisibility));
+  }, [columnVisibility]);
+
+
+
+
+
+const handleBulkSendOut = async () => {
+  if (selectedItems.size === 0) {
+    alert('Please select items to send out');
+    return;
+  }
+
+  const confirmed = window.confirm(
+    `Are you sure you want to send out ${selectedItems.size} selected item(s)?\n\nThis will reduce the quantities by 1 and mark items as "Sent Out".`
+  );
+
+  if (!confirmed) return;
+
+  try {
+    setLoading(true);
+    const token = localStorage.getItem('token');
+    const itemIds = Array.from(selectedItems);
+    const quantities: { [key: string]: number } = {};
+    
+    // Set quantity to 1 for each selected item
+    itemIds.forEach(id => {
+      quantities[id] = 1;
+    });
+
+    const response = await fetch('/api/stock/bulk-send-out', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ itemIds, quantities })
+    });
+
+    const result = await response.json();
+
+    if (response.ok) {
+      alert(`✅ Successfully sent out ${itemIds.length} items!`);
+      // Refresh inventory data
+      loadInventory();
+      // Clear selection
       setSelectedItems(new Set());
+      setIsBulkActionMode(false);
+      // Clear localStorage
+      localStorage.removeItem('inventorySelectedItems');
     } else {
-      setSelectedItems(new Set(filteredInventory.map(item => item.id)));
+      alert(`❌ Error: ${result.message}`);
     }
-  };
-
-  const handleBulkCheckout = () => {
-    // TODO: Implement bulk checkout logic
-    console.log('Bulk checkout for items:', Array.from(selectedItems));
-    // Clear selection after action
-    setSelectedItems(new Set());
-    setIsBulkActionMode(false);
-  };
-
-  const handleBulkSendOut = () => {
-    // TODO: Implement bulk send out logic
-    console.log('Bulk send out for items:', Array.from(selectedItems));
-    // Clear selection after action
-    setSelectedItems(new Set());
-    setIsBulkActionMode(false);
-  };
+  } catch (error) {
+    console.error('Error during bulk send out:', error);
+    alert('❌ An error occurred while sending items out. Please try again.');
+  } finally {
+    setLoading(false);
+  }
+};
 
 
   if (loading) {
@@ -539,12 +783,17 @@ const Inventory: React.FC = () => {
     
     if (isEditing) {
       const inputType = field === 'quantity' ? 'number' : 
-                       field === 'expiry_date' ? 'date' : 'text';
+                       field === 'expiry_date' || field === 'import_date' ? 'date' : 'text';
+      
+      // Use formatDateForInput for date fields
+      const inputValue = (field === 'expiry_date' || field === 'import_date') 
+        ? formatDateForInput(editingData[field])
+        : (editingData[field] || '');
       
       return (
         <input
           type={inputType}
-          value={editingData[field] || ''}
+          value={inputValue}
           onChange={(e) => setEditingData({...editingData, [field]: e.target.value})}
           className={`w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 ${className}`}
           autoFocus
@@ -680,7 +929,7 @@ const Inventory: React.FC = () => {
     if (!isAddingItem) {
       return (
         <tr className="bg-blue-50 hover:bg-blue-100 transition-colors duration-150">
-          <td colSpan={7} className="px-6 py-4">
+          <td colSpan={13} className="px-6 py-4">
             <button
               onClick={async () => {
                 if (editingItem) await handleSaveEdit();
@@ -700,104 +949,46 @@ const Inventory: React.FC = () => {
 
     return (
       <tr className="bg-green-50 border-2 border-green-200">
-        <td className="px-6 py-4">
-          <input
-            type="text"
-            placeholder="Brand"
-            value={newItem.brand || ''}
-            onChange={(e) => setNewItem({...newItem, brand: e.target.value})}
-            className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-            autoFocus
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                handleSaveAdd();
-              } else if (e.key === 'Escape') {
-                e.preventDefault();
-                handleCancelAdd();
-              }
-            }}
-          />
-        </td>
-        <td className="px-6 py-4">
-          <input
-            type="text"
-            placeholder="Product Code"
-            value={newItem.product_code || ''}
-            onChange={(e) => setNewItem({...newItem, product_code: e.target.value})}
-            className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                handleSaveAdd();
-              } else if (e.key === 'Escape') {
-                e.preventDefault();
-                handleCancelAdd();
-              }
-            }}
-          />
-        </td>
-        <td className="px-6 py-4">
-          <textarea
-            placeholder="Product Name"
-            value={newItem.product_name || ''}
-            onChange={(e) => setNewItem({...newItem, product_name: e.target.value})}
-            className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none"
-            rows={2}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-                e.preventDefault();
-                handleSaveAdd();
-              } else if (e.key === 'Escape') {
-                e.preventDefault();
-                handleCancelAdd();
-              }
-            }}
-          />
-        </td>
-        <td className="px-6 py-4">
-          <input
-            type="number"
-            placeholder="Qty"
-            value={newItem.quantity ?? ''}
-            onChange={(e) => setNewItem({...newItem, quantity: e.target.value})}
-            className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                handleSaveAdd();
-              } else if (e.key === 'Escape') {
-                e.preventDefault();
-                handleCancelAdd();
-              }
-            }}
-          />
-        </td>
-        <td className="px-6 py-4">
-          <input
-            type="text"
-            placeholder="Location"
-            value={newItem.location || ''}
-            onChange={(e) => setNewItem({...newItem, location: e.target.value})}
-            className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                handleSaveAdd();
-              } else if (e.key === 'Escape') {
-                e.preventDefault();
-                handleCancelAdd();
-              }
-            }}
-          />
-        </td>
-        <td className="px-6 py-4">
-          {isAddingItem ? (
+        {columnVisibility.checkbox && (
+          <td className="px-6 py-4">
+            {/* Checkbox column - disabled for new item */}
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                disabled
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded cursor-not-allowed"
+              />
+            </div>
+          </td>
+        )}
+        {columnVisibility.brand && (
+          <td className="px-6 py-4">
             <input
-              type="date"
-              placeholder="dd-mm-yyyy"
-              value={newItem.expiry_date || ''}
-              onChange={(e) => setNewItem({...newItem, expiry_date: e.target.value})}
+              type="text"
+              placeholder="Brand"
+              value={newItem.brand || ''}
+              onChange={(e) => setNewItem({...newItem, brand: e.target.value})}
+              className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleSaveAdd();
+                } else if (e.key === 'Escape') {
+                  e.preventDefault();
+                  handleCancelAdd();
+                }
+              }}
+            />
+          </td>
+        )}
+        {columnVisibility.product_code && (
+          <td className="px-6 py-4">
+            <input
+              type="text"
+              placeholder="Product Code"
+              value={newItem.product_code || ''}
+              onChange={(e) => setNewItem({...newItem, product_code: e.target.value})}
               className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
@@ -809,26 +1000,214 @@ const Inventory: React.FC = () => {
                 }
               }}
             />
-          ) : (
-            formatDateDisplay(newItem.expiry_date)
-          )}
-        </td>
-        <td className="px-6 py-4 text-right">
-          <div className="flex space-x-2">
-            <button
-              onClick={handleSaveAdd}
-              className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 focus:outline-none focus:ring-1 focus:ring-green-500"
-            >
-              Save
-            </button>
-            <button
-              onClick={handleCancelAdd}
-              className="px-3 py-1 bg-gray-500 text-white text-sm rounded hover:bg-gray-600 focus:outline-none focus:ring-1 focus:ring-gray-400"
-            >
-              Cancel
-            </button>
-          </div>
-        </td>
+          </td>
+        )}
+        {columnVisibility.product_name && (
+          <td className="px-6 py-4">
+            <textarea
+              placeholder="Product Name"
+              value={newItem.product_name || ''}
+              onChange={(e) => setNewItem({...newItem, product_name: e.target.value})}
+              className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none"
+              rows={2}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                  e.preventDefault();
+                  handleSaveAdd();
+                } else if (e.key === 'Escape') {
+                  e.preventDefault();
+                  handleCancelAdd();
+                }
+              }}
+            />
+          </td>
+        )}
+        {columnVisibility.quantity && (
+          <td className="px-6 py-4">
+            <input
+              type="number"
+              placeholder="Qty"
+              value={newItem.quantity ?? ''}
+              onChange={(e) => setNewItem({...newItem, quantity: e.target.value})}
+              className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleSaveAdd();
+                } else if (e.key === 'Escape') {
+                  e.preventDefault();
+                  handleCancelAdd();
+                }
+              }}
+            />
+          </td>
+        )}
+        {columnVisibility.unit && (
+          <td className="px-6 py-4">
+            <input
+              type="text"
+              placeholder="Unit"
+              value={newItem.unit || ''}
+              onChange={(e) => setNewItem({...newItem, unit: e.target.value})}
+              className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleSaveAdd();
+                } else if (e.key === 'Escape') {
+                  e.preventDefault();
+                  handleCancelAdd();
+                }
+              }}
+            />
+          </td>
+        )}
+        {columnVisibility.location && (
+          <td className="px-6 py-4">
+            <input
+              type="text"
+              placeholder="Location"
+              value={newItem.location || ''}
+              onChange={(e) => setNewItem({...newItem, location: e.target.value})}
+              className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleSaveAdd();
+                } else if (e.key === 'Escape') {
+                  e.preventDefault();
+                  handleCancelAdd();
+                }
+              }}
+            />
+          </td>
+        )}
+        {columnVisibility.warehouse && (
+          <td className="px-6 py-4">
+            <input
+              type="text"
+              placeholder="Places"
+              value={newItem.warehouse || ''}
+              onChange={(e) => setNewItem({...newItem, warehouse: e.target.value})}
+              className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleSaveAdd();
+                } else if (e.key === 'Escape') {
+                  e.preventDefault();
+                  handleCancelAdd();
+                }
+              }}
+            />
+          </td>
+        )}
+        {columnVisibility.lot_number && (
+          <td className="px-6 py-4">
+            <input
+              type="text"
+              placeholder="Lot Number"
+              value={newItem.lot_number || ''}
+              onChange={(e) => setNewItem({...newItem, lot_number: e.target.value})}
+              className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleSaveAdd();
+                } else if (e.key === 'Escape') {
+                  e.preventDefault();
+                  handleCancelAdd();
+                }
+              }}
+            />
+          </td>
+        )}
+        {columnVisibility.expiry_date && (
+          <td className="px-6 py-4">
+            {isAddingItem ? (
+              <input
+                type="date"
+                placeholder="dd-mm-yyyy"
+                value={newItem.expiry_date || ''}
+                onChange={(e) => setNewItem({...newItem, expiry_date: e.target.value})}
+                className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleSaveAdd();
+                  } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    handleCancelAdd();
+                  }
+                }}
+              />
+            ) : (
+              formatDateDisplay(newItem.expiry_date)
+            )}
+          </td>
+        )}
+        {columnVisibility.import_date && (
+          <td className="px-6 py-4">
+            {isAddingItem ? (
+              <input
+                type="date"
+                placeholder="dd-mm-yyyy"
+                value={newItem.import_date || ''}
+                onChange={(e) => setNewItem({...newItem, import_date: e.target.value})}
+                className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleSaveAdd();
+                  } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    handleCancelAdd();
+                  }
+                }}
+              />
+            ) : (
+              formatDateDisplay(newItem.import_date)
+            )}
+          </td>
+        )}
+        {columnVisibility.notes && (
+          <td className="px-6 py-4">
+            <input
+              type="text"
+              placeholder="Notes"
+              value={newItem.notes || ''}
+              onChange={(e) => setNewItem({...newItem, notes: e.target.value})}
+              className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleSaveAdd();
+                } else if (e.key === 'Escape') {
+                  e.preventDefault();
+                  handleCancelAdd();
+                }
+              }}
+            />
+          </td>
+        )}
+        {columnVisibility.actions && (
+          <td className="px-6 py-4 text-right">
+            <div className="flex space-x-2">
+              <button
+                onClick={handleSaveAdd}
+                className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 focus:outline-none focus:ring-1 focus:ring-green-500"
+              >
+                Save
+              </button>
+              <button
+                onClick={handleCancelAdd}
+                className="px-3 py-1 bg-gray-500 text-white text-sm rounded hover:bg-gray-600 focus:outline-none focus:ring-1 focus:ring-gray-400"
+              >
+                Cancel
+              </button>
+            </div>
+          </td>
+        )}
       </tr>
     );
   };
@@ -873,6 +1252,8 @@ const Inventory: React.FC = () => {
                 </div>
               </div>
             </div>
+            
+
           
 
         </div>
@@ -956,38 +1337,97 @@ const Inventory: React.FC = () => {
                       </div>
                     </div>
 
-      {/* Add bulk action UI after the search bar and before the table */}
-      {selectedItems.size > 0 && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <span className="text-sm font-medium text-blue-900">
-                {selectedItems.size} item(s) selected
-              </span>
-              <button
-                onClick={() => setSelectedItems(new Set())}
-                className="text-sm text-blue-600 hover:text-blue-800"
-              >
-                Clear selection
-              </button>
-            </div>
-            <div className="flex space-x-2">
-              <button
-                onClick={handleBulkCheckout}
-                className="px-4 py-2 bg-green-600 text-white text-sm rounded hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
-              >
-                🛒 Checkout ({selectedItems.size})
-              </button>
-              <button
-                onClick={handleBulkSendOut}
-                className="px-4 py-2 bg-orange-600 text-white text-sm rounded hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500"
-              >
-                📦 Send Out ({selectedItems.size})
-              </button>
+              {/* Column Visibility Toggle */}
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-medium text-gray-700">Column Visibility</h3>
+                  <button
+                    onClick={resetColumnVisibility}
+                    className="text-xs text-blue-600 hover:text-blue-800"
+                  >
+                    Reset to Default
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
+                  {Object.entries({
+                    checkbox: 'Checkbox',
+                    brand: 'Brand',
+                    product_code: 'Product Code',
+                    product_name: 'Product Name',
+                    quantity: 'Quantity',
+                    unit: 'Unit',
+                    location: 'Location',
+                    warehouse: 'Places',
+                    lot_number: 'Lot Number',
+                    expiry_date: 'Expiry Date',
+                    import_date: 'Entry Date',
+                    notes: 'Notes',
+                    actions: 'Actions'
+                  }).map(([key, label]) => (
+                    <label key={key} className="flex items-center space-x-2 text-xs">
+                      <input
+                        type="checkbox"
+                        checked={columnVisibility[key as keyof typeof columnVisibility]}
+                        onChange={() => toggleColumnVisibility(key as keyof typeof columnVisibility)}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className="text-gray-700">{label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Add bulk action UI after the search bar and before the table */}
+        {selectedItems.size > 0 && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <button
+                  onClick={handleShowSelectedItems}
+                  className={`text-sm font-medium ${
+                    showOnlySelected 
+                      ? 'text-blue-700 underline' 
+                      : 'text-blue-900 hover:text-blue-700 hover:underline'
+                  } cursor-pointer`}
+                  title={showOnlySelected ? "Click to show all items" : "Click to show only selected items"}
+                >
+                  {selectedItems.size} item(s) selected
+                </button>
+                <button
+                  onClick={handleClearSelection}
+                  className="text-sm text-blue-600 hover:text-blue-800"
+                >
+                  Clear selection
+                </button>
+              </div>
+              <div className="flex space-x-2">
+                <button
+                  onClick={handleBulkCheckout}
+                  className="px-4 py-2 bg-green-600 text-white text-sm rounded hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
+                >
+                  🛒 Checkout ({selectedItems.size})
+                </button>
+                <button
+                  onClick={handleBulkSendOut}
+                  className="px-4 py-2 bg-orange-600 text-white text-sm rounded hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                >
+                  📦 Send Out ({selectedItems.size})
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+        
+        {/* Show message when no items are selected */}
+        {selectedItems.size === 0 && (
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-4">
+            <div className="text-center">
+              <p className="text-sm text-gray-600">
+                Select items from the table below to perform bulk actions
+              </p>
+            </div>
+          </div>
+        )}
 
       {/* Inventory Table */}
       <div className="bg-white shadow overflow-hidden sm:rounded-md">
@@ -995,83 +1435,164 @@ const Inventory: React.FC = () => {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  <input
-                    type="checkbox"
-                    checked={selectedItems.size === filteredInventory.length && filteredInventory.length > 0}
-                    onChange={handleSelectAll}
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                  />
-                </th>
-                <th 
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
-                  onClick={() => handleSort('brand')}
-                >
-                  <div className="flex items-center space-x-1">
-                    <span>Brand</span>
-                    {getSortIcon('brand') && (
-                      <span className="text-xs">{getSortIcon('brand')}</span>
-                    )}
-                  </div>
-                </th>
-                <th 
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
-                  onClick={() => handleSort('product_code')}
-                >
-                  <div className="flex items-center space-x-1">
-                    <span>Product Code</span>
-                    {getSortIcon('product_code') && (
-                      <span className="text-xs">{getSortIcon('product_code')}</span>
-                    )}
-                  </div>
-                </th>
-                <th 
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/3 cursor-pointer hover:bg-gray-100 select-none"
-                  onClick={() => handleSort('product_name')}
-                >
-                  <div className="flex items-center space-x-1">
-                    <span>Product Name</span>
-                    {getSortIcon('product_name') && (
-                      <span className="text-xs">{getSortIcon('product_name')}</span>
-                    )}
-                  </div>
-                </th>
-                <th 
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
-                  onClick={() => handleSort('quantity')}
-                >
-                  <div className="flex items-center space-x-1">
-                    <span>Quantity</span>
-                    {getSortIcon('quantity') && (
-                      <span className="text-xs">{getSortIcon('quantity')}</span>
-                    )}
-                  </div>
-                </th>
-                <th 
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
-                  onClick={() => handleSort('location')}
-                >
-                  <div className="flex items-center space-x-1">
-                    <span>Location</span>
-                    {getSortIcon('location') && (
-                      <span className="text-xs">{getSortIcon('location')}</span>
-                    )}
-                  </div>
-                </th>
-                <th 
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
-                  onClick={() => handleSort('expiry_date')}
-                >
-                  <div className="flex items-center space-x-1">
-                    <span>Expiry Date</span>
-                    {getSortIcon('expiry_date') && (
-                      <span className="text-xs">{getSortIcon('expiry_date')}</span>
-                    )}
-                  </div>
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
+                {columnVisibility.checkbox && (
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <input
+                      type="checkbox"
+                      checked={selectedItems.size === filteredInventory.length && filteredInventory.length > 0}
+                      onChange={handleSelectAll}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                  </th>
+                )}
+                {columnVisibility.brand && (
+                  <th 
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                    onClick={() => handleSort('brand')}
+                  >
+                    <div className="flex items-center space-x-1">
+                      <span>Brand</span>
+                      {getSortIcon('brand') && (
+                        <span className="text-xs">{getSortIcon('brand')}</span>
+                      )}
+                    </div>
+                  </th>
+                )}
+                {columnVisibility.product_code && (
+                  <th 
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                    onClick={() => handleSort('product_code')}
+                  >
+                    <div className="flex items-center space-x-1">
+                      <span>Product Code</span>
+                      {getSortIcon('product_code') && (
+                        <span className="text-xs">{getSortIcon('product_code')}</span>
+                      )}
+                    </div>
+                  </th>
+                )}
+                {columnVisibility.product_name && (
+                  <th 
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/3 cursor-pointer hover:bg-gray-100 select-none"
+                    onClick={() => handleSort('product_name')}
+                  >
+                    <div className="flex items-center space-x-1">
+                      <span>Product Name</span>
+                      {getSortIcon('product_name') && (
+                        <span className="text-xs">{getSortIcon('product_name')}</span>
+                      )}
+                    </div>
+                  </th>
+                )}
+                {columnVisibility.quantity && (
+                  <th 
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                    onClick={() => handleSort('quantity')}
+                  >
+                    <div className="flex items-center space-x-1">
+                      <span>Quantity</span>
+                      {getSortIcon('quantity') && (
+                        <span className="text-xs">{getSortIcon('quantity')}</span>
+                      )}
+                    </div>
+                  </th>
+                )}
+                {columnVisibility.unit && (
+                  <th 
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                    onClick={() => handleSort('unit')}
+                  >
+                    <div className="flex items-center space-x-1">
+                      <span>Unit</span>
+                      {getSortIcon('unit') && (
+                        <span className="text-xs">{getSortIcon('unit')}</span>
+                      )}
+                    </div>
+                  </th>
+                )}
+                {columnVisibility.location && (
+                  <th 
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                    onClick={() => handleSort('location')}
+                  >
+                    <div className="flex items-center space-x-1">
+                      <span>Location</span>
+                      {getSortIcon('location') && (
+                        <span className="text-xs">{getSortIcon('location')}</span>
+                      )}
+                    </div>
+                  </th>
+                )}
+                {columnVisibility.warehouse && (
+                  <th 
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                    onClick={() => handleSort('warehouse')}
+                  >
+                    <div className="flex items-center space-x-1">
+                      <span>Places</span>
+                      {getSortIcon('warehouse') && (
+                        <span className="text-xs">{getSortIcon('warehouse')}</span>
+                      )}
+                    </div>
+                  </th>
+                )}
+                {columnVisibility.lot_number && (
+                  <th 
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                    onClick={() => handleSort('lot_number')}
+                  >
+                    <div className="flex items-center space-x-1">
+                      <span>Lot Number</span>
+                      {getSortIcon('lot_number') && (
+                        <span className="text-xs">{getSortIcon('lot_number')}</span>
+                      )}
+                    </div>
+                  </th>
+                )}
+                {columnVisibility.expiry_date && (
+                  <th 
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                    onClick={() => handleSort('expiry_date')}
+                  >
+                    <div className="flex items-center space-x-1">
+                      <span>Expiry Date</span>
+                      {getSortIcon('expiry_date') && (
+                        <span className="text-xs">{getSortIcon('expiry_date')}</span>
+                      )}
+                    </div>
+                  </th>
+                )}
+                {columnVisibility.import_date && (
+                  <th 
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                    onClick={() => handleSort('import_date')}
+                  >
+                    <div className="flex items-center space-x-1">
+                      <span>Entry Date</span>
+                      {getSortIcon('import_date') && (
+                        <span className="text-xs">{getSortIcon('import_date')}</span>
+                      )}
+                    </div>
+                  </th>
+                )}
+                {columnVisibility.notes && (
+                  <th 
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                    onClick={() => handleSort('notes')}
+                  >
+                    <div className="flex items-center space-x-1">
+                      <span>Notes</span>
+                      {getSortIcon('notes') && (
+                        <span className="text-xs">{getSortIcon('notes')}</span>
+                      )}
+                    </div>
+                  </th>
+                )}
+                {columnVisibility.actions && (
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
+                )}
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -1080,7 +1601,7 @@ const Inventory: React.FC = () => {
               
               {filteredInventory.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-8 text-center">
+                  <td colSpan={Object.values(columnVisibility).filter(Boolean).length} className="px-6 py-8 text-center">
                     <div className="text-gray-500">
                       {searchTerm ? (
                         <div>
@@ -1105,143 +1626,234 @@ const Inventory: React.FC = () => {
               ) : (
                 filteredInventory.map((item, index) => (
                   <tr key={item.id} data-item-id={item.id} className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 transition-colors duration-150`}>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <input
-                        type="checkbox"
-                        checked={selectedItems.has(item.id)}
-                        onChange={() => handleSelectItem(item.id)}
-                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                      />
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900" data-field="brand">
-                      {editingItem?.id === item.id ? (
+                    {columnVisibility.checkbox && (
+                      <td className="px-6 py-4 whitespace-nowrap">
                         <input
-                          type="text"
-                          value={editingData.brand ?? ''}
-                          onChange={e => setEditingData({ ...editingData, brand: e.target.value })}
-                          className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-                          disabled={isSavingEdit}
+                          type="checkbox"
+                          checked={selectedItems.has(item.id)}
+                          onChange={() => handleSelectItem(item.id)}
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                         />
-                      ) : (
-                        renderEditableCell(item, 'brand', item.brand)
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500" data-field="product_code">
-                      {editingItem?.id === item.id ? (
-                        <input
-                          type="text"
-                          value={editingData.product_code ?? ''}
-                          onChange={e => setEditingData({ ...editingData, product_code: e.target.value })}
-                          className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-                          disabled={isSavingEdit}
-                        />
-                      ) : (
-                        renderEditableCell(item, 'product_code', item.product_code)
-                      )}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-900 w-1/3" data-field="product_name">
-                      {editingItem?.id === item.id ? (
-                        <textarea
-                          value={editingData.product_name ?? ''}
-                          onChange={e => setEditingData({ ...editingData, product_name: e.target.value })}
-                          className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none"
-                          rows={2}
-                          disabled={isSavingEdit}
-                        />
-                      ) : (
-                        renderEditableTextarea(item, 'product_name', item.product_name)
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500" data-field="quantity">
-                      {editingItem?.id === item.id ? (
-                        <input
-                          type="number"
-                          value={editingData.quantity ?? ''}
-                          onChange={e => setEditingData({ ...editingData, quantity: e.target.value })}
-                          className="w-16 border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-                          disabled={isSavingEdit}
-                        />
-                      ) : (
-                        item.quantity ?? ''
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500" data-field="location">
-                      {editingItem?.id === item.id ? (
-                        <input
-                          type="text"
-                          value={editingData.location ?? ''}
-                          onChange={e => setEditingData({ ...editingData, location: e.target.value })}
-                          className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-                          disabled={isSavingEdit}
-                        />
-                      ) : (
-                        renderEditableCell(item, 'location', item.location)
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500" data-field="expiry_date">
-                      {editingItem?.id === item.id ? (
-                        <input
-                          type="date"
-                          value={editingData.expiry_date ?? ''}
-                          onChange={e => setEditingData({ ...editingData, expiry_date: e.target.value })}
-                          className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-                          disabled={isSavingEdit}
-                        />
-                      ) : (
-                        formatDateDisplay(item.expiry_date)
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="flex space-x-2 justify-end">
+                      </td>
+                    )}
+                    {columnVisibility.brand && (
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900" data-field="brand">
                         {editingItem?.id === item.id ? (
-                          <>
-                            <button
-                              onClick={handleSaveEdit}
-                              className="text-green-600 hover:text-green-900"
-                              disabled={isSavingEdit}
-                              title="Save"
-                            >
-                              💾
-                            </button>
-                            <button
-                              onClick={handleCancelEdit}
-                              className="text-gray-600 hover:text-gray-900"
-                              disabled={isSavingEdit}
-                              title="Cancel"
-                            >
-                              ✕
-                            </button>
-                          </>
+                          <input
+                            type="text"
+                            value={editingData.brand ?? ''}
+                            onChange={e => setEditingData({ ...editingData, brand: e.target.value })}
+                            className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            disabled={isSavingEdit}
+                          />
                         ) : (
-                          <button
-                            onClick={() => {
-                              setEditingItem(item);
-                              setEditingField(null);
-                              setEditingData({ ...item });
-                            }}
-                            className="text-blue-600 hover:text-blue-900"
-                            title="Edit row"
-                          >
-                            ✏️
-                          </button>
+                          renderEditableCell(item, 'brand', item.brand)
                         )}
-                        <button
-                          onClick={() => handleDeleteItem(item.id)}
-                          disabled={deletingItem === item.id}
-                          className="text-red-600 hover:text-red-900 disabled:opacity-50"
-                          title="Delete item"
-                        >
-                          {deletingItem === item.id ? (
-                            <svg className="animate-spin h-5 w-5 text-red-600" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
-                            </svg>
+                      </td>
+                    )}
+                    {columnVisibility.product_code && (
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500" data-field="product_code">
+                        {editingItem?.id === item.id ? (
+                          <input
+                            type="text"
+                            value={editingData.product_code ?? ''}
+                            onChange={e => setEditingData({ ...editingData, product_code: e.target.value })}
+                            className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            disabled={isSavingEdit}
+                          />
+                        ) : (
+                          renderEditableCell(item, 'product_code', item.product_code)
+                        )}
+                      </td>
+                    )}
+                    {columnVisibility.product_name && (
+                      <td className="px-6 py-4 text-sm text-gray-900 w-1/3" data-field="product_name">
+                        {editingItem?.id === item.id ? (
+                          <textarea
+                            value={editingData.product_name ?? ''}
+                            onChange={e => setEditingData({ ...editingData, product_name: e.target.value })}
+                            className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none"
+                            rows={2}
+                            disabled={isSavingEdit}
+                          />
+                        ) : (
+                          renderEditableTextarea(item, 'product_name', item.product_name)
+                        )}
+                      </td>
+                    )}
+                    {columnVisibility.quantity && (
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500" data-field="quantity">
+                        {editingItem?.id === item.id ? (
+                          <input
+                            type="number"
+                            value={editingData.quantity ?? ''}
+                            onChange={e => setEditingData({ ...editingData, quantity: e.target.value })}
+                            className="w-16 border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            disabled={isSavingEdit}
+                          />
+                        ) : (
+                          item.quantity ?? ''
+                        )}
+                      </td>
+                    )}
+                    {columnVisibility.unit && (
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500" data-field="unit">
+                        {editingItem?.id === item.id ? (
+                          <input
+                            type="text"
+                            value={editingData.unit ?? ''}
+                            onChange={e => setEditingData({ ...editingData, unit: e.target.value })}
+                            className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            disabled={isSavingEdit}
+                          />
+                        ) : (
+                          renderEditableCell(item, 'unit', item.unit)
+                        )}
+                      </td>
+                    )}
+                    {columnVisibility.location && (
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500" data-field="location">
+                        {editingItem?.id === item.id ? (
+                          <input
+                            type="text"
+                            value={editingData.location ?? ''}
+                            onChange={e => setEditingData({ ...editingData, location: e.target.value })}
+                            className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            disabled={isSavingEdit}
+                          />
+                        ) : (
+                          renderEditableCell(item, 'location', item.location)
+                        )}
+                      </td>
+                    )}
+                    {columnVisibility.warehouse && (
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500" data-field="warehouse">
+                        {editingItem?.id === item.id ? (
+                          <input
+                            type="text"
+                            value={editingData.warehouse ?? ''}
+                            onChange={e => setEditingData({ ...editingData, warehouse: e.target.value })}
+                            className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            disabled={isSavingEdit}
+                          />
+                        ) : (
+                          renderEditableCell(item, 'warehouse', item.warehouse)
+                        )}
+                      </td>
+                    )}
+                    {columnVisibility.lot_number && (
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500" data-field="lot_number">
+                        {editingItem?.id === item.id ? (
+                          <input
+                            type="text"
+                            value={editingData.lot_number ?? ''}
+                            onChange={e => setEditingData({ ...editingData, lot_number: e.target.value })}
+                            className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            disabled={isSavingEdit}
+                          />
+                        ) : (
+                          renderEditableCell(item, 'lot_number', item.lot_number)
+                        )}
+                      </td>
+                    )}
+                    {columnVisibility.expiry_date && (
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500" data-field="expiry_date">
+                        {editingItem?.id === item.id ? (
+                          <input
+                            type="date"
+                            value={formatDateForInput(editingData.expiry_date)}
+                            onChange={e => setEditingData({ ...editingData, expiry_date: e.target.value })}
+                            className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            disabled={isSavingEdit}
+                          />
+                        ) : (
+                          formatDateDisplay(item.expiry_date)
+                        )}
+                      </td>
+                    )}
+                    {columnVisibility.import_date && (
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500" data-field="import_date">
+                        {editingItem?.id === item.id ? (
+                          <input
+                            type="date"
+                            value={formatDateForInput(editingData.import_date)}
+                            onChange={e => setEditingData({ ...editingData, import_date: e.target.value })}
+                            className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            disabled={isSavingEdit}
+                          />
+                        ) : (
+                          formatDateDisplay(item.import_date)
+                        )}
+                      </td>
+                    )}
+                    {columnVisibility.notes && (
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500" data-field="notes">
+                        {editingItem?.id === item.id ? (
+                          <input
+                            type="text"
+                            value={editingData.notes ?? ''}
+                            onChange={e => setEditingData({ ...editingData, notes: e.target.value })}
+                            className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            disabled={isSavingEdit}
+                          />
+                        ) : (
+                          renderEditableCell(item, 'notes', item.notes)
+                        )}
+                      </td>
+                    )}
+                    {columnVisibility.actions && (
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <div className="flex space-x-2 justify-end">
+                          {editingItem?.id === item.id ? (
+                            <>
+                              <button
+                                onClick={handleSaveEdit}
+                                className="text-green-600 hover:text-green-900"
+                                disabled={isSavingEdit}
+                                title="Save"
+                              >
+                                💾
+                              </button>
+                              <button
+                                onClick={handleCancelEdit}
+                                className="text-gray-600 hover:text-gray-900"
+                                disabled={isSavingEdit}
+                                title="Cancel"
+                              >
+                                ✕
+                              </button>
+                            </>
                           ) : (
-                            '🗑️'
+                            <button
+                              onClick={() => {
+                                setEditingItem(item);
+                                setEditingField(null);
+                                setEditingData({ ...item });
+                              }}
+                              className="text-blue-600 hover:text-blue-900"
+                              title="Edit row"
+                            >
+                              ✏️
+                            </button>
                           )}
-                        </button>
-                      </div>
-                    </td>
+                          <button
+                            onClick={() => handleDeleteItem(item.id)}
+                            disabled={deletingItem === item.id}
+                            className="text-red-600 hover:text-red-900 disabled:opacity-50"
+                            title="Delete item"
+                          >
+                            {deletingItem === item.id ? (
+                              <svg className="animate-spin h-5 w-5 text-red-600" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                              </svg>
+                            ) : (
+                              '🗑️'
+                            )}
+                          </button>
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 ))
               )}

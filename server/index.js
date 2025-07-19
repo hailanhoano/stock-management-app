@@ -637,6 +637,9 @@ function processInventoryData(data) {
   const headers = data[0];
   const rows = data.slice(1);
   
+  // Debug: Log the actual headers from Google Sheets
+  console.log('📋 Google Sheets Headers:', headers);
+  
   // Map Vietnamese headers to English keys
   const headerMapping = {
     'Tên hãng': 'brand',
@@ -661,6 +664,23 @@ function processInventoryData(data) {
     });
     // Use actual row number in sheet (index + 2 because sheets are 1-indexed and we skip header)
     item.id = (index + 2).toString();
+    
+    // Debug: Log first 3 items to see the data structure
+    if (index < 3) {
+      console.log(`📦 Item ${item.id}:`, {
+        brand: item.brand,
+        product_code: item.product_code,
+        lot_number: item.lot_number,
+        quantity: item.quantity,
+        unit: item.unit,
+        expiry_date: item.expiry_date,
+        import_date: item.import_date,
+        location: item.location,
+        warehouse: item.warehouse,
+        notes: item.notes
+      });
+    }
+    
     return item;
   });
 }
@@ -1450,6 +1470,328 @@ app.delete('/api/stock/inventory/:id', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     console.error('Error deleting inventory item:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// Bulk action endpoints
+app.post('/api/stock/bulk-checkout', authenticateToken, async (req, res) => {
+  try {
+    const { itemIds, quantities } = req.body;
+    const config = await loadConfig();
+    
+    if (!itemIds || !Array.isArray(itemIds) || itemIds.length === 0) {
+      return res.status(400).json({ message: 'Item IDs are required' });
+    }
+
+    console.log('Processing bulk checkout for items:', itemIds);
+    
+    // Fetch current inventory data
+    const currentData = await fetchSheetData(config.spreadsheetIds.inventory, 'A:Z');
+    const headers = currentData[0];
+    const rows = currentData.slice(1);
+    
+    const changeLog = await loadChangeLog();
+    const updates = [];
+    
+    for (const itemId of itemIds) {
+      const rowIndex = parseInt(itemId) - 1; // Convert to 0-based index
+      if (rowIndex >= 0 && rowIndex < rows.length) {
+        const row = rows[rowIndex];
+        const currentQuantity = parseInt(row[headers.findIndex(h => h.toLowerCase().includes('quantity'))] || 0);
+        const requestedQuantity = quantities[itemId] || 1;
+        
+        if (currentQuantity < requestedQuantity) {
+          return res.status(400).json({ 
+            message: `Insufficient quantity for item ${itemId}. Available: ${currentQuantity}, Requested: ${requestedQuantity}` 
+          });
+        }
+        
+        // Update quantity
+        const newQuantity = currentQuantity - requestedQuantity;
+        row[headers.findIndex(h => h.toLowerCase().includes('quantity'))] = newQuantity.toString();
+        
+        // Add to change log
+        const changeEntry = {
+          timestamp: Date.now(),
+          userId: req.user.id,
+          userEmail: req.user.email,
+          action: 'BULK_CHECKOUT',
+          rowId: itemId,
+          oldValue: { quantity: currentQuantity },
+          newValue: { quantity: newQuantity },
+          changedFields: {
+            quantity: {
+              old: currentQuantity,
+              new: newQuantity,
+              fieldName: 'Quantity'
+            }
+          },
+          metadata: ['BULK_ACTION', 'CHECKOUT', requestedQuantity.toString()]
+        };
+        
+        changeLog.push(changeEntry);
+        updates.push({ rowIndex: rowIndex + 2, row }); // +2 for Google Sheets row offset
+      }
+    }
+    
+    // Update Google Sheets
+    for (const update of updates) {
+      await sheets.spreadsheets.values.update({
+        spreadsheetId: config.spreadsheetIds.inventory,
+        range: `A${update.rowIndex}:Z${update.rowIndex}`,
+        valueInputOption: 'RAW',
+        resource: {
+          values: [update.row]
+        }
+      });
+    }
+    
+    // Save change log
+    await saveChangeLog(changeLog);
+    
+    // Broadcast updates
+    broadcastInventoryUpdate('BULK_CHECKOUT', {
+      itemIds,
+      quantities,
+      changes: changeLog.slice(-itemIds.length)
+    });
+    
+    // Broadcast recent changes
+    const recentChanges = changeLog.slice(-5);
+    broadcastRecentChanges(recentChanges);
+    
+    res.json({
+      success: true,
+      message: `Successfully checked out ${itemIds.length} items`,
+      updatedItems: itemIds
+    });
+    
+  } catch (error) {
+    console.error('Error processing bulk checkout:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+app.post('/api/stock/bulk-send-out', authenticateToken, async (req, res) => {
+  try {
+    const { itemIds, quantities } = req.body;
+    const config = await loadConfig();
+    
+    if (!itemIds || !Array.isArray(itemIds) || itemIds.length === 0) {
+      return res.status(400).json({ message: 'Item IDs are required' });
+    }
+
+    console.log('Processing bulk send out for items:', itemIds);
+    
+    // Fetch current inventory data
+    const currentData = await fetchSheetData(config.spreadsheetIds.inventory, 'A:Z');
+    const headers = currentData[0];
+    const rows = currentData.slice(1);
+    
+    const changeLog = await loadChangeLog();
+    const updates = [];
+    
+    for (const itemId of itemIds) {
+      const rowIndex = parseInt(itemId) - 1; // Convert to 0-based index
+      if (rowIndex >= 0 && rowIndex < rows.length) {
+        const row = rows[rowIndex];
+        const currentQuantity = parseInt(row[headers.findIndex(h => h.toLowerCase().includes('quantity'))] || 0);
+        const requestedQuantity = quantities[itemId] || 1;
+        
+        if (currentQuantity < requestedQuantity) {
+          return res.status(400).json({ 
+            message: `Insufficient quantity for item ${itemId}. Available: ${currentQuantity}, Requested: ${requestedQuantity}` 
+          });
+        }
+        
+        // Update quantity
+        const newQuantity = currentQuantity - requestedQuantity;
+        row[headers.findIndex(h => h.toLowerCase().includes('quantity'))] = newQuantity.toString();
+        
+        // Update status to "Sent Out" if status column exists
+        const statusIndex = headers.findIndex(h => h.toLowerCase().includes('status'));
+        if (statusIndex !== -1) {
+          row[statusIndex] = 'Sent Out';
+        }
+        
+        // Add to change log
+        const changeEntry = {
+          timestamp: Date.now(),
+          userId: req.user.id,
+          userEmail: req.user.email,
+          action: 'BULK_SEND_OUT',
+          rowId: itemId,
+          oldValue: { quantity: currentQuantity },
+          newValue: { quantity: newQuantity, status: 'Sent Out' },
+          changedFields: {
+            quantity: {
+              old: currentQuantity,
+              new: newQuantity,
+              fieldName: 'Quantity'
+            },
+            status: {
+              old: row[statusIndex] || '',
+              new: 'Sent Out',
+              fieldName: 'Status'
+            }
+          },
+          metadata: ['BULK_ACTION', 'SEND_OUT', requestedQuantity.toString()]
+        };
+        
+        changeLog.push(changeEntry);
+        updates.push({ rowIndex: rowIndex + 2, row }); // +2 for Google Sheets row offset
+      }
+    }
+    
+    // Update Google Sheets
+    for (const update of updates) {
+      await sheets.spreadsheets.values.update({
+        spreadsheetId: config.spreadsheetIds.inventory,
+        range: `A${update.rowIndex}:Z${update.rowIndex}`,
+        valueInputOption: 'RAW',
+        resource: {
+          values: [update.row]
+        }
+      });
+    }
+    
+    // Save change log
+    await saveChangeLog(changeLog);
+    
+    // Broadcast updates
+    broadcastInventoryUpdate('BULK_SEND_OUT', {
+      itemIds,
+      quantities,
+      changes: changeLog.slice(-itemIds.length)
+    });
+    
+    // Broadcast recent changes
+    const recentChanges = changeLog.slice(-5);
+    broadcastRecentChanges(recentChanges);
+    
+    res.json({
+      success: true,
+      message: `Successfully sent out ${itemIds.length} items`,
+      updatedItems: itemIds
+    });
+    
+  } catch (error) {
+    console.error('Error processing bulk send out:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// Customer management endpoints
+app.get('/api/customers', authenticateToken, async (req, res) => {
+  try {
+    // For now, return empty array - you can implement customer storage later
+    res.json({ customers: [] });
+  } catch (error) {
+    console.error('Error loading customers:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// Checkout endpoint
+app.post('/api/stock/checkout', authenticateToken, async (req, res) => {
+  try {
+    const { customer, items, notes } = req.body;
+    const config = await loadConfig();
+    
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ message: 'Items are required' });
+    }
+
+    if (!customer || !customer.name || !customer.address) {
+      return res.status(400).json({ message: 'Customer information is required' });
+    }
+
+    console.log('Processing checkout for customer:', customer.name);
+    
+    // Fetch current inventory data
+    const currentData = await fetchSheetData(config.spreadsheetIds.inventory, 'A:Z');
+    const headers = currentData[0];
+    const rows = currentData.slice(1);
+    
+    const changeLog = await loadChangeLog();
+    const updates = [];
+    
+    for (const item of items) {
+      const rowIndex = parseInt(item.id) - 1; // Convert to 0-based index
+      if (rowIndex >= 0 && rowIndex < rows.length) {
+        const row = rows[rowIndex];
+        const currentQuantity = parseInt(row[headers.findIndex(h => h.toLowerCase().includes('quantity'))] || 0);
+        const requestedQuantity = item.quantity || 1;
+        
+        if (currentQuantity < requestedQuantity) {
+          return res.status(400).json({ 
+            message: `Insufficient quantity for item ${item.id}. Available: ${currentQuantity}, Requested: ${requestedQuantity}` 
+          });
+        }
+        
+        // Update quantity
+        const newQuantity = currentQuantity - requestedQuantity;
+        row[headers.findIndex(h => h.toLowerCase().includes('quantity'))] = newQuantity.toString();
+        
+        // Add to change log
+        const changeEntry = {
+          timestamp: Date.now(),
+          userId: req.user.id,
+          userEmail: req.user.email,
+          action: 'CHECKOUT',
+          rowId: item.id,
+          oldValue: { quantity: currentQuantity },
+          newValue: { quantity: newQuantity },
+          changedFields: {
+            quantity: {
+              old: currentQuantity,
+              new: newQuantity,
+              fieldName: 'Quantity'
+            }
+          },
+          metadata: ['CHECKOUT', customer.name, requestedQuantity.toString(), notes || '']
+        };
+        
+        changeLog.push(changeEntry);
+        updates.push({ rowIndex: rowIndex + 2, row }); // +2 for Google Sheets row offset
+      }
+    }
+    
+    // Update Google Sheets
+    for (const update of updates) {
+      await sheets.spreadsheets.values.update({
+        spreadsheetId: config.spreadsheetIds.inventory,
+        range: `A${update.rowIndex}:Z${update.rowIndex}`,
+        valueInputOption: 'RAW',
+        resource: {
+          values: [update.row]
+        }
+      });
+    }
+    
+    // Save change log
+    await saveChangeLog(changeLog);
+    
+    // Broadcast updates
+    broadcastInventoryUpdate('CHECKOUT', {
+      items,
+      customer,
+      changes: changeLog.slice(-items.length)
+    });
+    
+    // Broadcast recent changes
+    const recentChanges = changeLog.slice(-5);
+    broadcastRecentChanges(recentChanges);
+    
+    res.json({
+      success: true,
+      message: `Successfully checked out ${items.length} items for ${customer.name}`,
+      updatedItems: items.map(item => item.id)
+    });
+    
+  } catch (error) {
+    console.error('Error processing checkout:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 });

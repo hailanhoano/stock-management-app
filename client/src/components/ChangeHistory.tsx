@@ -78,6 +78,12 @@ const ChangeHistory: React.FC<ChangeHistoryProps> = ({ isOpen, onClose }) => {
         return 'Xóa';
       case 'CONFLICT_DETECTED':
         return 'Xung đột';
+      case 'BULK_CHECKOUT':
+        return 'Bulk Checkout';
+      case 'BULK_SEND_OUT':
+        return 'Bulk Send Out';
+      case 'CHECKOUT':
+        return 'Checkout';
       default:
         return action;
     }
@@ -120,6 +126,9 @@ const ChangeHistory: React.FC<ChangeHistoryProps> = ({ isOpen, onClose }) => {
                           change.action === 'ADD' ? 'bg-blue-100 text-blue-800' :
                           change.action === 'DELETE' ? 'bg-red-100 text-red-800' :
                           change.action === 'CONFLICT_DETECTED' ? 'bg-orange-100 text-orange-800' :
+                          change.action === 'BULK_CHECKOUT' ? 'bg-purple-100 text-purple-800' :
+                          change.action === 'BULK_SEND_OUT' ? 'bg-indigo-100 text-indigo-800' :
+                          change.action === 'CHECKOUT' ? 'bg-teal-100 text-teal-800' :
                           'bg-gray-100 text-gray-800'
                         }`}>
                           {getActionLabel(change.action)}
@@ -187,6 +196,59 @@ const ChangeHistory: React.FC<ChangeHistoryProps> = ({ isOpen, onClose }) => {
                               </div>
                             </div>
                           ))}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {(change.action === 'BULK_CHECKOUT' || change.action === 'BULK_SEND_OUT') && change.changedFields && Object.keys(change.changedFields).length > 0 && (
+                      <div className="mt-2 text-xs text-gray-600">
+                        <div className="space-y-2">
+                          <span className="font-medium text-gray-700">
+                            {change.action === 'BULK_CHECKOUT' ? 'Bulk Checkout:' : 'Bulk Send Out:'}
+                          </span>
+                          {Object.entries(change.changedFields).map(([key, field]) => (
+                            <div key={key} className="flex items-center gap-2 p-2 bg-purple-50 rounded">
+                              <div className="flex-1">
+                                <span className="font-medium text-gray-700">{field.fieldName}:</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-red-600 line-through">{String(field.old || field.original || '')}</span>
+                                <span className="text-gray-400">→</span>
+                                <span className="text-green-600 font-medium">{String(field.new || field.current || '')}</span>
+                              </div>
+                            </div>
+                          ))}
+                          {change.metadata && change.metadata.length >= 3 && (
+                            <div className="text-xs text-purple-600 font-medium">
+                              Quantity processed: {change.metadata[2]}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {change.action === 'CHECKOUT' && change.changedFields && Object.keys(change.changedFields).length > 0 && (
+                      <div className="mt-2 text-xs text-gray-600">
+                        <div className="space-y-2">
+                          <span className="font-medium text-gray-700">Checkout:</span>
+                          {Object.entries(change.changedFields).map(([key, field]) => (
+                            <div key={key} className="flex items-center gap-2 p-2 bg-teal-50 rounded">
+                              <div className="flex-1">
+                                <span className="font-medium text-gray-700">{field.fieldName}:</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-red-600 line-through">{String(field.old || field.original || '')}</span>
+                                <span className="text-gray-400">→</span>
+                                <span className="text-green-600 font-medium">{String(field.new || field.current || '')}</span>
+                              </div>
+                            </div>
+                          ))}
+                          {change.metadata && change.metadata.length >= 2 && (
+                            <div className="text-xs text-teal-600 font-medium">
+                              Customer: {change.metadata[1]} • Quantity: {change.metadata[2]}
+                              {change.metadata[3] && ` • Notes: ${change.metadata[3]}`}
+                            </div>
+                          )}
                         </div>
                       </div>
                     )}
