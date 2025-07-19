@@ -14167,5 +14167,35 @@
       "admin@example.com",
       "20"
     ]
+  },
+  {
+    "timestamp": 1752914220741,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "106",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "19/07/2025, 6:37:00 pm",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1752914232047,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "107",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "19/07/2025, 6:37:11 pm",
+      "admin@example.com",
+      "1"
+    ]
   }
 ]

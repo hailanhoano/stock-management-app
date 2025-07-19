@@ -575,18 +575,46 @@ app.get('/api/stock/inventory', authenticateToken, async (req, res) => {
   try {
     const config = await loadConfig();
     
-    if (!config.spreadsheetIds.inventory) {
+    if (!config.spreadsheetIds.inventory && !config.spreadsheetIds.inventory2) {
       return res.status(400).json({ 
-        error: 'Inventory spreadsheet ID not configured' 
+        error: 'No inventory spreadsheet IDs configured' 
       });
     }
 
-    const data = await fetchSheetData(config.spreadsheetIds.inventory, 'A:Z');
-    const inventory = processInventoryData(data);
+    // Fetch data from both inventory sources
+    const inventoryPromises = [];
+    
+    if (config.spreadsheetIds.inventory) {
+      inventoryPromises.push(
+        fetchSheetData(config.spreadsheetIds.inventory, 'A:Z')
+          .then(data => processInventoryData(data, 'source1'))
+          .catch(error => {
+            console.error('Error fetching from inventory source 1:', error);
+            return [];
+          })
+      );
+    }
+    
+    if (config.spreadsheetIds.inventory2) {
+      inventoryPromises.push(
+        fetchSheetData(config.spreadsheetIds.inventory2, 'A:Z')
+          .then(data => processInventoryData(data, 'source2'))
+          .catch(error => {
+            console.error('Error fetching from inventory source 2:', error);
+            return [];
+          })
+      );
+    }
+
+    // Wait for all inventory data to be fetched
+    const inventoryArrays = await Promise.all(inventoryPromises);
+    
+    // Combine all inventory data
+    const combinedInventory = inventoryArrays.flat();
 
     res.json({
       success: true,
-      inventory: inventory
+      inventory: combinedInventory
     });
 
   } catch (error) {
@@ -656,7 +684,7 @@ function processStockData(sheet1Data, sheet2Data, sheet3Data) {
   return processed;
 }
 
-function processInventoryData(data) {
+function processInventoryData(data, source = 'source1') {
   if (!data || data.length < 2) return [];
   
   const headers = data[0];
@@ -689,6 +717,9 @@ function processInventoryData(data) {
     });
     // Use actual row number in sheet (index + 2 because sheets are 1-indexed and we skip header)
     item.id = (index + 2).toString();
+    // Add source tracking
+    item.source = source;
+    item.sourceId = `${source}_${item.id}`;
     
     // Debug: Log first 3 items to see the data structure
     // if (index < 3) {
@@ -829,6 +860,7 @@ async function loadConfig() {
     return {
       spreadsheetIds: {
         inventory: '',
+        inventory2: '', // Second inventory source
         sales: '',
         purchases: ''
       }
@@ -873,6 +905,7 @@ app.post('/api/config', authenticateToken, async (req, res) => {
     const config = {
       spreadsheetIds: {
         inventory: spreadsheetIds.inventory || '',
+        inventory2: spreadsheetIds.inventory2 || '', // Second inventory source
         sales: spreadsheetIds.sales || '',
         purchases: spreadsheetIds.purchases || ''
       }
@@ -931,10 +964,16 @@ app.put('/api/stock/inventory/:id', authenticateToken, async (req, res) => {
     const updatedItem = req.body;
     const config = await loadConfig();
     
-    console.log('Config loaded:', config.spreadsheetIds.inventory);
+    // Determine which source this item belongs to
+    const sourceId = updatedItem.sourceId || id;
+    const source = updatedItem.source || 'source1';
+    const spreadsheetId = source === 'source1' ? config.spreadsheetIds.inventory : config.spreadsheetIds.inventory2;
     
-    if (!config.spreadsheetIds.inventory) {
-      return res.status(400).json({ message: 'Inventory spreadsheet ID not configured' });
+    console.log('Config loaded:', spreadsheetId);
+    console.log('Source:', source, 'Source ID:', sourceId);
+    
+    if (!spreadsheetId) {
+      return res.status(400).json({ message: `${source} inventory spreadsheet ID not configured` });
     }
 
     // Create a new auth and sheets client with write access
@@ -946,7 +985,7 @@ app.put('/api/stock/inventory/:id', authenticateToken, async (req, res) => {
 
     // Fetch current data to get headers and check for conflicts
     const response = await sheets.spreadsheets.values.get({
-      spreadsheetId: config.spreadsheetIds.inventory,
+      spreadsheetId: spreadsheetId,
       range: 'A:L',
     });
     let currentData = response.data.values || [];
@@ -985,7 +1024,7 @@ app.put('/api/stock/inventory/:id', authenticateToken, async (req, res) => {
     if (rowIndex > currentData.length) {
       console.log('Row index beyond current data, fetching latest data...');
       const latestResponse = await sheets.spreadsheets.values.get({
-        spreadsheetId: config.spreadsheetIds.inventory,
+        spreadsheetId: spreadsheetId,
         range: 'A:Z',
       });
       const latestData = latestResponse.data.values || [];
@@ -1105,7 +1144,7 @@ app.put('/api/stock/inventory/:id', authenticateToken, async (req, res) => {
     
     // Use update to ensure we're updating the exact row
     await sheets.spreadsheets.values.update({
-      spreadsheetId: config.spreadsheetIds.inventory,
+      spreadsheetId: spreadsheetId,
       range: range,
       valueInputOption: 'USER_ENTERED',
       resource: {
@@ -1198,8 +1237,12 @@ app.post('/api/stock/inventory', authenticateToken, async (req, res) => {
     const newItem = req.body;
     const config = await loadConfig();
     
-    if (!config.spreadsheetIds.inventory) {
-      return res.status(400).json({ message: 'Inventory spreadsheet ID not configured' });
+    // Determine which source to add to (default to source1)
+    const targetSource = newItem.targetSource || 'source1';
+    const spreadsheetId = targetSource === 'source1' ? config.spreadsheetIds.inventory : config.spreadsheetIds.inventory2;
+    
+    if (!spreadsheetId) {
+      return res.status(400).json({ message: `${targetSource} inventory spreadsheet ID not configured` });
     }
 
     // Create a new auth and sheets client with write access
@@ -1211,7 +1254,7 @@ app.post('/api/stock/inventory', authenticateToken, async (req, res) => {
 
     // Fetch current data to get headers
     const response = await sheets.spreadsheets.values.get({
-      spreadsheetId: config.spreadsheetIds.inventory,
+      spreadsheetId: spreadsheetId,
       range: 'A:L',
     });
     const currentData = response.data.values || [];
@@ -1252,7 +1295,7 @@ app.post('/api/stock/inventory', authenticateToken, async (req, res) => {
     
     // Update the specific row position
     await sheets.spreadsheets.values.update({
-      spreadsheetId: config.spreadsheetIds.inventory,
+      spreadsheetId: spreadsheetId,
       range: range,
       valueInputOption: 'USER_ENTERED',
       resource: {
@@ -1326,8 +1369,13 @@ app.delete('/api/stock/inventory/:id', authenticateToken, async (req, res) => {
     const { id } = req.params;
     const config = await loadConfig();
     
-    if (!config.spreadsheetIds.inventory) {
-      return res.status(400).json({ message: 'Inventory spreadsheet ID not configured' });
+    // For delete, we need to determine the source from the request body or query
+    // This will be handled by the frontend sending the source information
+    const source = req.query.source || 'source1';
+    const spreadsheetId = source === 'source1' ? config.spreadsheetIds.inventory : config.spreadsheetIds.inventory2;
+    
+    if (!spreadsheetId) {
+      return res.status(400).json({ message: `${source} inventory spreadsheet ID not configured` });
     }
 
     // Create a new auth and sheets client with write access
@@ -1339,7 +1387,7 @@ app.delete('/api/stock/inventory/:id', authenticateToken, async (req, res) => {
 
     // Fetch current data to validate row exists
     const response = await sheets.spreadsheets.values.get({
-      spreadsheetId: config.spreadsheetIds.inventory,
+      spreadsheetId: spreadsheetId,
       range: 'A:L',
     });
     const currentData = response.data.values || [];
@@ -1362,7 +1410,7 @@ app.delete('/api/stock/inventory/:id', authenticateToken, async (req, res) => {
       // Fetch fresh data after delay
       try {
         const retryResponse = await sheets.spreadsheets.values.get({
-          spreadsheetId: config.spreadsheetIds.inventory,
+          spreadsheetId: spreadsheetId,
           range: 'A:L',
         });
         
@@ -1905,8 +1953,8 @@ let pollingInterval = null;
 async function startGoogleSheetsPolling() {
   try {
     const config = await loadConfig();
-    if (!config.spreadsheetIds.inventory) {
-      console.log('⚠️ No inventory spreadsheet configured, skipping polling');
+    if (!config.spreadsheetIds.inventory && !config.spreadsheetIds.inventory2) {
+      console.log('⚠️ No inventory spreadsheets configured, skipping polling');
       return;
     }
 
@@ -1928,7 +1976,7 @@ async function startGoogleSheetsPolling() {
 async function checkForGoogleSheetsChanges() {
   try {
     const config = await loadConfig();
-    if (!config.spreadsheetIds.inventory) {
+    if (!config.spreadsheetIds.inventory && !config.spreadsheetIds.inventory2) {
       return;
     }
 
@@ -1939,9 +1987,34 @@ async function checkForGoogleSheetsChanges() {
       timestamp: Date.now()
     });
     
-    // Fetch current data from Google Sheets
-    const currentData = await fetchSheetData(config.spreadsheetIds.inventory, 'A:Z');
-    const currentInventory = processInventoryData(currentData);
+    // Fetch current data from both inventory sources
+    const inventoryPromises = [];
+    
+    if (config.spreadsheetIds.inventory) {
+      inventoryPromises.push(
+        fetchSheetData(config.spreadsheetIds.inventory, 'A:Z')
+          .then(data => processInventoryData(data, 'source1'))
+          .catch(error => {
+            console.error('Error fetching from inventory source 1:', error);
+            return [];
+          })
+      );
+    }
+    
+    if (config.spreadsheetIds.inventory2) {
+      inventoryPromises.push(
+        fetchSheetData(config.spreadsheetIds.inventory2, 'A:Z')
+          .then(data => processInventoryData(data, 'source2'))
+          .catch(error => {
+            console.error('Error fetching from inventory source 2:', error);
+            return [];
+          })
+      );
+    }
+
+    // Wait for all inventory data to be fetched
+    const inventoryArrays = await Promise.all(inventoryPromises);
+    const currentInventory = inventoryArrays.flat();
     
     // Convert to comparable format (stringify for deep comparison)
     const currentDataString = JSON.stringify(currentInventory);
