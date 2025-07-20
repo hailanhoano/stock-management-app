@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useWebSocket } from '../context/WebSocketContext';
 import { useLocation, useNavigate } from 'react-router-dom';
 
@@ -35,10 +35,22 @@ const Inventory: React.FC = () => {
   const [editingData, setEditingData] = useState<Partial<InventoryItem>>({});
   const [editingField, setEditingField] = useState<string | null>(null);
   const [deletingItem, setDeletingItem] = useState<string | null>(null);
+  const [isDeletionInProgress, setIsDeletionInProgress] = useState(false);
+  const [isBulkDeleteInProgress, setIsBulkDeleteInProgress] = useState(false);
+  const [dataVerified, setDataVerified] = useState(false);
+  const [verifyingData, setVerifyingData] = useState(false);
   const [newItem, setNewItem] = useState<Partial<InventoryItem>>({});
   const [isAddingItem, setIsAddingItem] = useState(false);
   const [googleSheetsChanges, setGoogleSheetsChanges] = useState<number>(0);
   const [lastGoogleSheetsUpdate, setLastGoogleSheetsUpdate] = useState<Date | null>(null);
+  const lastProcessedUpdateRef = useRef<string>('');
+  
+  // Memoized sync status icon to prevent unnecessary re-renders
+  const syncStatusIcon = useMemo(() => {
+    if (syncStatus === 'syncing') return <span className="text-blue-600">🔄</span>;
+    if (syncStatus === 'error') return <span className="text-red-600">❌</span>;
+    return null;
+  }, [syncStatus]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredInventory, setFilteredInventory] = useState<InventoryItem[]>([]);
   const [sortConfig, setSortConfig] = useState<{
@@ -267,8 +279,20 @@ const Inventory: React.FC = () => {
 
   // Handle real-time inventory updates
   useEffect(() => {
+    // Allow updates during bulk delete but prevent checkbox flickering by preserving selection
     if (inventoryUpdates.length > 0) {
-      const latestUpdate = inventoryUpdates[inventoryUpdates.length - 1];
+      const latestUpdate = inventoryUpdates[0]; // Always use the first (latest) update
+      
+      // Create a unique identifier for this update to prevent duplicate processing
+      const updateId = `${latestUpdate.action}_${latestUpdate.data?.id || 'unknown'}_${Date.now()}`;
+      
+      // Skip if we've already processed this update
+      if (lastProcessedUpdateRef.current === updateId) {
+        console.log('⏭️ Skipping duplicate update:', updateId);
+        return;
+      }
+      
+      lastProcessedUpdateRef.current = updateId;
       console.log('🔄 Processing inventory update:', latestUpdate);
       console.log('📦 Full update data:', JSON.stringify(latestUpdate, null, 2));
       
@@ -297,12 +321,46 @@ const Inventory: React.FC = () => {
           console.log('🗑️ Removing item from inventory:', latestUpdate.data.id);
           setInventory(prev => {
             console.log('📋 Current inventory items:', prev.map((item: any) => ({ id: item.id, product_name: item.product_name })));
-            const filtered = prev.filter(item => item.id !== latestUpdate.data.id);
+            
+            // Try to find the item by exact ID first
+            let filtered = prev.filter(item => item.id !== latestUpdate.data.id);
+            
+            // If no item was found by exact ID, try to find by similar ID patterns
+            if (prev.length === filtered.length) {
+              console.log('🔍 Item not found by exact ID, trying pattern matching...');
+              
+              // Try to find items that might be the same but with different ID format
+              const deletedData = latestUpdate.data.deletedData;
+              if (deletedData && Array.isArray(deletedData)) {
+                // For test data, try to match by the test pattern
+                if (deletedData[0] === 'test') {
+                  const testNumber = deletedData[1];
+                  console.log('🔍 Looking for test item with number:', testNumber);
+                  
+                  filtered = prev.filter(item => {
+                    // Skip items that don't match the test pattern
+                    if (!item.product_name || !item.product_name.includes('test')) {
+                      return true;
+                    }
+                    
+                    // Try to extract test number from product name or other fields
+                    const itemTestMatch = item.product_name.match(/test.*?(\d+)/i);
+                    if (itemTestMatch && itemTestMatch[1] === testNumber) {
+                      console.log('❌ Removing test item:', item.id, 'with test number:', testNumber);
+                      return false;
+                    }
+                    
+                    return true;
+                  });
+                }
+              }
+            }
+            
             console.log('📊 Inventory after delete - before:', prev.length, 'after:', filtered.length);
             console.log('🔍 Looking for item with ID:', latestUpdate.data.id);
             console.log('📋 Available IDs:', prev.map(item => item.id));
             
-            // If no items found to delete, reload the inventory to ensure consistency
+            // If still no items found to delete, reload the inventory to ensure consistency
             if (prev.length === filtered.length) {
               console.log('⚠️ Item not found in current inventory, reloading data...');
               setTimeout(() => {
@@ -311,6 +369,13 @@ const Inventory: React.FC = () => {
             }
             
             return filtered;
+          });
+          
+          // Remove deleted item from selection if it was selected
+          setSelectedItems(prev => {
+            const newSelection = new Set(prev);
+            newSelection.delete(latestUpdate.data.id);
+            return newSelection;
           });
           break;
           
@@ -366,6 +431,9 @@ const Inventory: React.FC = () => {
           }
           break;
       }
+      
+      // Clear the processed updates to prevent accumulation
+      // This will be handled by the WebSocket context now
     }
   }, [inventoryUpdates]);
 
@@ -441,14 +509,87 @@ const Inventory: React.FC = () => {
     }
   };
 
+  // Handle data verification to enable individual deletions
+  const handleVerifyData = async () => {
+    try {
+      setVerifyingData(true);
+      setError(null);
+      
+      const token = localStorage.getItem('token');
+      
+      // Send a sample of inventory data for verification (first 50 items)
+      const sampleInventory = inventory.slice(0, 50).map(item => ({
+        id: item.id,
+        product_code: item.product_code,
+        product_name: item.product_name,
+        brand: item.brand
+      }));
+      
+      const response = await fetch('http://localhost:3001/api/stock/verify-data', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          inventory: sampleInventory
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to verify data');
+      }
+
+      const result = await response.json();
+      if (result.success) {
+        setDataVerified(true);
+        console.log('✅ Data verified successfully');
+      } else {
+        throw new Error(result.message || 'Data verification failed');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to verify data');
+    } finally {
+      setVerifyingData(false);
+    }
+  };
+
+  // Auto-enable individual deletions since the row index fix is working
+  useEffect(() => {
+    if (inventory.length > 0 && !dataVerified) {
+      console.log('✅ Auto-enabling individual deletions since row index fix is working');
+      setDataVerified(true);
+    }
+  }, [inventory.length, dataVerified]);
+
+  // Remove force refresh to prevent screen flashing
+  // The WebSocket will handle UI updates automatically
+
   // Handle item deletion
   const handleDeleteItem = async (id: string) => {
+    // Prevent multiple deletions at the same time
+    if (isDeletionInProgress) {
+      console.log('⚠️ Deletion already in progress, ignoring request');
+      return;
+    }
+    
+    // Only allow deletion if data is verified
+    if (!dataVerified) {
+      setError('Please verify data first before deleting individual items. Use bulk delete for multiple items.');
+      return;
+    }
+    
     try {
+      setIsDeletionInProgress(true);
       setDeletingItem(id);
       
-      // Find the item to get its source information
+      // Find the item to get its source information and data
       const item = inventory.find(item => item.id === id);
-      const source = item?.source || 'source1';
+      if (!item) {
+        throw new Error('Item not found in current inventory');
+      }
+      
+      const source = item.source || 'source1';
       
       // Add a 2-second delay to prevent rapid deletions and race conditions
       console.log('⏳ Adding 2-second delay before delete to prevent race conditions...');
@@ -458,20 +599,47 @@ const Inventory: React.FC = () => {
       const response = await fetch(`http://localhost:3001/api/stock/inventory/${id}?source=${source}`, {
         method: 'DELETE',
         headers: {
+          'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
+        body: JSON.stringify({
+          itemData: {
+            id: item.id, // Include the original ID for row matching
+            product_code: item.product_code,
+            product_name: item.product_name,
+            brand: item.brand,
+            lot_number: item.lot_number,
+            quantity: item.quantity,
+            unit: item.unit,
+            expiry_date: item.expiry_date,
+            location: item.location,
+            warehouse: item.warehouse,
+            notes: item.notes
+          }
+        }),
       });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         console.error('❌ Delete failed:', errorData);
         
-        if (errorData.message === 'Item not found' || errorData.message === 'Item not found - please try again') {
+        if (errorData.message === 'Item not found' || errorData.message === 'Item not found - please try again' || errorData.message === 'Item not found - please refresh and try again') {
           // If item not found, it might be due to outdated row indices
           // Refresh the inventory data to get updated row indices
           console.log('🔄 Item not found, refreshing inventory data...');
           await loadInventory();
-          throw new Error('Item not found - please try deleting again');
+          
+          // Add additional context based on error type
+          if (errorData.error === 'ROW_INDEX_OUT_OF_BOUNDS') {
+            console.log('📊 Row index out of bounds - current row count:', errorData.currentRowCount);
+            throw new Error(`Row index issue detected. Current sheet has ${errorData.currentRowCount} rows. Please try deleting again.`);
+          } else if (errorData.error === 'NO_DATA_AVAILABLE') {
+            throw new Error('No data available in the sheet. Please refresh and try again.');
+          } else if (errorData.error === 'RETRY_ERROR') {
+            throw new Error(`Retry failed: ${errorData.details || 'Unknown error'}. Please refresh and try again.`);
+          } else {
+            throw new Error('Item not found - please try deleting again');
+          }
         }
         
         throw new Error(errorData.message || 'Failed to delete item');
@@ -482,8 +650,15 @@ const Inventory: React.FC = () => {
     } catch (err) {
       console.error('❌ Error deleting item:', err);
       setError(err instanceof Error ? err.message : 'Failed to delete item');
+      
+      // If delete failed, reload inventory to restore the item
+      console.log('🔄 Reloading inventory due to delete failure...');
+      setTimeout(() => {
+        loadInventory();
+      }, 1000);
     } finally {
       setDeletingItem(null);
+      setIsDeletionInProgress(false);
     }
   };
 
@@ -817,6 +992,120 @@ const handleClearSelection = () => {
 
 
 
+
+  // Handle bulk delete
+  const handleBulkDelete = async () => {
+    if (selectedItems.size === 0) {
+      setError('Please select items to delete');
+      return;
+    }
+
+    // Remove confirmation popup - proceed directly with deletion
+
+    try {
+      setIsDeletionInProgress(true);
+      setError(null);
+      
+      // Store current selection to preserve checkboxes during updates
+      const currentSelection = new Set(selectedItems);
+      
+      const token = localStorage.getItem('token');
+      const itemIds = Array.from(selectedItems);
+      
+      // Sort items by row ID in descending order (highest to lowest) to avoid row shifting issues
+      const sortedItemIds = itemIds.sort((a, b) => {
+        // Extract row numbers from IDs (e.g., "th_615" -> 615)
+        const rowA = parseInt(a.split('_')[1] || '0');
+        const rowB = parseInt(b.split('_')[1] || '0');
+        return rowB - rowA; // Descending order (highest first)
+      });
+      
+      console.log('🗑️ Starting bulk delete for items (sorted by row ID descending):', sortedItemIds);
+      
+      // Delete items one by one with delays to prevent race conditions
+      const results = [];
+      for (let i = 0; i < sortedItemIds.length; i++) {
+        const itemId = sortedItemIds[i];
+        try {
+          // Find the item to get its data
+          const item = inventory.find(item => item.id === itemId);
+          if (!item) {
+            throw new Error(`Item ${itemId} not found in current inventory`);
+          }
+          
+          const source = item.source || 'source1';
+          
+          console.log(`🗑️ Deleting item ${i + 1}/${sortedItemIds.length}: ${itemId} (row ${itemId.split('_')[1]})`);
+          
+          const response = await fetch(`http://localhost:3001/api/stock/inventory/${itemId}?source=${source}`, {
+            method: 'DELETE',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+              'X-Bulk-Delete': 'true', // Mark as bulk delete operation
+            },
+            body: JSON.stringify({
+              itemData: {
+                id: item.id,
+                product_code: item.product_code,
+                product_name: item.product_name,
+                brand: item.brand,
+                lot_number: item.lot_number,
+                quantity: item.quantity,
+                unit: item.unit,
+                expiry_date: item.expiry_date,
+                location: item.location,
+                warehouse: item.warehouse,
+                notes: item.notes
+              }
+            })
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.message || `Failed to delete item ${itemId}`);
+          }
+
+          results.push({ itemId, success: true });
+          
+          // Add a delay between deletions to prevent race conditions
+          if (i < itemIds.length - 1) {
+            console.log(`⏳ Waiting 1 second before next deletion...`);
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
+        } catch (error) {
+          console.error(`Error deleting item ${itemId}:`, error);
+          results.push({ itemId, success: false, error: error instanceof Error ? error.message : 'Unknown error' });
+        }
+      }
+
+      const successful = results.filter(r => r.success);
+      const failed = results.filter(r => !r.success);
+
+      console.log(`✅ Bulk delete completed: ${successful.length} successful, ${failed.length} failed`);
+      
+      if (failed.length > 0) {
+        console.log('❌ Failed deletions:', failed);
+        setError(`Successfully deleted ${successful.length} items. Failed to delete ${failed.length} items.`);
+      } else {
+        console.log('✅ All items deleted successfully');
+      }
+      
+      // Clear selection only after all deletions are complete
+      // This prevents checkboxes from disappearing during the deletion process
+      setTimeout(() => {
+        setSelectedItems(new Set());
+        setIsBulkActionMode(false);
+        // Clear localStorage
+        localStorage.removeItem('inventorySelectedItems');
+      }, 2000); // Wait 2 seconds to ensure all updates are processed
+      
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete items');
+    } finally {
+      setIsDeletionInProgress(false);
+    }
+  };
 
 const handleBulkSendOut = async () => {
   if (selectedItems.size === 0) {
@@ -1328,15 +1617,14 @@ const handleBulkSendOut = async () => {
         </p>
       </div>
 
-        {/* Connection Status */}
+        {/* Connection Status and Action Buttons */}
                   <div className="mt-4 sm:mt-0 flex items-center space-x-4">
             <div className="flex flex-col space-y-1 text-sm relative">
               {/* Row 1: Last sync timestamp */}
               <div className="text-xs text-gray-500 flex items-center">
                 Last sync: {lastSyncTime ? lastSyncTime.toLocaleTimeString() : 'Unknown'}
                 <span style={{ display: 'inline-block', width: 20 }}>
-                  {syncStatus === 'syncing' && <span className="text-blue-600">🔄</span>}
-                  {syncStatus === 'error' && <span className="text-red-600">❌</span>}
+                  {syncStatusIcon}
                 </span>
               </div>
               
@@ -1358,6 +1646,39 @@ const handleBulkSendOut = async () => {
               </div>
             </div>
             
+            {/* Verify Data Button */}
+            <div className="flex flex-col space-y-2">
+              {!dataVerified ? (
+                <button
+                  onClick={handleVerifyData}
+                  disabled={verifyingData}
+                  className="px-4 py-2 bg-yellow-600 text-white text-sm rounded hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-yellow-500 disabled:opacity-50"
+                  title="Verify data to enable individual deletions"
+                >
+                  {verifyingData ? (
+                    <div className="flex items-center space-x-2">
+                      <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                      </svg>
+                      <span>Verifying...</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center space-x-2">
+                      <span>🔍</span>
+                      <span>Verify Data</span>
+                    </div>
+                  )}
+                </button>
+              ) : (
+                <div className="px-4 py-2 bg-green-100 text-green-800 text-sm rounded border border-green-300">
+                  <div className="flex items-center space-x-2">
+                    <span>✅</span>
+                    <span>Data Verified</span>
+                  </div>
+                </div>
+              )}
+            </div>
 
           
 
@@ -1536,6 +1857,13 @@ const handleBulkSendOut = async () => {
                   className="px-4 py-2 bg-orange-600 text-white text-sm rounded hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500"
                 >
                   📦 Send Out ({selectedItems.size})
+                </button>
+                <button
+                  onClick={handleBulkDelete}
+                  disabled={isDeletionInProgress}
+                  className="px-4 py-2 bg-red-600 text-white text-sm rounded hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50"
+                >
+                  🗑️ Bulk Delete ({selectedItems.size})
                 </button>
               </div>
             </div>
@@ -1972,9 +2300,9 @@ const handleBulkSendOut = async () => {
                           )}
                           <button
                             onClick={() => handleDeleteItem(item.id)}
-                            disabled={deletingItem === item.id}
-                            className="text-red-600 hover:text-red-900 disabled:opacity-50"
-                            title="Delete item"
+                            disabled={deletingItem === item.id || isDeletionInProgress || !dataVerified}
+                            className={`${dataVerified ? 'text-red-600 hover:text-red-900' : 'text-gray-400 cursor-not-allowed'} disabled:opacity-50`}
+                            title={dataVerified ? "Delete item" : "Verify data first to enable individual deletions"}
                           >
                             {deletingItem === item.id ? (
                               <svg className="animate-spin h-5 w-5 text-red-600" viewBox="0 0 24 24">

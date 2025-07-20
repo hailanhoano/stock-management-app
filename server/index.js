@@ -764,7 +764,8 @@ function processInventoryData(data, source = 'source1') {
     }
     
         // Use actual row number in sheet (index + 2 because sheets are 1-indexed and we skip header)
-    item.id = (index + 2).toString();
+    const rowNumber = index + 2;
+    item.id = rowNumber.toString();
     // Add source tracking
     item.source = source;
     item.sourceId = `${source}_${item.id}`;
@@ -775,6 +776,9 @@ function processInventoryData(data, source = 'source1') {
     } else {
       item.id = `th_${item.id}`;
     }
+    
+    // Store the original row number for reliable deletion
+    item.originalRowNumber = rowNumber;
     
     return item;
   });
@@ -1410,6 +1414,9 @@ app.post('/api/stock/inventory', authenticateToken, async (req, res) => {
   }
 });
 
+// Global variable to track last Google Sheets sync time
+let lastGoogleSheetsSync = Date.now();
+
 // Delete inventory item endpoint
 app.delete('/api/stock/inventory/:id', authenticateToken, async (req, res) => {
   try {
@@ -1426,6 +1433,27 @@ app.delete('/api/stock/inventory/:id', authenticateToken, async (req, res) => {
       return res.status(400).json({ message: `${source} inventory spreadsheet ID not configured` });
     }
 
+    // Check if this is a bulk delete operation (skip sync delay for bulk operations)
+    const isBulkDelete = req.headers['x-bulk-delete'] === 'true' || req.query.bulk === 'true';
+    
+    // Check if we need to wait for Google Sheets sync (skip for bulk delete)
+    const timeSinceLastSync = Date.now() - lastGoogleSheetsSync;
+    const syncWaitTime = 5000; // 5 seconds
+    
+    if (!isBulkDelete && timeSinceLastSync < syncWaitTime) {
+      const remainingTime = syncWaitTime - timeSinceLastSync;
+      console.log(`⏳ Waiting for Google Sheets sync... ${remainingTime}ms remaining`);
+      return res.status(429).json({ 
+        message: 'Please wait for Google Sheets to sync before deleting again',
+        remainingTime: remainingTime,
+        retryAfter: Math.ceil(remainingTime / 1000)
+      });
+    }
+    
+    if (isBulkDelete) {
+      console.log('🚀 Bulk delete detected - skipping sync delay');
+    }
+
     // Create a new auth and sheets client with write access
     const auth = new google.auth.GoogleAuth({
       keyFile: 'credentials.json',
@@ -1433,7 +1461,10 @@ app.delete('/api/stock/inventory/:id', authenticateToken, async (req, res) => {
     });
     const sheets = google.sheets({ version: 'v4', auth });
 
-    // Fetch current data to validate row exists
+    // Set flag to prevent polling interference during manual deletion
+    isManualDeletionInProgress = true;
+    
+    // Fetch current data to find the correct row to delete
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: spreadsheetId,
       range: 'A:L',
@@ -1444,56 +1475,49 @@ app.delete('/api/stock/inventory/:id', authenticateToken, async (req, res) => {
       return res.status(400).json({ message: 'Invalid spreadsheet data' });
     }
 
-    // Parse row index from ID (handle prefixed IDs like 'th_636' or 'vkt_125')
-    let rowIndex;
+    // Parse original row index from ID (handle prefixed IDs like 'th_636' or 'vkt_125')
+    let originalRowIndex;
     if (id.includes('_')) {
       const parts = id.split('_');
-      rowIndex = parseInt(parts[parts.length - 1]);
+      originalRowIndex = parseInt(parts[parts.length - 1]);
     } else {
-      rowIndex = parseInt(id);
+      originalRowIndex = parseInt(id);
     }
     
-    console.log('Parsed row index:', rowIndex, 'from ID:', id);
+    console.log('Original row index from ID:', originalRowIndex);
     
-    // Validate row index - should be between 2 and the total number of rows in the sheet
-    if (rowIndex < 2 || rowIndex > currentData.length) {
-      console.log('❌ Row index out of bounds - rowIndex:', rowIndex, 'currentData.length:', currentData.length);
-      console.log('📋 Current data rows:', currentData.slice(0, 5).map((row, i) => `Row ${i + 1}: ${row.slice(0, 3).join(', ')}`));
-      
-      // Add a small delay and retry once to handle race conditions
-      console.log('⏳ Row index out of bounds, waiting 1 second and retrying...');
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Fetch fresh data after delay
-      try {
-        const retryResponse = await sheets.spreadsheets.values.get({
-          spreadsheetId: spreadsheetId,
-          range: 'A:L',
-        });
-        
-        const retryData = retryResponse.data.values || [];
-        if (retryData.length >= 2) {
-          const retryHeaders = retryData[0];
-          const retryRows = retryData.slice(1);
-          
-          // Check if the row index is now valid
-          if (rowIndex >= 2 && rowIndex <= retryRows.length + 1) {
-            console.log('✅ Row index valid after retry, proceeding with delete...');
-            currentData = retryData;
-            rows = retryRows;
-          } else {
-            console.log('❌ Row index still out of bounds after retry');
-            return res.status(404).json({ message: 'Item not found - please try again' });
-          }
-        } else {
-          console.log('❌ No data available after retry');
-          return res.status(404).json({ message: 'Item not found - please try again' });
-        }
-      } catch (retryError) {
-        console.log('❌ Error during retry:', retryError.message);
-        return res.status(404).json({ message: 'Item not found - please try again' });
-      }
+    // SIMPLE AND CORRECT DELETE APPROACH
+    console.log('🔍 Using simple and correct delete approach...');
+    
+    // The correct approach: Use the original row number directly
+    // When you want to delete row 607, delete row 607 in Google Sheets
+    // Google Sheets uses 1-based indexing, so row 607 is at index 606 (0-based)
+    let actualRowIndex = originalRowIndex - 1;
+    
+    console.log(`📊 Original row index: ${originalRowIndex}`);
+    console.log(`📊 Calculated 0-based index: ${actualRowIndex}`);
+    console.log(`📊 Current data length: ${currentData.length}`);
+    
+    // Validate the row index
+    if (actualRowIndex < 0 || actualRowIndex >= currentData.length) {
+      console.log('❌ Row index out of bounds - rowIndex:', actualRowIndex, 'currentData.length:', currentData.length);
+      return res.status(404).json({ error: 'Item not found' });
     }
+    
+
+    
+    // Get the row data to verify it exists
+    const rowData = currentData[actualRowIndex];
+    if (!rowData) {
+      console.log('❌ No data found at row index:', actualRowIndex);
+      return res.status(404).json({ error: 'Item not found' });
+    }
+    
+    console.log(`🎯 Deleting row ${actualRowIndex} (${actualRowIndex + 1} in Google Sheets): [${rowData.join(', ')}]`);
+
+    // Get the actual row data before deletion for logging
+    const rowDataToDelete = currentData[actualRowIndex];
+    console.log('🗑️ Deleting row data:', rowDataToDelete);
 
     // Get the sheet ID first
     const spreadsheet = await sheets.spreadsheets.get({
@@ -1501,7 +1525,7 @@ app.delete('/api/stock/inventory/:id', authenticateToken, async (req, res) => {
     });
     
     const sheetId = spreadsheet.data.sheets[0].properties.sheetId;
-    console.log('Sheet ID:', sheetId, 'Row index to delete:', rowIndex);
+    console.log('Sheet ID:', sheetId, 'Row index to delete:', actualRowIndex);
     
     // Delete the specific row
     await sheets.spreadsheets.batchUpdate({
@@ -1513,8 +1537,8 @@ app.delete('/api/stock/inventory/:id', authenticateToken, async (req, res) => {
               range: {
                 sheetId: sheetId,
                 dimension: 'ROWS',
-                startIndex: rowIndex - 1, // Convert to 0-based index
-                endIndex: rowIndex // End index is exclusive
+                startIndex: actualRowIndex, // actualRowIndex is already 0-based
+                endIndex: actualRowIndex + 1 // End index is exclusive
               }
             }
           }
@@ -1529,7 +1553,7 @@ app.delete('/api/stock/inventory/:id', authenticateToken, async (req, res) => {
       userEmail: req.user.email,
       action: 'DELETE',
       rowId: id,
-      oldValue: currentData[rowIndex - 1], // Store the deleted row data
+      oldValue: rowDataToDelete, // Store the deleted row data
       changedFields: {},
       metadata: [
         new Date().toLocaleString('en-AU', { timeZone: 'Australia/Melbourne' }), // lastModified
@@ -1554,46 +1578,34 @@ app.delete('/api/stock/inventory/:id', authenticateToken, async (req, res) => {
     // After successful delete, broadcast the update
     broadcastInventoryUpdate('DELETE', {
       id: id,
-      deletedData: currentData[rowIndex - 1]
+      deletedData: rowDataToDelete
     });
-    
-    // Also trigger a full refresh to update row indices
-    setTimeout(async () => {
-      try {
-        const refreshResponse = await sheets.spreadsheets.values.get({
-          spreadsheetId: spreadsheetId,
-          range: 'A:L',
-        });
-        
-        const refreshedData = refreshResponse.data.values || [];
-        if (refreshedData.length >= 2) {
-          const headers = refreshedData[0];
-          const rows = refreshedData.slice(1);
-          
-          const inventory = rows.map((row, index) => {
-            const item = {};
-            headers.forEach((header, colIndex) => {
-              item[header.toLowerCase().replace(/\s+/g, '_')] = row[colIndex] || '';
-            });
-            item.id = (index + 2).toString(); // Row index starts from 2
-            return item;
-          });
-          
-          broadcastInventoryUpdate('REFRESH', {
-            inventory: inventory,
-            changes: [{ action: 'DELETE', rowId: id }]
-          });
-        }
-      } catch (error) {
-        console.error('Error refreshing inventory after delete:', error);
-      }
-    }, 1000); // Wait 1 second for Google Sheets to update
     
     // Broadcast recent changes
     const recentChanges = changeLog.slice(-5); // Last 5 changes
     broadcastRecentChanges(recentChanges);
 
     console.log('Google Sheets delete successful');
+    
+    // Update the last sync time after successful deletion
+    lastGoogleSheetsSync = Date.now();
+    console.log('🔄 Google Sheets sync updated after deletion at:', new Date(lastGoogleSheetsSync).toLocaleTimeString());
+    
+    // Clear the manual deletion flag immediately to allow immediate sync
+    isManualDeletionInProgress = false;
+    console.log('✅ Manual deletion flag cleared, allowing immediate sync');
+    
+    // Trigger immediate Google Sheets sync after deletion
+    console.log('🔄 Triggering immediate Google Sheets sync after deletion...');
+    setTimeout(async () => {
+      try {
+        await checkForGoogleSheetsChanges();
+        console.log('✅ Immediate sync completed after deletion');
+      } catch (error) {
+        console.error('❌ Error during immediate sync after deletion:', error);
+      }
+    }, 1000); // Wait 1 second before triggering sync
+    
     res.json({
       success: true,
       message: 'Item deleted successfully'
@@ -1603,6 +1615,66 @@ app.delete('/api/stock/inventory/:id', authenticateToken, async (req, res) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 });
+
+// Data verification endpoint
+app.post('/api/stock/verify-data', authenticateToken, async (req, res) => {
+  try {
+    const { inventory } = req.body;
+    
+    if (!inventory || !Array.isArray(inventory)) {
+      return res.status(400).json({ message: 'Invalid inventory data' });
+    }
+
+    console.log('🔍 Verifying inventory data:', inventory.length, 'items');
+    
+    // For large datasets, just verify that we have the same number of items
+    // and that the data structure is consistent
+    const config = await loadConfig();
+    const currentData = await fetchSheetData(config.spreadsheetIds.inventory, 'A:Z');
+    
+    if (!currentData || currentData.length < 2) {
+      return res.status(400).json({ message: 'Invalid spreadsheet data' });
+    }
+
+    const rows = currentData.slice(1);
+    const expectedItemCount = rows.length;
+    const actualItemCount = inventory.length;
+    
+    console.log(`📊 Data verification: Expected ${expectedItemCount} items, got ${actualItemCount} items`);
+    
+    // Simple verification - check if the counts are close
+    const countDifference = Math.abs(expectedItemCount - actualItemCount);
+    const countDifferencePercentage = (countDifference / expectedItemCount) * 100;
+    
+    if (countDifferencePercentage <= 10) { // Allow 10% difference
+      console.log('✅ Data verification successful');
+      res.json({
+        success: true,
+        message: 'Data verified successfully',
+        expectedItemCount,
+        actualItemCount,
+        countDifference,
+        countDifferencePercentage
+      });
+    } else {
+      console.log('❌ Data verification failed - count mismatch');
+      res.status(400).json({
+        success: false,
+        message: 'Data verification failed - please refresh and try again',
+        expectedItemCount,
+        actualItemCount,
+        countDifference,
+        countDifferencePercentage
+      });
+    }
+    
+  } catch (error) {
+    console.error('Error verifying data:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// Note: Bulk delete is now handled client-side using individual delete endpoints
 
 // Bulk action endpoints
 app.post('/api/stock/bulk-checkout', authenticateToken, async (req, res) => {
@@ -2006,6 +2078,9 @@ function broadcastUserActivity(userId, action) {
 // Google Sheets polling system
 let lastInventoryData = null;
 let pollingInterval = null;
+let lastUpdateTime = 0;
+const UPDATE_DEBOUNCE_MS = 5000; // 5 seconds debounce
+let isManualDeletionInProgress = false;
 
 async function startGoogleSheetsPolling() {
   try {
@@ -2039,6 +2114,12 @@ async function checkForGoogleSheetsChanges() {
   try {
     const config = await loadConfig();
     if (!config.spreadsheetIds.inventory && !config.spreadsheetIds.inventory2) {
+      return;
+    }
+
+    // Skip polling if manual deletion is in progress
+    if (isManualDeletionInProgress) {
+      console.log('⏸️ Skipping polling - manual deletion in progress');
       return;
     }
 
@@ -2096,6 +2177,14 @@ async function checkForGoogleSheetsChanges() {
     
     // Check if data has changed
     if (currentDataString !== lastInventoryData) {
+      const now = Date.now();
+      
+      // Debounce rapid successive updates
+      if (now - lastUpdateTime < UPDATE_DEBOUNCE_MS) {
+        console.log('⏳ Debouncing rapid update, skipping...');
+        return;
+      }
+      
       console.log('🔄 Changes detected in Google Sheets! Broadcasting update...');
       
       // Parse the data back to objects for comparison
@@ -2112,8 +2201,13 @@ async function checkForGoogleSheetsChanges() {
         source: 'google_sheets'
       });
       
-      // Update stored data
+      // Update stored data and timestamp
       lastInventoryData = currentDataString;
+      lastUpdateTime = now;
+      
+      // Update the last sync time when changes are detected
+      lastGoogleSheetsSync = Date.now();
+      console.log('🔄 Google Sheets sync completed at:', new Date(lastGoogleSheetsSync).toLocaleTimeString());
       
       // Log changes for debugging
       if (changes.length > 0) {
@@ -2129,6 +2223,10 @@ async function checkForGoogleSheetsChanges() {
       
     } else {
       console.log('✅ No changes detected in Google Sheets');
+      
+      // Update the last sync time even when no changes are detected
+      lastGoogleSheetsSync = Date.now();
+      console.log('🔄 Google Sheets sync completed at:', new Date(lastGoogleSheetsSync).toLocaleTimeString());
       
       // Broadcast sync success with no changes
       io.emit('sheets_sync_success', {

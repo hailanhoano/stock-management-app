@@ -88,7 +88,8 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
 
     newSocket.on('inventory_update', (data) => {
       console.log('📦 Received inventory update:', data);
-      setInventoryUpdates(prev => [...prev, data]);
+      // Only keep the latest update to prevent array growth
+      setInventoryUpdates([data]);
     });
 
     newSocket.on('recent_changes', (data) => {
