@@ -1464,17 +1464,6 @@ app.delete('/api/stock/inventory/:id', authenticateToken, async (req, res) => {
     // Set flag to prevent polling interference during manual deletion
     isManualDeletionInProgress = true;
     
-    // Fetch current data to find the correct row to delete
-    const response = await sheets.spreadsheets.values.get({
-      spreadsheetId: spreadsheetId,
-      range: 'A:L',
-    });
-    const currentData = response.data.values || [];
-    
-    if (!currentData || currentData.length < 2) {
-      return res.status(400).json({ message: 'Invalid spreadsheet data' });
-    }
-
     // Parse original row index from ID (handle prefixed IDs like 'th_636' or 'vkt_125')
     let originalRowIndex;
     if (id.includes('_')) {
@@ -1484,39 +1473,93 @@ app.delete('/api/stock/inventory/:id', authenticateToken, async (req, res) => {
       originalRowIndex = parseInt(id);
     }
     
-    console.log('Original row index from ID:', originalRowIndex);
+    console.log('🔍 Attempting to delete item with original row index:', originalRowIndex);
     
-    // SIMPLE AND CORRECT DELETE APPROACH
-    console.log('🔍 Using simple and correct delete approach...');
+    // IMPROVED DELETE APPROACH - Find by content, not just row index
+    console.log('🔍 Using improved delete approach with content matching...');
     
-    // The correct approach: Use the original row number directly
-    // When you want to delete row 607, delete row 607 in Google Sheets
-    // Google Sheets uses 1-based indexing, so row 607 is at index 606 (0-based)
-    let actualRowIndex = originalRowIndex - 1;
+    // Fetch current data to find the correct row to delete
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: spreadsheetId,
+      range: 'A:Z', // Extended range to get all data
+    });
+    const currentData = response.data.values || [];
     
-    console.log(`📊 Original row index: ${originalRowIndex}`);
-    console.log(`📊 Calculated 0-based index: ${actualRowIndex}`);
-    console.log(`📊 Current data length: ${currentData.length}`);
+    if (!currentData || currentData.length < 2) {
+      return res.status(400).json({ message: 'Invalid spreadsheet data' });
+    }
+
+    console.log(`📊 Current sheet has ${currentData.length} rows (including header)`);
     
-    // Validate the row index
-    if (actualRowIndex < 0 || actualRowIndex >= currentData.length) {
-      console.log('❌ Row index out of bounds - rowIndex:', actualRowIndex, 'currentData.length:', currentData.length);
-      return res.status(404).json({ error: 'Item not found' });
+    // Try to find the row by original index first, but also by content matching
+    let actualRowIndex = -1;
+    let rowDataToDelete = null;
+    
+    // Strategy 1: Try original row index if it's within bounds
+    const originalRowZeroBased = originalRowIndex - 1; // Convert to 0-based
+    if (originalRowZeroBased >= 0 && originalRowZeroBased < currentData.length) {
+      console.log(`🎯 Trying original row index ${originalRowIndex} (0-based: ${originalRowZeroBased})`);
+      actualRowIndex = originalRowZeroBased;
+      rowDataToDelete = currentData[actualRowIndex];
+    } else {
+      console.log(`⚠️ Original row index ${originalRowIndex} is out of bounds (sheet has ${currentData.length} rows)`);
+      
+      // Strategy 2: For bulk deletes, try to find by matching item data
+      if (isBulkDelete && req.body && req.body.itemData) {
+        const itemData = req.body.itemData;
+        console.log('🔍 Searching for item by content matching:', itemData);
+        
+                 // Search through all rows to find a matching item
+        for (let i = 1; i < currentData.length; i++) { // Skip header row
+          const row = currentData[i];
+          if (row && row.length > 0) {
+            // Debug: log what we're comparing
+            console.log(`🔍 Checking row ${i + 1}: [${row.slice(0, 5).join(', ')}...]`);
+            console.log(`   Looking for: brand="${itemData.brand}", product_code="${itemData.product_code}", product_name="${itemData.product_name}"`);
+            console.log(`   Row has: brand="${row[0]}", product_code="${row[1]}", product_name="${row[2]}"`);
+            
+            // Try to match by product_code, product_name, or brand (be more flexible with matching)
+            const brandMatch = itemData.brand && row[0] && row[0].toString().trim() === itemData.brand.toString().trim();
+            const codeMatch = itemData.product_code && row[1] && row[1].toString().trim() === itemData.product_code.toString().trim();
+            const nameMatch = itemData.product_name && row[2] && row[2].toString().trim() === itemData.product_name.toString().trim();
+            
+            console.log(`   Matches: brand=${brandMatch}, code=${codeMatch}, name=${nameMatch}`);
+            
+            const rowMatches = brandMatch || codeMatch || nameMatch;
+            
+            if (rowMatches) {
+              console.log(`✅ Found matching item at row ${i + 1} (0-based: ${i}) - matched by: ${brandMatch ? 'brand' : codeMatch ? 'code' : 'name'}`);
+              actualRowIndex = i;
+              rowDataToDelete = row;
+              break;
+            }
+          }
+        }
+        
+        if (actualRowIndex === -1) {
+          console.log('❌ No matching item found by content search');
+          console.log('📋 Available rows in sheet:');
+          for (let i = 1; i < Math.min(currentData.length, 6); i++) {
+            console.log(`   Row ${i + 1}: [${currentData[i].slice(0, 5).join(', ')}...]`);
+          }
+        }
+      }
     }
     
-
-    
-    // Get the row data to verify it exists
-    const rowData = currentData[actualRowIndex];
-    if (!rowData) {
-      console.log('❌ No data found at row index:', actualRowIndex);
-      return res.status(404).json({ error: 'Item not found' });
+    // If we still couldn't find the row, return error
+    if (actualRowIndex === -1 || !rowDataToDelete) {
+      console.log('❌ Could not find item to delete - item may have already been deleted');
+      return res.status(404).json({ 
+        error: 'Item not found',
+        message: 'Item may have already been deleted or moved',
+        originalRowIndex: originalRowIndex,
+        currentSheetRows: currentData.length
+      });
     }
     
-    console.log(`🎯 Deleting row ${actualRowIndex} (${actualRowIndex + 1} in Google Sheets): [${rowData.join(', ')}]`);
+    console.log(`🎯 Found item to delete at row ${actualRowIndex + 1} (0-based: ${actualRowIndex}): [${rowDataToDelete.join(', ')}]`);
 
-    // Get the actual row data before deletion for logging
-    const rowDataToDelete = currentData[actualRowIndex];
+    // Row data is already retrieved above
     console.log('🗑️ Deleting row data:', rowDataToDelete);
 
     // Get the sheet ID first
@@ -1611,8 +1654,21 @@ app.delete('/api/stock/inventory/:id', authenticateToken, async (req, res) => {
       message: 'Item deleted successfully'
     });
   } catch (error) {
-    console.error('Error deleting inventory item:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    console.error('❌ Error deleting inventory item:', error);
+    console.error('❌ Delete request details:');
+    console.error('   - Item ID:', id);
+    console.error('   - Source:', req.query.source);
+    console.error('   - Is bulk delete:', req.headers['x-bulk-delete'] === 'true');
+    console.error('   - Request body:', req.body);
+    
+    // Clear the manual deletion flag on error
+    isManualDeletionInProgress = false;
+    
+    res.status(500).json({ 
+      message: 'Internal server error',
+      error: error.message,
+      itemId: id
+    });
   }
 });
 

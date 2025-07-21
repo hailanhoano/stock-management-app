@@ -37,20 +37,14 @@ const Inventory: React.FC = () => {
   const [deletingItem, setDeletingItem] = useState<string | null>(null);
   const [isDeletionInProgress, setIsDeletionInProgress] = useState(false);
   const [isBulkDeleteInProgress, setIsBulkDeleteInProgress] = useState(false);
-  const [dataVerified, setDataVerified] = useState(false);
-  const [verifyingData, setVerifyingData] = useState(false);
+
   const [newItem, setNewItem] = useState<Partial<InventoryItem>>({});
   const [isAddingItem, setIsAddingItem] = useState(false);
   const [googleSheetsChanges, setGoogleSheetsChanges] = useState<number>(0);
   const [lastGoogleSheetsUpdate, setLastGoogleSheetsUpdate] = useState<Date | null>(null);
   const lastProcessedUpdateRef = useRef<string>('');
   
-  // Memoized sync status icon to prevent unnecessary re-renders
-  const syncStatusIcon = useMemo(() => {
-    if (syncStatus === 'syncing') return <span className="text-blue-600">🔄</span>;
-    if (syncStatus === 'error') return <span className="text-red-600">❌</span>;
-    return null;
-  }, [syncStatus]);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredInventory, setFilteredInventory] = useState<InventoryItem[]>([]);
   const [sortConfig, setSortConfig] = useState<{
@@ -224,6 +218,39 @@ const Inventory: React.FC = () => {
   useEffect(() => {
     loadInventory();
   }, [loadInventory]);
+
+  // Manual sync function - subtle background sync without loading state
+  const handleManualSync = useCallback(async () => {
+    try {
+      console.log('🔄 Manual sync triggered by user');
+      
+      // Perform background sync without setting loading state to avoid screen flash
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:3001/api/stock/inventory', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to sync inventory');
+      }
+
+      const data = await response.json();
+      console.log('📊 Manual sync completed:', data.inventory?.length || 0, 'items');
+      
+      // Remove duplicates from loaded data
+      const uniqueInventory = data.inventory?.filter((item: any, index: number, self: any[]) => 
+        index === self.findIndex((t: any) => t.id === item.id)
+      ) || [];
+      
+      // Update inventory without loading state to prevent flashing
+      setInventory(uniqueInventory);
+    } catch (error) {
+      console.error('❌ Manual sync failed:', error);
+      setError('Failed to sync data manually');
+    }
+  }, []);
 
   // Filter and sort inventory based on search term, selected items filter, and sort config
   useEffect(() => {
@@ -509,58 +536,7 @@ const Inventory: React.FC = () => {
     }
   };
 
-  // Handle data verification to enable individual deletions
-  const handleVerifyData = async () => {
-    try {
-      setVerifyingData(true);
-      setError(null);
-      
-      const token = localStorage.getItem('token');
-      
-      // Send a sample of inventory data for verification (first 50 items)
-      const sampleInventory = inventory.slice(0, 50).map(item => ({
-        id: item.id,
-        product_code: item.product_code,
-        product_name: item.product_name,
-        brand: item.brand
-      }));
-      
-      const response = await fetch('http://localhost:3001/api/stock/verify-data', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          inventory: sampleInventory
-        })
-      });
 
-      if (!response.ok) {
-        throw new Error('Failed to verify data');
-      }
-
-      const result = await response.json();
-      if (result.success) {
-        setDataVerified(true);
-        console.log('✅ Data verified successfully');
-      } else {
-        throw new Error(result.message || 'Data verification failed');
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to verify data');
-    } finally {
-      setVerifyingData(false);
-    }
-  };
-
-  // Auto-enable individual deletions since the row index fix is working
-  useEffect(() => {
-    if (inventory.length > 0 && !dataVerified) {
-      console.log('✅ Auto-enabling individual deletions since row index fix is working');
-      setDataVerified(true);
-    }
-  }, [inventory.length, dataVerified]);
 
   // Remove force refresh to prevent screen flashing
   // The WebSocket will handle UI updates automatically
@@ -573,11 +549,7 @@ const Inventory: React.FC = () => {
       return;
     }
     
-    // Only allow deletion if data is verified
-    if (!dataVerified) {
-      setError('Please verify data first before deleting individual items. Use bulk delete for multiple items.');
-      return;
-    }
+
     
     try {
       setIsDeletionInProgress(true);
@@ -619,9 +591,67 @@ const Inventory: React.FC = () => {
         }),
       });
 
+      // Handle 429 sync delay BEFORE processing as an error
+      if (!response.ok && response.status === 429) {
+        const errorData = await response.json().catch(() => ({}));
+        console.log('🔍 Debug - Got 429 status, checking for sync delay...');
+        console.log('🔍 Debug - Error message:', errorData.message);
+        
+        // Check if this is a sync delay that we should retry automatically
+        if (errorData.message && (
+          errorData.message.includes('Google Sheets sync') || 
+          errorData.message.includes('Google Sheets to sync')
+        )) {
+          console.log('✅ Detected sync delay - will retry automatically (no error shown to user)');
+          const waitTime = errorData.remainingTime || 2000;
+          console.log(`⏳ Waiting ${waitTime}ms + 500ms buffer before retry...`);
+          
+          // Wait for the required time plus buffer
+          await new Promise(resolve => setTimeout(resolve, waitTime + 500));
+          
+          console.log('🔄 Retrying delete after sync delay...');
+          
+          // Retry the exact same request
+          const retryResponse = await fetch(`http://localhost:3001/api/stock/inventory/${id}?source=${source}`, {
+            method: 'DELETE',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              itemData: {
+                id: item.id,
+                product_code: item.product_code,
+                product_name: item.product_name,
+                brand: item.brand,
+                lot_number: item.lot_number,
+                quantity: item.quantity,
+                unit: item.unit,
+                expiry_date: item.expiry_date,
+                location: item.location,
+                warehouse: item.warehouse,
+                notes: item.notes
+              }
+            }),
+          });
+          
+          if (!retryResponse.ok) {
+            const retryErrorData = await retryResponse.json().catch(() => ({}));
+            console.error('❌ Retry failed after sync delay:', retryErrorData);
+            throw new Error(retryErrorData.message || 'Failed to delete item after waiting for sync');
+          }
+          
+          console.log('✅ Delete successful after sync retry');
+          return; // Success - exit function here
+        }
+      }
+
+      // Handle all other types of errors (non-429 or non-sync-related 429s)
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         console.error('❌ Delete failed:', errorData);
+        console.log('🔍 Debug - Response status:', response.status);
+        console.log('🔍 Debug - Error message:', errorData.message);
         
         if (errorData.message === 'Item not found' || errorData.message === 'Item not found - please try again' || errorData.message === 'Item not found - please refresh and try again') {
           // If item not found, it might be due to outdated row indices
@@ -1014,13 +1044,32 @@ const handleClearSelection = () => {
       
       // Sort items by row ID in descending order (highest to lowest) to avoid row shifting issues
       const sortedItemIds = itemIds.sort((a, b) => {
-        // Extract row numbers from IDs (e.g., "th_615" -> 615)
-        const rowA = parseInt(a.split('_')[1] || '0');
-        const rowB = parseInt(b.split('_')[1] || '0');
+        // Extract row numbers from IDs - handle various formats
+        const extractRowNumber = (id: string): number => {
+          if (id.includes('_')) {
+            // For IDs like "th_615" or "vkt_125", get the number after the last underscore
+            const parts = id.split('_');
+            const rowNum = parseInt(parts[parts.length - 1]);
+            return isNaN(rowNum) ? 0 : rowNum;
+          } else {
+            // For plain numeric IDs, parse directly
+            const rowNum = parseInt(id);
+            return isNaN(rowNum) ? 0 : rowNum;
+          }
+        };
+        
+        const rowA = extractRowNumber(a);
+        const rowB = extractRowNumber(b);
         return rowB - rowA; // Descending order (highest first)
       });
       
-      console.log('🗑️ Starting bulk delete for items (sorted by row ID descending):', sortedItemIds);
+      console.log('🗑️ Starting bulk delete for items (sorted by row ID descending):', 
+        sortedItemIds.map(id => {
+          const rowNumber = id.includes('_') 
+            ? id.split('_')[id.split('_').length - 1] 
+            : id;
+          return `${id} (row ${rowNumber})`;
+        }));
       
       // Delete items one by one with delays to prevent race conditions
       const results = [];
@@ -1035,7 +1084,12 @@ const handleClearSelection = () => {
           
           const source = item.source || 'source1';
           
-          console.log(`🗑️ Deleting item ${i + 1}/${sortedItemIds.length}: ${itemId} (row ${itemId.split('_')[1]})`);
+          // Extract row number for logging
+          const rowNumber = itemId.includes('_') 
+            ? itemId.split('_')[itemId.split('_').length - 1] 
+            : itemId;
+          
+          console.log(`🗑️ Deleting item ${i + 1}/${sortedItemIds.length}: ${itemId} (row ${rowNumber})`);
           
           const response = await fetch(`http://localhost:3001/api/stock/inventory/${itemId}?source=${source}`, {
             method: 'DELETE',
@@ -1070,8 +1124,8 @@ const handleClearSelection = () => {
           
           // Add a delay between deletions to prevent race conditions
           if (i < itemIds.length - 1) {
-            console.log(`⏳ Waiting 1 second before next deletion...`);
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            console.log(`⏳ Waiting 2 seconds before next deletion...`);
+            await new Promise(resolve => setTimeout(resolve, 2000));
           }
         } catch (error) {
           console.error(`Error deleting item ${itemId}:`, error);
@@ -1623,8 +1677,18 @@ const handleBulkSendOut = async () => {
               {/* Row 1: Last sync timestamp */}
               <div className="text-xs text-gray-500 flex items-center">
                 Last sync: {lastSyncTime ? lastSyncTime.toLocaleTimeString() : 'Unknown'}
-                <span style={{ display: 'inline-block', width: 20 }}>
-                  {syncStatusIcon}
+                <span 
+                  className="inline-block w-5 ml-1 cursor-pointer hover:bg-gray-100 rounded p-1 transition-colors"
+                  onClick={handleManualSync}
+                  title={syncStatus === 'syncing' ? 'Syncing...' : 'Click to sync now'}
+                >
+                  {syncStatus === 'syncing' ? (
+                    <span className="text-blue-600 animate-spin">🔄</span>
+                  ) : syncStatus === 'error' ? (
+                    <span className="text-red-600 hover:text-red-800">❌</span>
+                  ) : (
+                    <span className="text-blue-600 hover:text-blue-800">🔄</span>
+                  )}
                 </span>
               </div>
               
@@ -1646,39 +1710,7 @@ const handleBulkSendOut = async () => {
               </div>
             </div>
             
-            {/* Verify Data Button */}
-            <div className="flex flex-col space-y-2">
-              {!dataVerified ? (
-                <button
-                  onClick={handleVerifyData}
-                  disabled={verifyingData}
-                  className="px-4 py-2 bg-yellow-600 text-white text-sm rounded hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-yellow-500 disabled:opacity-50"
-                  title="Verify data to enable individual deletions"
-                >
-                  {verifyingData ? (
-                    <div className="flex items-center space-x-2">
-                      <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
-                      </svg>
-                      <span>Verifying...</span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center space-x-2">
-                      <span>🔍</span>
-                      <span>Verify Data</span>
-                    </div>
-                  )}
-                </button>
-              ) : (
-                <div className="px-4 py-2 bg-green-100 text-green-800 text-sm rounded border border-green-300">
-                  <div className="flex items-center space-x-2">
-                    <span>✅</span>
-                    <span>Data Verified</span>
-                  </div>
-                </div>
-              )}
-            </div>
+
 
           
 
@@ -2300,9 +2332,9 @@ const handleBulkSendOut = async () => {
                           )}
                           <button
                             onClick={() => handleDeleteItem(item.id)}
-                            disabled={deletingItem === item.id || isDeletionInProgress || !dataVerified}
-                            className={`${dataVerified ? 'text-red-600 hover:text-red-900' : 'text-gray-400 cursor-not-allowed'} disabled:opacity-50`}
-                            title={dataVerified ? "Delete item" : "Verify data first to enable individual deletions"}
+                            disabled={deletingItem === item.id || isDeletionInProgress}
+                            className="text-red-600 hover:text-red-900 disabled:opacity-50"
+                            title="Delete item"
                           >
                             {deletingItem === item.id ? (
                               <svg className="animate-spin h-5 w-5 text-red-600" viewBox="0 0 24 24">
