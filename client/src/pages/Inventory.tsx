@@ -25,7 +25,7 @@ interface InventoryItem {
 
 const Inventory: React.FC = () => {
   const navigate = useNavigate();
-  const { isConnected, inventoryUpdates, lastSyncTime, syncStatus, connect } = useWebSocket();
+  const { isConnected, inventoryUpdates, lastSyncTime, syncStatus, connect, updateSyncTime, socket } = useWebSocket();
   
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -219,16 +219,18 @@ const Inventory: React.FC = () => {
     loadInventory();
   }, [loadInventory]);
 
-  // Manual sync function - subtle background sync without loading state
+  // Manual sync function - triggers server-side sync and WebSocket events
   const handleManualSync = useCallback(async () => {
     try {
       console.log('🔄 Manual sync triggered by user');
       
-      // Perform background sync without setting loading state to avoid screen flash
+      // Call the new manual sync endpoint which triggers server-side sync
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:3001/api/stock/inventory', {
+      const response = await fetch('http://localhost:3001/api/sync/manual', {
+        method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
         },
       });
 
@@ -246,11 +248,14 @@ const Inventory: React.FC = () => {
       
       // Update inventory without loading state to prevent flashing
       setInventory(uniqueInventory);
+      
+      console.log('✅ Manual sync completed - server-side sync triggered');
+      // Note: sync time will be updated via WebSocket events from server
     } catch (error) {
       console.error('❌ Manual sync failed:', error);
       setError('Failed to sync data manually');
     }
-  }, []);
+  }, [socket]);
 
   // Filter and sort inventory based on search term, selected items filter, and sort config
   useEffect(() => {
@@ -419,10 +424,14 @@ const Inventory: React.FC = () => {
             console.log('🔄 Received full inventory refresh from Google Sheets');
             console.log('📊 Refresh data - inventory length:', latestUpdate.data.inventory.length);
             
-            // Only update if the refresh has more items than current (prevents clearing during delete)
             setInventory(prev => {
-              if (latestUpdate.data.inventory.length >= prev.length) {
-                console.log('✅ Accepting refresh update - more or equal items');
+              // Check if this refresh includes DELETE changes (from bulk delete)
+              const hasDeleteChanges = latestUpdate.data.changes && 
+                latestUpdate.data.changes.some((c: any) => c.action === 'DELETE');
+              
+              // Always accept refresh if it has DELETE changes, or if it has more/equal items
+              if (latestUpdate.data.inventory.length >= prev.length || hasDeleteChanges) {
+                console.log('✅ Accepting refresh update - has', hasDeleteChanges ? 'DELETE changes' : 'more/equal items');
                 
                 // Remove any duplicates that might exist
                 const uniqueItems = latestUpdate.data.inventory.filter((item: any, index: number, self: any[]) => 
@@ -435,7 +444,7 @@ const Inventory: React.FC = () => {
                 
                 return uniqueItems;
               } else {
-                console.log('⚠️ Ignoring refresh update - fewer items (likely during delete)');
+                console.log('⚠️ Ignoring refresh update - fewer items and no DELETE changes');
                 return prev;
               }
             });
@@ -1030,131 +1039,60 @@ const handleClearSelection = () => {
       return;
     }
 
-    // Remove confirmation popup - proceed directly with deletion
-
     try {
       setIsDeletionInProgress(true);
       setError(null);
       
-      // Store current selection to preserve checkboxes during updates
-      const currentSelection = new Set(selectedItems);
-      
       const token = localStorage.getItem('token');
       const itemIds = Array.from(selectedItems);
       
-      // Sort items by row ID in descending order (highest to lowest) to avoid row shifting issues
-      const sortedItemIds = itemIds.sort((a, b) => {
-        // Extract row numbers from IDs - handle various formats
-        const extractRowNumber = (id: string): number => {
-          if (id.includes('_')) {
-            // For IDs like "th_615" or "vkt_125", get the number after the last underscore
-            const parts = id.split('_');
-            const rowNum = parseInt(parts[parts.length - 1]);
-            return isNaN(rowNum) ? 0 : rowNum;
-          } else {
-            // For plain numeric IDs, parse directly
-            const rowNum = parseInt(id);
-            return isNaN(rowNum) ? 0 : rowNum;
-          }
+      console.log('🗑️ Starting efficient bulk delete for', itemIds.length, 'items');
+      
+      // Prepare items data for bulk delete
+      const itemsToDelete = itemIds.map(itemId => {
+        const item = inventory.find(item => item.id === itemId);
+        return {
+          id: itemId,
+          source: item?.source || 'source1'
         };
-        
-        const rowA = extractRowNumber(a);
-        const rowB = extractRowNumber(b);
-        return rowB - rowA; // Descending order (highest first)
       });
       
-      console.log('🗑️ Starting bulk delete for items (sorted by row ID descending):', 
-        sortedItemIds.map(id => {
-          const rowNumber = id.includes('_') 
-            ? id.split('_')[id.split('_').length - 1] 
-            : id;
-          return `${id} (row ${rowNumber})`;
-        }));
-      
-      // Delete items one by one with delays to prevent race conditions
-      const results = [];
-      for (let i = 0; i < sortedItemIds.length; i++) {
-        const itemId = sortedItemIds[i];
-        try {
-          // Find the item to get its data
-          const item = inventory.find(item => item.id === itemId);
-          if (!item) {
-            throw new Error(`Item ${itemId} not found in current inventory`);
-          }
-          
-          const source = item.source || 'source1';
-          
-          // Extract row number for logging
-          const rowNumber = itemId.includes('_') 
-            ? itemId.split('_')[itemId.split('_').length - 1] 
-            : itemId;
-          
-          console.log(`🗑️ Deleting item ${i + 1}/${sortedItemIds.length}: ${itemId} (row ${rowNumber})`);
-          
-          const response = await fetch(`http://localhost:3001/api/stock/inventory/${itemId}?source=${source}`, {
-            method: 'DELETE',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`,
-              'X-Bulk-Delete': 'true', // Mark as bulk delete operation
-            },
-            body: JSON.stringify({
-              itemData: {
-                id: item.id,
-                product_code: item.product_code,
-                product_name: item.product_name,
-                brand: item.brand,
-                lot_number: item.lot_number,
-                quantity: item.quantity,
-                unit: item.unit,
-                expiry_date: item.expiry_date,
-                location: item.location,
-                warehouse: item.warehouse,
-                notes: item.notes
-              }
-            })
-          });
+      // Call the new bulk delete endpoint
+      const response = await fetch('http://localhost:3001/api/stock/inventory/bulk-delete', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          items: itemsToDelete
+        })
+      });
 
-          if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.message || `Failed to delete item ${itemId}`);
-          }
-
-          results.push({ itemId, success: true });
-          
-          // Add a delay between deletions to prevent race conditions
-          if (i < itemIds.length - 1) {
-            console.log(`⏳ Waiting 2 seconds before next deletion...`);
-            await new Promise(resolve => setTimeout(resolve, 2000));
-          }
-        } catch (error) {
-          console.error(`Error deleting item ${itemId}:`, error);
-          results.push({ itemId, success: false, error: error instanceof Error ? error.message : 'Unknown error' });
-        }
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to delete items');
       }
 
-      const successful = results.filter(r => r.success);
-      const failed = results.filter(r => !r.success);
-
-      console.log(`✅ Bulk delete completed: ${successful.length} successful, ${failed.length} failed`);
+      const result = await response.json();
+      console.log('✅ Bulk delete completed:', result);
       
+      // Check for any failures
+      const failed = result.results?.filter((r: any) => !r.success) || [];
       if (failed.length > 0) {
-        console.log('❌ Failed deletions:', failed);
-        setError(`Successfully deleted ${successful.length} items. Failed to delete ${failed.length} items.`);
+        console.log('❌ Some deletions failed:', failed);
+        setError(`Successfully deleted ${result.deletedCount} items. ${failed.length} items failed to delete.`);
       } else {
         console.log('✅ All items deleted successfully');
       }
       
-      // Clear selection only after all deletions are complete
-      // This prevents checkboxes from disappearing during the deletion process
-      setTimeout(() => {
-        setSelectedItems(new Set());
-        setIsBulkActionMode(false);
-        // Clear localStorage
-        localStorage.removeItem('inventorySelectedItems');
-      }, 2000); // Wait 2 seconds to ensure all updates are processed
+      // Clear selection and localStorage
+      setSelectedItems(new Set());
+      setIsBulkActionMode(false);
+      localStorage.removeItem('inventorySelectedItems');
       
     } catch (err) {
+      console.error('❌ Bulk delete error:', err);
       setError(err instanceof Error ? err.message : 'Failed to delete items');
     } finally {
       setIsDeletionInProgress(false);

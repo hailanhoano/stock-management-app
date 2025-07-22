@@ -1,0 +1,15 @@
+{
+  "watch": ["server"],
+  "ignore": [
+    "client", 
+    "node_modules", 
+    "*.md", 
+    "*.log", 
+    "server/data/change-log.json",
+    "server/data/*.json"
+  ],
+  "ext": "js",
+  "env": {
+    "NODE_ENV": "development"
+  }
+} 

@@ -1417,6 +1417,190 @@ app.post('/api/stock/inventory', authenticateToken, async (req, res) => {
 // Global variable to track last Google Sheets sync time
 let lastGoogleSheetsSync = Date.now();
 
+// Bulk delete inventory items endpoint
+app.post('/api/stock/inventory/bulk-delete', authenticateToken, async (req, res) => {
+  try {
+    console.log('🗑️ Bulk delete request received');
+    const { items } = req.body; // Array of items with id and source
+    
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ message: 'Items array is required' });
+    }
+
+    const config = await loadConfig();
+    let deletedCount = 0;
+    const deleteResults = [];
+
+    // Set manual deletion flag to prevent polling during bulk operation
+    isManualDeletionInProgress = true;
+    console.log('🚀 Starting bulk delete operation for', items.length, 'items');
+
+    // Group items by source
+    const itemsBySource = {};
+    items.forEach(item => {
+      const source = item.source || 'source1';
+      if (!itemsBySource[source]) {
+        itemsBySource[source] = [];
+      }
+      itemsBySource[source].push(item);
+    });
+
+    // Process each source separately
+    for (const [source, sourceItems] of Object.entries(itemsBySource)) {
+      const spreadsheetId = source === 'source1' ? config.spreadsheetIds.inventory : config.spreadsheetIds.inventory2;
+      
+      if (!spreadsheetId) {
+        console.log(`⚠️ Skipping ${source} - spreadsheet ID not configured`);
+        continue;
+      }
+
+      console.log(`🗑️ Processing ${sourceItems.length} items for ${source}`);
+
+      // Create auth and sheets client with write access
+      const auth = new google.auth.GoogleAuth({
+        keyFile: 'credentials.json',
+        scopes: ['https://www.googleapis.com/auth/spreadsheets']
+      });
+      const sheets = google.sheets({ version: 'v4', auth });
+
+      // Get the correct sheet ID dynamically
+      const spreadsheet = await sheets.spreadsheets.get({
+        spreadsheetId: spreadsheetId
+      });
+      const sheetId = spreadsheet.data.sheets[0].properties.sheetId;
+      console.log(`📋 ${source} Sheet ID:`, sheetId);
+
+      // Fetch current data to get row information
+      const response = await sheets.spreadsheets.values.get({
+        spreadsheetId: spreadsheetId,
+        range: 'A:L',
+      });
+      const currentData = response.data.values || [];
+
+      if (!currentData || currentData.length < 2) {
+        console.log(`⚠️ Invalid spreadsheet data for ${source}`);
+        continue;
+      }
+
+      const headers = currentData[0];
+      const rows = currentData.slice(1);
+
+      // Find row indices for items to delete (sort by row index descending to delete from bottom up)
+      const itemsToDelete = [];
+      sourceItems.forEach(item => {
+        const rowIndex = parseInt(item.id.split('_')[1]);
+        const dataRowIndex = rowIndex - 2; // Convert to 0-based data array index
+        
+        if (dataRowIndex >= 0 && dataRowIndex < rows.length) {
+          itemsToDelete.push({
+            item,
+            rowIndex: rowIndex,
+            dataRowIndex: dataRowIndex,
+            rowData: rows[dataRowIndex]
+          });
+        }
+      });
+
+      // Sort by row index descending (delete from bottom to top)
+      itemsToDelete.sort((a, b) => b.rowIndex - a.rowIndex);
+
+      console.log(`🔄 Deleting ${itemsToDelete.length} items from bottom to top for ${source}`);
+
+      // Delete rows from bottom to top
+      for (const deleteInfo of itemsToDelete) {
+        try {
+          console.log(`🗑️ Deleting row ${deleteInfo.rowIndex} (${deleteInfo.item.id})`);
+          
+          await sheets.spreadsheets.batchUpdate({
+            spreadsheetId: spreadsheetId,
+            resource: {
+              requests: [{
+                deleteDimension: {
+                  range: {
+                    sheetId: sheetId, // Use dynamically retrieved sheet ID
+                    dimension: 'ROWS',
+                    startIndex: deleteInfo.rowIndex - 1, // Convert to 0-based
+                    endIndex: deleteInfo.rowIndex // Exclusive end
+                  }
+                }
+              }]
+            }
+          });
+
+          // Add to change log (but don't save yet)
+          const changeEntry = {
+            timestamp: new Date().toISOString(),
+            action: 'DELETE',
+            user: req.user.email,
+            itemId: deleteInfo.item.id,
+            details: {
+              source: source,
+              rowIndex: deleteInfo.rowIndex,
+              deletedData: deleteInfo.rowData
+            }
+          };
+          
+          changeLog.unshift(changeEntry);
+          deletedCount++;
+          
+          deleteResults.push({
+            id: deleteInfo.item.id,
+            success: true,
+            rowIndex: deleteInfo.rowIndex
+          });
+
+        } catch (error) {
+          console.error(`❌ Failed to delete ${deleteInfo.item.id}:`, error);
+          deleteResults.push({
+            id: deleteInfo.item.id,
+            success: false,
+            error: error.message
+          });
+        }
+      }
+    }
+
+    // Save change log once at the end
+    if (deletedCount > 0) {
+      await saveChangeLog(changeLog);
+      console.log(`📝 Saved ${deletedCount} delete entries to change log`);
+    }
+
+    // Update the last sync time
+    lastGoogleSheetsSync = Date.now();
+    console.log('🔄 Google Sheets sync updated after bulk deletion at:', new Date(lastGoogleSheetsSync).toLocaleTimeString());
+
+    // Clear manual deletion flag
+    isManualDeletionInProgress = false;
+    console.log('✅ Manual deletion flag cleared, allowing immediate sync');
+
+    // Trigger immediate sync after bulk deletion
+    console.log('🔄 Triggering immediate Google Sheets sync after bulk deletion...');
+    setTimeout(async () => {
+      try {
+        await checkForGoogleSheetsChanges();
+      } catch (error) {
+        console.error('❌ Error in post-bulk-delete sync:', error);
+      }
+    }, 1000);
+
+    res.json({
+      success: true,
+      message: `Bulk delete completed: ${deletedCount} items deleted`,
+      deletedCount,
+      results: deleteResults
+    });
+
+  } catch (error) {
+    console.error('❌ Bulk delete error:', error);
+    isManualDeletionInProgress = false; // Clear flag on error
+    res.status(500).json({ 
+      message: 'Bulk delete failed', 
+      error: error.message 
+    });
+  }
+});
+
 // Delete inventory item endpoint
 app.delete('/api/stock/inventory/:id', authenticateToken, async (req, res) => {
   try {
@@ -1668,6 +1852,70 @@ app.delete('/api/stock/inventory/:id', authenticateToken, async (req, res) => {
       message: 'Internal server error',
       error: error.message,
       itemId: id
+    });
+  }
+});
+
+// Manual sync endpoint
+app.post('/api/sync/manual', authenticateToken, async (req, res) => {
+  try {
+    console.log('🔄 Manual sync requested by user:', req.user.email);
+    
+    // Trigger immediate Google Sheets sync
+    await checkForGoogleSheetsChanges();
+    
+    // Fetch fresh inventory data
+    const config = await loadConfig();
+    
+    if (!config.spreadsheetIds.inventory && !config.spreadsheetIds.inventory2) {
+      return res.status(400).json({ 
+        error: 'No inventory spreadsheet IDs configured' 
+      });
+    }
+
+    // Fetch data from both inventory sources
+    const inventoryPromises = [];
+    
+    if (config.spreadsheetIds.inventory) {
+      inventoryPromises.push(
+        fetchSheetData(config.spreadsheetIds.inventory, 'A:Z')
+          .then(data => processInventoryData(data, 'source1'))
+          .catch(error => {
+            console.error('❌ Error fetching from inventory source 1:', error);
+            return [];
+          })
+      );
+    }
+    
+    if (config.spreadsheetIds.inventory2) {
+      inventoryPromises.push(
+        fetchSheetData(config.spreadsheetIds.inventory2, 'A:Z', 'VKT')
+          .then(data => processInventoryData(data, 'source2'))
+          .catch(error => {
+            console.error('❌ Error fetching from inventory source 2:', error);
+            return [];
+          })
+      );
+    }
+
+    // Wait for all inventory data to be fetched
+    const inventoryArrays = await Promise.all(inventoryPromises);
+    const combinedInventory = inventoryArrays.flat();
+    
+    console.log('✅ Manual sync completed:', combinedInventory.length, 'items');
+    
+    res.json({
+      success: true,
+      inventory: combinedInventory,
+      syncTime: new Date().toISOString(),
+      message: 'Manual sync completed successfully'
+    });
+    
+  } catch (error) {
+    console.error('❌ Manual sync failed:', error);
+    res.status(500).json({ 
+      error: 'Manual sync failed',
+      message: error.message 
     });
   }
 });
@@ -2087,6 +2335,12 @@ io.on('connection', (socket) => {
         
         socket.emit('authenticated', { user });
         console.log('User authenticated via WebSocket:', user.email);
+        
+        // Send current sync status to newly connected client
+        socket.emit('sheets_sync_status', {
+          lastSync: lastGoogleSheetsSync,
+          status: 'synced'
+        });
       });
     } catch (error) {
       socket.emit('auth_error', { message: 'Authentication failed' });

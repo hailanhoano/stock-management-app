@@ -10,6 +10,7 @@ interface WebSocketContextType {
   syncStatus: 'syncing' | 'synced' | 'error' | 'unknown';
   connect: (token: string) => void;
   disconnect: () => void;
+  updateSyncTime: () => void;
 }
 
 const WebSocketContext = createContext<WebSocketContextType | undefined>(undefined);
@@ -144,6 +145,13 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
     }
   };
 
+  const updateSyncTime = () => {
+    console.log('🔄 updateSyncTime called - setting new sync time');
+    setLastSyncTime(new Date());
+    setSyncStatus('synced');
+    console.log('✅ Sync time updated to:', new Date().toLocaleTimeString());
+  };
+
   useEffect(() => {
     return () => {
       if (socket) {
@@ -161,7 +169,8 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
     lastSyncTime,
     syncStatus,
     connect,
-    disconnect
+    disconnect,
+    updateSyncTime
   };
 
   return (
