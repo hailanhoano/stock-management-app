@@ -1630,11 +1630,7 @@ const handleBulkSendOut = async () => {
                 </span>
               </div>
               
-              {/* Row 2: Live Updates Active */}
-              <div className="flex items-center space-x-2">
-                <span className="text-green-500">●</span>
-                <span className="text-green-600 font-medium">Live</span>
-              </div>
+
               
               {/* Row 3: Google Sheets changes - positioned absolutely to avoid layout shifts */}
               <div className={`absolute top-full left-0 transition-all duration-300 ease-in-out ${
@@ -1695,164 +1691,132 @@ const handleBulkSendOut = async () => {
                       </div>
       )} */}
 
-      {/* Search Bar */}
-      <div className="bg-white p-4 rounded-lg shadow">
-        <div className="flex gap-4 items-center">
-          <div className="flex-1">
-            <div className="relative">
+      {/* Compact Toolbar */}
+      <div className="bg-white rounded-lg shadow">
+        {/* Main Toolbar Row */}
+        <div className="flex items-center justify-between p-3">
+          <div className="flex items-center space-x-3 flex-1">
+            {/* Search */}
+            <div className="relative flex-1 max-w-md">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
               </div>
               <input
                 type="text"
-                placeholder="Search by product name, brand, code, lot number, or location..."
+                placeholder="Search products..."
                 value={searchTerm}
                 onChange={async (e) => {
                   if (editingItem) await handleSaveEdit();
                   setSearchTerm(e.target.value);
                 }}
-                className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full pl-9 pr-8 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
               />
               {searchTerm && (
                 <button
                   onClick={() => setSearchTerm('')}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                  className="absolute inset-y-0 right-0 pr-2 flex items-center text-gray-400 hover:text-gray-600"
                 >
-                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
               )}
             </div>
-                        </div>
-                        <div className="text-sm text-gray-500">
-            {filteredInventory.length} of {inventory.length} items
-                        </div>
-                      </div>
-                    </div>
+            
+            {/* Results Count */}
+            <span className="text-sm text-gray-500 whitespace-nowrap">
+              {filteredInventory.length} of {inventory.length} items
+            </span>
+          </div>
 
-              {/* Column Visibility Toggle - Expandable */}
-              <div className="bg-gray-50 border border-gray-200 rounded-lg mb-4">
-                <button
-                  onClick={() => setShowColumnVisibility(!showColumnVisibility)}
-                  className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-gray-100 transition-colors"
-                >
-                  <div className="flex items-center space-x-2">
-                    <span className="text-sm font-medium text-gray-700">⊞ Column Visibility</span>
-                    <span className="text-xs text-gray-500">
-                      ({Object.values(columnVisibility).filter(Boolean).length} of {Object.keys(columnVisibility).length} columns shown)
-                    </span>
-                  </div>
-                  <span className={`transform transition-transform duration-200 text-gray-400 ${showColumnVisibility ? 'rotate-180' : ''}`}>
-                    ▼
-                  </span>
-                </button>
-                
-                {showColumnVisibility && (
-                  <div className="px-4 pb-4 border-t border-gray-200">
-                    <div className="flex items-center justify-between mb-3 mt-3">
-                      <span className="text-xs text-gray-600">Select columns to show/hide:</span>
-                      <button
-                        onClick={resetColumnVisibility}
-                        className="text-xs text-blue-600 hover:text-blue-800 px-2 py-1 rounded hover:bg-blue-50 border border-blue-200"
-                      >
-                        Reset
-                      </button>
-                    </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
-                      {Object.entries({
-                        checkbox: 'Checkbox',
-                        brand: 'Brand',
-                        product_code: 'Product Code',
-                        product_name: 'Product Name',
-                        quantity: 'Quantity',
-                        unit: 'Unit',
-                        location: 'Location',
-                        warehouse: 'Places',
-                        lot_number: 'Lot Number',
-                        expiry_date: 'Expiry Date',
-                        import_date: 'Entry Date',
-                        notes: 'Notes',
-                        actions: 'Actions'
-                      }).map(([key, label]) => (
-                        <label key={key} className="flex items-center space-x-2 text-xs">
-                          <input
-                            type="checkbox"
-                            checked={columnVisibility[key as keyof typeof columnVisibility]}
-                            onChange={() => toggleColumnVisibility(key as keyof typeof columnVisibility)}
-                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                          />
-                          <span className="text-gray-700">{label}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Add bulk action UI after the search bar and before the table */}
-        {selectedItems.size > 0 && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2">
+            {/* Column Toggle */}
+            <button
+              onClick={() => setShowColumnVisibility(!showColumnVisibility)}
+              className="px-3 py-1.5 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
+              title="Toggle column visibility"
+            >
+              ⊞ Columns ({Object.values(columnVisibility).filter(Boolean).length})
+            </button>
+            
+            {/* Bulk Actions */}
+            {selectedItems.size > 0 && (
+              <>
                 <button
                   onClick={handleShowSelectedItems}
-                  className={`text-sm font-medium ${
+                  className={`px-3 py-1.5 text-xs rounded ${
                     showOnlySelected 
-                      ? 'text-blue-700 underline' 
-                      : 'text-blue-900 hover:text-blue-700 hover:underline'
-                  } cursor-pointer`}
-                  title={showOnlySelected ? "Click to show all items" : "Click to show only selected items"}
+                      ? 'bg-blue-100 text-blue-700' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                  title={showOnlySelected ? "Show all items" : "Show only selected"}
                 >
-                  {selectedItems.size} item(s) selected
+                  {selectedItems.size} selected
                 </button>
-                <button
-                  onClick={handleClearSelection}
-                  className="text-sm text-blue-600 hover:text-blue-800"
-                >
-                  Clear selection
+                <button onClick={handleBulkCheckout} className="px-2 py-1.5 bg-green-600 text-white text-xs rounded hover:bg-green-700" title="Checkout">
+                  🛒 {selectedItems.size}
                 </button>
-              </div>
-              <div className="flex space-x-2">
-                <button
-                  onClick={handleBulkCheckout}
-                  className="px-4 py-2 bg-green-600 text-white text-sm rounded hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
-                >
-                  🛒 Checkout ({selectedItems.size})
+                <button onClick={handleBulkSendOut} className="px-2 py-1.5 bg-orange-600 text-white text-xs rounded hover:bg-orange-700" title="Send out">
+                  📦 {selectedItems.size}
                 </button>
-                <button
-                  onClick={handleBulkSendOut}
-                  className="px-4 py-2 bg-orange-600 text-white text-sm rounded hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                >
-                  📦 Send Out ({selectedItems.size})
+                <button onClick={handleBulkDelete} disabled={isDeletionInProgress} className="px-2 py-1.5 bg-red-600 text-white text-xs rounded hover:bg-red-700 disabled:opacity-50" title="Delete">
+                  🗑️ {selectedItems.size}
                 </button>
-                <button
-                  onClick={handleBulkDelete}
-                  disabled={isDeletionInProgress}
-                  className="px-4 py-2 bg-red-600 text-white text-sm rounded hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50"
-                >
-                  🗑️ Bulk Delete ({selectedItems.size})
+                <button onClick={handleClearSelection} className="px-2 py-1.5 bg-gray-100 text-gray-700 text-xs rounded hover:bg-gray-200" title="Clear">
+                  ✕
                 </button>
-              </div>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Column Visibility Panel */}
+        {showColumnVisibility && (
+          <div className="px-3 py-2 border-t border-gray-200 bg-gray-50">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs text-gray-600 font-medium">Show/hide columns:</span>
+              <button
+                onClick={resetColumnVisibility}
+                className="text-xs text-blue-600 hover:text-blue-800 px-2 py-1 rounded hover:bg-blue-50"
+              >
+                Reset
+              </button>
+            </div>
+            <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-1">
+              {Object.entries({
+                checkbox: 'Checkbox',
+                brand: 'Brand',
+                product_code: 'Product Code',
+                product_name: 'Product Name',
+                quantity: 'Quantity',
+                unit: 'Unit',
+                location: 'Location',
+                warehouse: 'Places',
+                lot_number: 'Lot Number',
+                expiry_date: 'Expiry Date',
+                import_date: 'Entry Date',
+                notes: 'Notes',
+                actions: 'Actions'
+              }).map(([key, label]) => (
+                <label key={key} className="flex items-center space-x-1 text-xs">
+                  <input
+                    type="checkbox"
+                    checked={columnVisibility[key as keyof typeof columnVisibility]}
+                    onChange={() => toggleColumnVisibility(key as keyof typeof columnVisibility)}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-3 h-3"
+                  />
+                  <span className="text-gray-700 text-xs">{label}</span>
+                </label>
+              ))}
             </div>
           </div>
         )}
-        
-        {/* Show message when no items are selected */}
-        {selectedItems.size === 0 && (
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-4">
-            <div className="text-center">
-              <p className="text-sm text-gray-600">
-                Select items from the table below to perform bulk actions
-              </p>
-            </div>
-          </div>
-        )}
+      </div>
 
       {/* Inventory Table */}
-      <div className="bg-white shadow overflow-hidden sm:rounded-md">
+      <div className="bg-white shadow overflow-hidden sm:rounded-md mt-4">
         <div className="overflow-x-auto max-h-[70vh] overflow-y-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50 sticky top-0 z-10">

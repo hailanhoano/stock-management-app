@@ -3,10 +3,48 @@ import { useNavigate, useLocation } from 'react-router-dom';
 
 interface Customer {
   id: string;
-  name: string;
-  email: string;
-  phone: string;
-  address: string;
+  customer_number?: string;
+  company_name?: string;
+  contact?: string;
+  address?: string;
+  location?: string;
+  ward?: string;
+  tax_code?: string;
+  notes?: string;
+  phone?: string;
+  email?: string;
+  customer_code?: string;
+  birth_date?: string;
+  gender?: string;
+  occupation?: string;
+  status?: string;
+  created_date?: string;
+  created_by?: string;
+  customer_type?: string;
+  company?: string;
+  country?: string;
+  city?: string;
+  district?: string;
+  postal_code?: string;
+  industry?: string;
+  website?: string;
+  fax?: string;
+  position?: string;
+  department?: string;
+  customer_source?: string;
+  priority_level?: string;
+  revenue?: string;
+  bank?: string;
+  account_number?: string;
+  credit_score?: string;
+  credit_limit?: string;
+  preferences?: string;
+  primary_contact?: string;
+  referrer?: string;
+  sales_channel?: string;
+  customer_group?: string;
+  _headers?: { [key: string]: string };
+  [key: string]: any;
 }
 
 interface CheckoutItem {
@@ -21,11 +59,49 @@ interface CheckoutItem {
 }
 
 interface CheckoutForm {
+  // Basic customer info
   customerId: string;
   customerName: string;
   customerEmail: string;
   customerPhone: string;
   customerAddress: string;
+  
+  // Extended customer details
+  customerNumber: string;
+  companyName: string;
+  contact: string;
+  location: string;
+  ward: string;
+  taxCode: string;
+  customerCode: string;
+  birthDate: string;
+  gender: string;
+  occupation: string;
+  status: string;
+  customerType: string;
+  country: string;
+  city: string;
+  district: string;
+  postalCode: string;
+  industry: string;
+  website: string;
+  fax: string;
+  position: string;
+  department: string;
+  customerSource: string;
+  priorityLevel: string;
+  revenue: string;
+  bank: string;
+  accountNumber: string;
+  creditScore: string;
+  creditLimit: string;
+  preferences: string;
+  primaryContact: string;
+  referrer: string;
+  salesChannel: string;
+  customerGroup: string;
+  customerNotes: string;
+  
   isNewCustomer: boolean;
   notes: string;
   items: CheckoutItem[];
@@ -41,14 +117,54 @@ const Checkout: React.FC = () => {
   const [checkoutItems, setCheckoutItems] = useState<CheckoutItem[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [customerSearchTerm, setCustomerSearchTerm] = useState('');
+  const [showCustomerResults, setShowCustomerResults] = useState(false);
   const [inventory, setInventory] = useState<any[]>([]);
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [form, setForm] = useState<CheckoutForm>({
+    // Basic customer info
     customerId: '',
     customerName: '',
     customerEmail: '',
     customerPhone: '',
     customerAddress: '',
+    
+    // Extended customer details
+    customerNumber: '',
+    companyName: '',
+    contact: '',
+    location: '',
+    ward: '',
+    taxCode: '',
+    customerCode: '',
+    birthDate: '',
+    gender: '',
+    occupation: '',
+    status: '',
+    customerType: '',
+    country: '',
+    city: '',
+    district: '',
+    postalCode: '',
+    industry: '',
+    website: '',
+    fax: '',
+    position: '',
+    department: '',
+    customerSource: '',
+    priorityLevel: '',
+    revenue: '',
+    bank: '',
+    accountNumber: '',
+    creditScore: '',
+    creditLimit: '',
+    preferences: '',
+    primaryContact: '',
+    referrer: '',
+    salesChannel: '',
+    customerGroup: '',
+    customerNotes: '',
+    
     isNewCustomer: false,
     notes: '',
     items: []
@@ -217,21 +333,151 @@ const Checkout: React.FC = () => {
     }
   };
 
+  const handleCustomerSelect = (customer: Customer) => {
+    // Extract all customer details from the customer object
+    const customerName = customer.company_name || customer.customer_number || '';
+    const customerContact = customer.contact || '';
+    const customerAddress = `${customer.address || ''} ${customer.ward || ''} ${customer.location || ''}`.trim();
+    const customerEmail = extractEmailFromContact(customerContact) || customer.email || '';
+    const customerPhone = extractPhoneFromContact(customerContact) || customer.phone || '';
+    
+    setForm(prev => ({
+      ...prev,
+      // Basic customer info
+      customerId: customer.id,
+      customerName,
+      customerEmail,
+      customerPhone,
+      customerAddress,
+      
+      // Extended customer details - auto-fill all available fields
+      customerNumber: customer.customer_number || '',
+      companyName: customer.company_name || customer.company || '',
+      contact: customer.contact || '',
+      location: customer.location || '',
+      ward: customer.ward || '',
+      taxCode: customer.tax_code || '',
+      customerCode: customer.customer_code || '',
+      birthDate: customer.birth_date || '',
+      gender: customer.gender || '',
+      occupation: customer.occupation || '',
+      status: customer.status || '',
+      customerType: customer.customer_type || '',
+      country: customer.country || '',
+      city: customer.city || '',
+      district: customer.district || '',
+      postalCode: customer.postal_code || '',
+      industry: customer.industry || '',
+      website: customer.website || '',
+      fax: customer.fax || '',
+      position: customer.position || '',
+      department: customer.department || '',
+      customerSource: customer.customer_source || '',
+      priorityLevel: customer.priority_level || '',
+      revenue: customer.revenue || '',
+      bank: customer.bank || '',
+      accountNumber: customer.account_number || '',
+      creditScore: customer.credit_score || '',
+      creditLimit: customer.credit_limit || '',
+      preferences: customer.preferences || '',
+      primaryContact: customer.primary_contact || '',
+      referrer: customer.referrer || '',
+      salesChannel: customer.sales_channel || '',
+      customerGroup: customer.customer_group || '',
+      customerNotes: customer.notes || '',
+      
+      isNewCustomer: false
+    }));
+    
+    setCustomerSearchTerm(customerName);
+    setShowCustomerResults(false);
+  };
+
+  const handleClearCustomer = () => {
+    setForm(prev => ({
+      ...prev,
+      // Basic customer info
+      customerId: '',
+      customerName: '',
+      customerEmail: '',
+      customerPhone: '',
+      customerAddress: '',
+      
+      // Extended customer details
+      customerNumber: '',
+      companyName: '',
+      contact: '',
+      location: '',
+      ward: '',
+      taxCode: '',
+      customerCode: '',
+      birthDate: '',
+      gender: '',
+      occupation: '',
+      status: '',
+      customerType: '',
+      country: '',
+      city: '',
+      district: '',
+      postalCode: '',
+      industry: '',
+      website: '',
+      fax: '',
+      position: '',
+      department: '',
+      customerSource: '',
+      priorityLevel: '',
+      revenue: '',
+      bank: '',
+      accountNumber: '',
+      creditScore: '',
+      creditLimit: '',
+      preferences: '',
+      primaryContact: '',
+      referrer: '',
+      salesChannel: '',
+      customerGroup: '',
+      customerNotes: '',
+      
+      isNewCustomer: false
+    }));
+    setCustomerSearchTerm('');
+    setShowCustomerResults(false);
+  };
+
+  const extractEmailFromContact = (contact: string): string => {
+    if (!contact) return '';
+    const emailMatch = contact.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+    return emailMatch ? emailMatch[0] : '';
+  };
+
+  const extractPhoneFromContact = (contact: string): string => {
+    if (!contact) return '';
+    // Look for phone numbers (various formats)
+    const phoneMatch = contact.match(/[\d\s\-\+\(\)]{8,}/);
+    return phoneMatch ? phoneMatch[0].trim() : '';
+  };
+
+  const filteredCustomers = customers.filter(customer => {
+    if (!customerSearchTerm) return false;
+    const searchLower = customerSearchTerm.toLowerCase();
+    return (
+      customer.company_name?.toLowerCase().includes(searchLower) ||
+      customer.customer_number?.toLowerCase().includes(searchLower) ||
+      customer.contact?.toLowerCase().includes(searchLower) ||
+      customer.address?.toLowerCase().includes(searchLower) ||
+      customer.tax_code?.toLowerCase().includes(searchLower)
+    );
+  });
+
   const handleCustomerChange = (customerId: string) => {
     if (customerId === 'new') {
       setForm(prev => ({ ...prev, customerId: '', isNewCustomer: true }));
+      setCustomerSearchTerm('');
     } else {
       const customer = customers.find(c => c.id === customerId);
       if (customer) {
-        setForm(prev => ({
-          ...prev,
-          customerId,
-          customerName: customer.name,
-          customerEmail: customer.email,
-          customerPhone: customer.phone,
-          customerAddress: customer.address,
-          isNewCustomer: false
-        }));
+        handleCustomerSelect(customer);
       }
     }
   };
@@ -303,6 +549,9 @@ const Checkout: React.FC = () => {
       const target = event.target as Element;
       if (!target.closest('.search-container')) {
         setShowSearchResults(false);
+      }
+      if (!target.closest('.customer-search-container')) {
+        setShowCustomerResults(false);
       }
     };
 
@@ -436,76 +685,415 @@ const Checkout: React.FC = () => {
             <div className="bg-gray-50 rounded-lg p-4">
               <h2 className="text-lg font-semibold mb-4">Customer Information</h2>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Select Customer
+              {/* Quick Customer Search */}
+              <div className="mb-4">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-medium text-gray-700">
+                    🔍 Quick Customer Search
                   </label>
-                  <select
-                    value={form.isNewCustomer ? 'new' : form.customerId}
-                    onChange={(e) => handleCustomerChange(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="">Choose a customer...</option>
-                    {customers.map(customer => (
-                      <option key={customer.id} value={customer.id}>
-                        {customer.name} - {customer.email}
-                      </option>
-                    ))}
-                    <option value="new">+ Add New Customer</option>
-                  </select>
+                  {(form.customerName || customerSearchTerm) && (
+                    <button
+                      type="button"
+                      onClick={handleClearCustomer}
+                      className="text-sm text-red-600 hover:text-red-800 px-2 py-1 rounded hover:bg-red-50 transition-colors"
+                    >
+                      ✕ Clear Customer
+                    </button>
+                  )}
                 </div>
+                <div className="relative customer-search-container">
+                  <input
+                    type="text"
+                    placeholder="Search by company name, customer code, contact, or address..."
+                    value={customerSearchTerm}
+                    onChange={(e) => {
+                      setCustomerSearchTerm(e.target.value);
+                      setShowCustomerResults(e.target.value.length > 0);
+                    }}
+                    onFocus={() => setShowCustomerResults(customerSearchTerm.length > 0)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                  />
+                  
+                  {showCustomerResults && filteredCustomers.length > 0 && (
+                    <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                      {filteredCustomers.slice(0, 8).map((customer) => (
+                        <div
+                          key={customer.id}
+                          onClick={() => handleCustomerSelect(customer)}
+                          className="px-4 py-3 hover:bg-green-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                        >
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <div className="font-medium text-gray-900">
+                                {customer.company_name || customer.customer_number || 'Unknown Company'}
+                              </div>
+                              <div className="text-sm text-gray-600 mt-1">
+                                {customer.customer_number && customer.company_name && (
+                                  <span className="text-blue-600">Code: {customer.customer_number}</span>
+                                )}
+                              </div>
+                              <div className="text-sm text-gray-500 mt-1">
+                                📞 {customer.contact || 'No contact info'}
+                              </div>
+                              <div className="text-sm text-gray-500">
+                                📍 {`${customer.address || ''} ${customer.ward || ''} ${customer.location || ''}`.trim() || 'No address'}
+                              </div>
+                              {customer.tax_code && (
+                                <div className="text-xs text-gray-400 mt-1">
+                                  Tax: {customer.tax_code}
+                                </div>
+                              )}
+                            </div>
+                            <div className="ml-2 text-xs text-green-600 font-medium">
+                              Click to select
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {showCustomerResults && customerSearchTerm.length > 0 && filteredCustomers.length === 0 && (
+                    <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg">
+                      <div className="px-4 py-3 text-gray-500 text-center">
+                        No customers found matching "{customerSearchTerm}"
+                      </div>
+                    </div>
+                  )}
+                </div>
+                
+                {/* Selected Customer Display */}
+                {form.customerName && (
+                  <div className="mt-3 p-4 bg-green-50 border border-green-200 rounded-md">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-start">
+                        <span className="text-green-600 mr-3 mt-1">✅</span>
+                        <div className="flex-1">
+                          <div className="text-sm font-medium text-green-800 mb-2">
+                            Selected Customer: {form.customerName}
+                          </div>
+                          
+                          {/* Auto-filled details preview */}
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-1 text-xs text-green-700">
+                            {form.companyName && (
+                              <div>🏢 Company: {form.companyName}</div>
+                            )}
+                            {form.customerNumber && (
+                              <div>🔢 Code: {form.customerNumber}</div>
+                            )}
+                            {form.customerEmail && (
+                              <div>✉️ Email: {form.customerEmail}</div>
+                            )}
+                            {form.customerPhone && (
+                              <div>📞 Phone: {form.customerPhone}</div>
+                            )}
+                            {form.customerAddress && (
+                              <div>📍 Address: {form.customerAddress}</div>
+                            )}
+                            {form.taxCode && (
+                              <div>🏛️ Tax: {form.taxCode}</div>
+                            )}
+                            {form.industry && (
+                              <div>🏭 Industry: {form.industry}</div>
+                            )}
+                            {form.customerType && (
+                              <div>👤 Type: {form.customerType}</div>
+                            )}
+                            {form.priorityLevel && (
+                              <div>⭐ Priority: {form.priorityLevel}</div>
+                            )}
+                          </div>
+                          
+                          {/* Additional details count */}
+                          {(form.ward || form.district || form.city || form.country || form.position || form.department) && (
+                            <div className="text-xs text-green-600 mt-2 italic">
+                              + Additional details auto-filled (see form below)
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
+              
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+
+              {/* Comprehensive Customer Information */}
+              <div className="space-y-6 mt-4">
+                {/* Basic Information */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Customer Name *
-                  </label>
-                  <input
-                    type="text"
-                    value={form.customerName}
-                    onChange={(e) => setForm(prev => ({ ...prev, customerName: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  />
+                  <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                    <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
+                    Basic Information
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Customer Number
+                      </label>
+                      <input
+                        type="text"
+                        value={form.customerNumber}
+                        onChange={(e) => setForm(prev => ({ ...prev, customerNumber: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Customer code/number"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Company Name
+                      </label>
+                      <input
+                        type="text"
+                        value={form.companyName}
+                        onChange={(e) => setForm(prev => ({ ...prev, companyName: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Company/Business name"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Customer Name *
+                      </label>
+                      <input
+                        type="text"
+                        value={form.customerName}
+                        onChange={(e) => setForm(prev => ({ ...prev, customerName: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Contact person name"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Email
+                      </label>
+                      <input
+                        type="email"
+                        value={form.customerEmail}
+                        onChange={(e) => setForm(prev => ({ ...prev, customerEmail: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Email address"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Phone
+                      </label>
+                      <input
+                        type="tel"
+                        value={form.customerPhone}
+                        onChange={(e) => setForm(prev => ({ ...prev, customerPhone: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Phone number"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Tax Code
+                      </label>
+                      <input
+                        type="text"
+                        value={form.taxCode}
+                        onChange={(e) => setForm(prev => ({ ...prev, taxCode: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Tax identification number"
+                      />
+                    </div>
+                  </div>
                 </div>
-                
+
+                {/* Address Information */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Email
-                  </label>
-                  <input
-                    type="email"
-                    value={form.customerEmail}
-                    onChange={(e) => setForm(prev => ({ ...prev, customerEmail: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
+                  <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                    <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                    Address Information
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Street Address *
+                      </label>
+                      <input
+                        type="text"
+                        value={form.customerAddress}
+                        onChange={(e) => setForm(prev => ({ ...prev, customerAddress: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Street address"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Ward
+                      </label>
+                      <input
+                        type="text"
+                        value={form.ward}
+                        onChange={(e) => setForm(prev => ({ ...prev, ward: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Ward/Commune"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        District
+                      </label>
+                      <input
+                        type="text"
+                        value={form.district}
+                        onChange={(e) => setForm(prev => ({ ...prev, district: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="District"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        City/Province
+                      </label>
+                      <input
+                        type="text"
+                        value={form.city}
+                        onChange={(e) => setForm(prev => ({ ...prev, city: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="City/Province"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Country
+                      </label>
+                      <input
+                        type="text"
+                        value={form.country}
+                        onChange={(e) => setForm(prev => ({ ...prev, country: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Country"
+                      />
+                    </div>
+                  </div>
                 </div>
-                
+
+                {/* Business & Contact Details - Collapsible */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Phone
-                  </label>
-                  <input
-                    type="tel"
-                    value={form.customerPhone}
-                    onChange={(e) => setForm(prev => ({ ...prev, customerPhone: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Address *
-                  </label>
-                  <input
-                    type="text"
-                    value={form.customerAddress}
-                    onChange={(e) => setForm(prev => ({ ...prev, customerAddress: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  />
+                  <details className="group">
+                    <summary className="cursor-pointer flex items-center text-lg font-medium text-gray-900 mb-4 hover:text-blue-600">
+                      <span className="w-2 h-2 bg-purple-500 rounded-full mr-2"></span>
+                      Business & Additional Details
+                      <svg className="w-5 h-5 ml-2 transition-transform group-open:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </summary>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Industry
+                        </label>
+                        <input
+                          type="text"
+                          value={form.industry}
+                          onChange={(e) => setForm(prev => ({ ...prev, industry: e.target.value }))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="Business industry"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Position
+                        </label>
+                        <input
+                          type="text"
+                          value={form.position}
+                          onChange={(e) => setForm(prev => ({ ...prev, position: e.target.value }))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="Job position/title"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Department
+                        </label>
+                        <input
+                          type="text"
+                          value={form.department}
+                          onChange={(e) => setForm(prev => ({ ...prev, department: e.target.value }))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="Department"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Customer Type
+                        </label>
+                        <select
+                          value={form.customerType}
+                          onChange={(e) => setForm(prev => ({ ...prev, customerType: e.target.value }))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="">Select type</option>
+                          <option value="Corporate">Corporate</option>
+                          <option value="Individual">Individual</option>
+                          <option value="SME">SME</option>
+                          <option value="Government">Government</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Priority Level
+                        </label>
+                        <select
+                          value={form.priorityLevel}
+                          onChange={(e) => setForm(prev => ({ ...prev, priorityLevel: e.target.value }))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="">Select priority</option>
+                          <option value="High">High</option>
+                          <option value="Medium">Medium</option>
+                          <option value="Low">Low</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Website
+                        </label>
+                        <input
+                          type="url"
+                          value={form.website}
+                          onChange={(e) => setForm(prev => ({ ...prev, website: e.target.value }))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="Company website"
+                        />
+                      </div>
+
+                      <div className="md:col-span-2 lg:col-span-3">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Customer Notes
+                        </label>
+                        <textarea
+                          value={form.customerNotes}
+                          onChange={(e) => setForm(prev => ({ ...prev, customerNotes: e.target.value }))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          rows={3}
+                          placeholder="Additional notes about the customer"
+                        />
+                      </div>
+                    </div>
+                  </details>
                 </div>
               </div>
             </div>

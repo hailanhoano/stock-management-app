@@ -1,5 +1,215 @@
 [
   {
+    "timestamp": "2025-07-22T08:49:19.722Z",
+    "action": "DELETE",
+    "user": "admin@example.com",
+    "itemId": "th_603",
+    "details": {
+      "source": "source1",
+      "rowIndex": 603,
+      "deletedData": [
+        "test",
+        "16",
+        "299"
+      ]
+    }
+  },
+  {
+    "timestamp": "2025-07-22T08:49:19.334Z",
+    "action": "DELETE",
+    "user": "admin@example.com",
+    "itemId": "th_604",
+    "details": {
+      "source": "source1",
+      "rowIndex": 604,
+      "deletedData": [
+        "test",
+        "16",
+        "304"
+      ]
+    }
+  },
+  {
+    "timestamp": "2025-07-22T08:49:18.995Z",
+    "action": "DELETE",
+    "user": "admin@example.com",
+    "itemId": "th_605",
+    "details": {
+      "source": "source1",
+      "rowIndex": 605,
+      "deletedData": [
+        "test",
+        "16",
+        "305"
+      ]
+    }
+  },
+  {
+    "timestamp": "2025-07-22T08:49:18.652Z",
+    "action": "DELETE",
+    "user": "admin@example.com",
+    "itemId": "th_606",
+    "details": {
+      "source": "source1",
+      "rowIndex": 606,
+      "deletedData": [
+        "test",
+        "16",
+        "306"
+      ]
+    }
+  },
+  {
+    "timestamp": "2025-07-22T08:49:17.810Z",
+    "action": "DELETE",
+    "user": "admin@example.com",
+    "itemId": "th_607",
+    "details": {
+      "source": "source1",
+      "rowIndex": 607,
+      "deletedData": [
+        "test",
+        "16",
+        "307"
+      ]
+    }
+  },
+  {
+    "timestamp": "2025-07-22T08:35:31.421Z",
+    "action": "DELETE",
+    "user": "admin@example.com",
+    "itemId": "th_612",
+    "details": {
+      "source": "source1",
+      "rowIndex": 612,
+      "deletedData": [
+        "test",
+        "16",
+        "312"
+      ]
+    }
+  },
+  {
+    "timestamp": "2025-07-22T08:35:11.030Z",
+    "action": "DELETE",
+    "user": "admin@example.com",
+    "itemId": "th_613",
+    "details": {
+      "source": "source1",
+      "rowIndex": 613,
+      "deletedData": [
+        "test",
+        "16",
+        "313"
+      ]
+    }
+  },
+  {
+    "timestamp": "2025-07-22T08:34:45.374Z",
+    "action": "DELETE",
+    "user": "admin@example.com",
+    "itemId": "th_604",
+    "details": {
+      "source": "source1",
+      "rowIndex": 604,
+      "deletedData": [
+        "test",
+        "16",
+        "300"
+      ]
+    }
+  },
+  {
+    "timestamp": "2025-07-22T08:34:45.016Z",
+    "action": "DELETE",
+    "user": "admin@example.com",
+    "itemId": "th_605",
+    "details": {
+      "source": "source1",
+      "rowIndex": 605,
+      "deletedData": [
+        "test",
+        "16",
+        "301"
+      ]
+    }
+  },
+  {
+    "timestamp": "2025-07-22T08:34:44.646Z",
+    "action": "DELETE",
+    "user": "admin@example.com",
+    "itemId": "th_606",
+    "details": {
+      "source": "source1",
+      "rowIndex": 606,
+      "deletedData": [
+        "test",
+        "16",
+        "302"
+      ]
+    }
+  },
+  {
+    "timestamp": "2025-07-22T08:34:44.325Z",
+    "action": "DELETE",
+    "user": "admin@example.com",
+    "itemId": "th_607",
+    "details": {
+      "source": "source1",
+      "rowIndex": 607,
+      "deletedData": [
+        "test",
+        "16",
+        "303"
+      ]
+    }
+  },
+  {
+    "timestamp": "2025-07-22T08:34:43.954Z",
+    "action": "DELETE",
+    "user": "admin@example.com",
+    "itemId": "th_618",
+    "details": {
+      "source": "source1",
+      "rowIndex": 618,
+      "deletedData": [
+        "test",
+        "16",
+        "314"
+      ]
+    }
+  },
+  {
+    "timestamp": "2025-07-22T08:34:43.623Z",
+    "action": "DELETE",
+    "user": "admin@example.com",
+    "itemId": "th_619",
+    "details": {
+      "source": "source1",
+      "rowIndex": 619,
+      "deletedData": [
+        "test",
+        "16",
+        "315"
+      ]
+    }
+  },
+  {
+    "timestamp": "2025-07-22T08:34:43.299Z",
+    "action": "DELETE",
+    "user": "admin@example.com",
+    "itemId": "th_620",
+    "details": {
+      "source": "source1",
+      "rowIndex": 620,
+      "deletedData": [
+        "test",
+        "16",
+        "316"
+      ]
+    }
+  },
+  {
     "timestamp": "2025-07-22T07:56:10.888Z",
     "action": "DELETE",
     "user": "admin@example.com",
@@ -29419,6 +29629,171 @@
     "changedFields": {},
     "metadata": [
       "22/07/2025, 5:56:22 pm",
+      "admin@example.com",
+      "0"
+    ]
+  },
+  {
+    "timestamp": 1753173351779,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "DELETE",
+    "rowId": "th_611",
+    "oldValue": [
+      "test",
+      "16",
+      "311"
+    ],
+    "changedFields": {},
+    "metadata": [
+      "22/07/2025, 6:35:51 pm",
+      "admin@example.com",
+      "0"
+    ]
+  },
+  {
+    "timestamp": 1753173361766,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "DELETE",
+    "rowId": "th_610",
+    "oldValue": [
+      "test",
+      "16",
+      "310"
+    ],
+    "changedFields": {},
+    "metadata": [
+      "22/07/2025, 6:36:01 pm",
+      "admin@example.com",
+      "0"
+    ]
+  },
+  {
+    "timestamp": 1753174243127,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "th_601",
+    "oldValue": {
+      "product_name": "297"
+    },
+    "newValue": {
+      "product_name": "297 anh yeu em"
+    },
+    "changedFields": {
+      "product_name": {
+        "old": "297",
+        "new": "297 anh yeu em",
+        "fieldName": "Tên hàng"
+      }
+    },
+    "metadata": [
+      "22/07/2025, 6:50:42 pm",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1753174250801,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "th_602",
+    "oldValue": {
+      "product_name": "298"
+    },
+    "newValue": {
+      "product_name": "298 lam thu cai nay"
+    },
+    "changedFields": {
+      "product_name": {
+        "old": "298",
+        "new": "298 lam thu cai nay",
+        "fieldName": "Tên hàng"
+      }
+    },
+    "metadata": [
+      "22/07/2025, 6:50:50 pm",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1753174259529,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "th_603",
+    "oldValue": {
+      "product_name": "308"
+    },
+    "newValue": {
+      "product_name": "308 lam them lan nua"
+    },
+    "changedFields": {
+      "product_name": {
+        "old": "308",
+        "new": "308 lam them lan nua",
+        "fieldName": "Tên hàng"
+      }
+    },
+    "metadata": [
+      "22/07/2025, 6:50:59 pm",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1753174268380,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "th_604",
+    "oldValue": {
+      "product_name": "309"
+    },
+    "newValue": {
+      "product_name": "309 lam gi lam hoai"
+    },
+    "changedFields": {
+      "product_name": {
+        "old": "309",
+        "new": "309 lam gi lam hoai",
+        "fieldName": "Tên hàng"
+      }
+    },
+    "metadata": [
+      "22/07/2025, 6:51:08 pm",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1753174303052,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "DELETE",
+    "rowId": "th_604",
+    "oldValue": [
+      "test",
+      "16",
+      "309 lam gi lam hoai",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "22/07/2025, 6:51:08 pm",
+      "admin@example.com",
+      "1"
+    ],
+    "changedFields": {},
+    "metadata": [
+      "22/07/2025, 6:51:43 pm",
       "admin@example.com",
       "0"
     ]

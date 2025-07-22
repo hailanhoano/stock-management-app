@@ -644,6 +644,41 @@ app.get('/api/stock/inventory', authenticateToken, async (req, res) => {
   }
 });
 
+// Customer information endpoint
+app.get('/api/customers', authenticateToken, async (req, res) => {
+  try {
+    const config = await loadConfig();
+    
+    if (!config.spreadsheetIds.customers) {
+      return res.status(400).json({ 
+        error: 'Customer spreadsheet ID not configured' 
+      });
+    }
+
+    console.log('📋 Fetching customer data from:', config.spreadsheetIds.customers);
+    
+    // Fetch customer data from the specific sheet (gid=229828661)
+    const customerData = await fetchSheetData(config.spreadsheetIds.customers, 'A:Z');
+    
+    console.log('📊 Customer data fetched, rows:', customerData.length);
+    
+    // Process customer data
+    const processedCustomers = processCustomerData(customerData);
+    
+    res.json({
+      success: true,
+      customers: processedCustomers
+    });
+
+  } catch (error) {
+    console.error('Error fetching customer data:', error);
+    res.status(500).json({ 
+      error: 'Failed to fetch customer data',
+      details: error.message 
+    });
+  }
+});
+
 app.get('/api/stock/analytics', async (req, res) => {
   try {
     const { spreadsheetId1, spreadsheetId2, spreadsheetId3 } = req.query;
@@ -814,6 +849,114 @@ function processPurchaseData(data) {
   });
 }
 
+function processCustomerData(data) {
+  if (!data || data.length < 2) return [];
+  
+  const headers = data[0];
+  const rows = data.slice(1);
+  
+  // console.log('📋 Google Sheets headers received:', headers);
+  
+  // Vietnamese to English header mapping (exact headers from your Google Sheets)
+  const vietnameseHeaderMapping = {
+    // Your actual Google Sheets headers
+    'Mã khách hàng\n(Tên Viết tắt công ty)': 'customer_number',
+    'Công ty\n(Nhập đầy đủ tên công ty)': 'company_name',
+    'Liên hệ \n(Nhập Tên-SĐT-Email mua hàng)': 'contact',
+    'Địa chỉ \n(Nhập tên đường, xã, phường)': 'address',
+    'Khu vực\n(Nhập Quận, Tp, Tỉnh)': 'location',
+    'Phường/Xã': 'ward',
+    'Mã số thuế\n(Nhập đầy đủ )': 'tax_code',
+    'Ghi Chú': 'notes',
+    
+    // Additional common Vietnamese headers (fallback)
+    'Tên khách hàng': 'customer_name',
+    'Địa chỉ': 'address',
+    'Số điện thoại': 'phone',
+    'Email': 'email',
+    'Mã khách hàng': 'customer_code',
+    'Ngày sinh': 'birth_date',
+    'Giới tính': 'gender',
+    'Nghề nghiệp': 'occupation',
+    'Ghi chú': 'notes',
+    'Trạng thái': 'status',
+    'Ngày tạo': 'created_date',
+    'Người tạo': 'created_by',
+    'Loại khách hàng': 'customer_type',
+    'Công ty': 'company',
+    'Mã số thuế': 'tax_code',
+    'Quốc gia': 'country',
+    'Thành phố': 'city',
+    'Quận/Huyện': 'district',
+    'Ngành nghề': 'industry',
+    'Website': 'website',
+    'Fax': 'fax',
+    'Chức vụ': 'position',
+    'Phòng ban': 'department',
+    'Nguồn khách hàng': 'customer_source',
+    'Mức độ quan trọng': 'priority_level',
+    'Doanh thu': 'revenue',
+    'Ngân hàng': 'bank',
+    'Số tài khoản': 'account_number',
+    'Điểm tín dụng': 'credit_score',
+    'Hạn mức tín dụng': 'credit_limit',
+    'Sở thích': 'preferences',
+    'Liên hệ chính': 'primary_contact',
+    'Người giới thiệu': 'referrer',
+    'Kênh bán hàng': 'sales_channel',
+    'Nhóm khách hàng': 'customer_group'
+  };
+  
+  return rows.map((row, index) => {
+    const customer = {};
+    
+    // Map headers to customer fields
+    headers.forEach((header, colIndex) => {
+      if (header) {
+        // Use Vietnamese mapping if available, otherwise create clean key
+        const key = vietnameseHeaderMapping[header] || 
+          header.toLowerCase()
+            .replace(/\s+/g, '_')
+            .replace(/[^\w_]/g, '')
+            .replace(/_+/g, '_')
+            .replace(/^_|_$/g, '');
+        
+        // Log if header is not in mapping (only on first row)
+        if (index === 0 && !vietnameseHeaderMapping[header]) {
+          console.log(`📋 Unmapped header found: "${header}" -> "${key}"`);
+        }
+        
+        // Always include the field, even if row data is shorter or undefined
+        customer[key] = (colIndex < row.length && row[colIndex] !== undefined) ? row[colIndex] : '';
+        
+        // Store original header for display purposes
+        if (!customer._headers) customer._headers = {};
+        customer._headers[key] = header;
+        
+        // Debug for "Ghi Chú" column (first few rows)
+        // if (index < 5 && header === 'Ghi Chú') {
+        //   console.log(`📋 Row ${index + 1} "Ghi Chú": "${customer[key]}" (colIndex: ${colIndex}, rowLength: ${row.length})`);
+        // }
+      }
+    });
+    
+    // Add unique ID
+    customer.id = `customer_${index + 1}`;
+    
+    // Debug: Log first customer to see all fields
+    // if (index === 0) {
+    //   console.log('📋 First customer keys:', Object.keys(customer));
+    //   console.log('📋 Notes value:', customer.notes);
+    // }
+    
+    return customer;
+      }).filter(customer => {
+      // Filter out empty rows (rows where all values are empty)
+      return Object.entries(customer).some(([key, value]) => 
+        key !== '_headers' && key !== 'id' && value && value.toString().trim() !== '');
+    });
+}
+
 function generateSummary(data) {
   const { inventory, sales, purchases } = data;
   
@@ -905,7 +1048,8 @@ async function loadConfig() {
         inventory: '',
         inventory2: '', // Second inventory source
         sales: '',
-        purchases: ''
+        purchases: '',
+        customers: ''
       }
     };
   }
@@ -2188,16 +2332,7 @@ app.post('/api/stock/bulk-send-out', authenticateToken, async (req, res) => {
   }
 });
 
-// Customer management endpoints
-app.get('/api/customers', authenticateToken, async (req, res) => {
-  try {
-    // For now, return empty array - you can implement customer storage later
-    res.json({ customers: [] });
-  } catch (error) {
-    console.error('Error loading customers:', error);
-    res.status(500).json({ message: 'Internal server error' });
-  }
-});
+// Customer management endpoints (moved to Google Sheets integration above)
 
 // Checkout endpoint
 app.post('/api/stock/checkout', authenticateToken, async (req, res) => {

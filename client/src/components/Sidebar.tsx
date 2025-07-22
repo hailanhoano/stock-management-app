@@ -7,7 +7,8 @@ import {
   ChartBarIcon, 
   CogIcon,
   XMarkIcon,
-  ArrowRightOnRectangleIcon
+  ArrowRightOnRectangleIcon,
+  UserGroupIcon
 } from '@heroicons/react/24/outline';
 
 interface SidebarProps {
@@ -18,6 +19,7 @@ interface SidebarProps {
 const navigation = [
   { name: 'Dashboard', href: '/', icon: HomeIcon },
   { name: 'Inventory', href: '/inventory', icon: CubeIcon },
+  { name: 'Customers', href: '/customers', icon: UserGroupIcon },
   { name: 'Analytics', href: '/analytics', icon: ChartBarIcon },
   { name: 'Settings', href: '/settings', icon: CogIcon },
 ];
