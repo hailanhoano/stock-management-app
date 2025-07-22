@@ -466,17 +466,17 @@ const Customers: React.FC = () => {
                                 }
                                 if (e.key === 'Escape') handleCellCancel();
                               }}
-                              className="w-full px-2 py-1 border border-blue-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none min-h-8 max-h-32 overflow-y-auto"
+                              className="w-full px-4 py-3 border border-blue-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none min-h-20 max-h-48 overflow-y-auto shadow-sm"
                               autoFocus
-                              rows={1}
+                              rows={3}
                               style={{
                                 height: 'auto',
-                                minHeight: '32px'
+                                minHeight: '80px'
                               }}
                               onInput={(e) => {
                                 const target = e.target as HTMLTextAreaElement;
                                 target.style.height = 'auto';
-                                target.style.height = Math.min(target.scrollHeight, 128) + 'px';
+                                target.style.height = Math.min(target.scrollHeight, 192) + 'px';
                               }}
                             />
                             <div className="flex flex-col space-y-1">
