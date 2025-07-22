@@ -407,15 +407,17 @@ const Customers: React.FC = () => {
       {customers.length > 0 ? (
         <div className="bg-white shadow overflow-hidden sm:rounded-md">
           <div className="overflow-x-auto max-h-[70vh] overflow-y-auto">
-            <table className="min-w-full divide-y divide-gray-200">
+            <table className="w-full divide-y divide-gray-200 table-auto">
               <thead className="bg-gray-50 sticky top-0 z-10">
                 <tr>
                   {headers.map((header) => (
                     <th
                       key={header}
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-32 max-w-60"
                     >
-                      {getDisplayHeader(header)}
+                      <div className="break-words">
+                        {getDisplayHeader(header)}
+                      </div>
                     </th>
                   ))}
                 </tr>
@@ -431,53 +433,82 @@ const Customers: React.FC = () => {
                     {headers.map((header) => (
                       <td
                         key={header}
-                        className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 cursor-pointer transition-colors duration-150 hover:bg-blue-100"
+                        className="px-6 py-4 text-sm text-gray-900 cursor-pointer transition-colors duration-150 hover:bg-blue-100 max-w-60 min-w-32"
                         onClick={() => handleCellClick(customer.id, header, customer[header] || '')}
                       >
                         {editingCell?.customerId === customer.id && editingCell?.field === header ? (
-                          <div className="flex items-center space-x-2">
-                            <input
-                              type="text"
+                          <div className="flex items-start space-x-2">
+                            <textarea
                               value={editValue}
                               onChange={(e) => setEditValue(e.target.value)}
                               onKeyDown={(e) => {
-                                if (e.key === 'Enter') handleCellSave();
+                                if (e.key === 'Enter' && !e.shiftKey) {
+                                  e.preventDefault();
+                                  handleCellSave();
+                                }
                                 if (e.key === 'Escape') handleCellCancel();
                               }}
-                              className="w-full px-2 py-1 border border-blue-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                              className="w-full px-2 py-1 border border-blue-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none min-h-8 max-h-32 overflow-y-auto"
                               autoFocus
+                              rows={1}
+                              style={{
+                                height: 'auto',
+                                minHeight: '32px'
+                              }}
+                              onInput={(e) => {
+                                const target = e.target as HTMLTextAreaElement;
+                                target.style.height = 'auto';
+                                target.style.height = Math.min(target.scrollHeight, 128) + 'px';
+                              }}
                             />
-                            <div className="flex space-x-1">
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleCellSave();
-                                }}
-                                className="p-1 text-green-600 hover:text-green-800"
-                                title="Save"
-                              >
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                </svg>
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleCellCancel();
-                                }}
-                                className="p-1 text-red-600 hover:text-red-800"
-                                title="Cancel"
-                              >
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                              </button>
+                            <div className="flex flex-col space-y-1">
+                              <div className="flex space-x-1">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleCellSave();
+                                  }}
+                                  className="p-1 text-green-600 hover:text-green-800 bg-green-50 hover:bg-green-100 rounded"
+                                  title="Save (Enter)"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                  </svg>
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleCellCancel();
+                                  }}
+                                  className="p-1 text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 rounded"
+                                  title="Cancel (Esc)"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                  </svg>
+                                </button>
+                              </div>
+                              {editValue.length > 30 && (
+                                <div className="text-xs text-gray-500 whitespace-nowrap">
+                                  {editValue.length} chars
+                                </div>
+                              )}
                             </div>
                           </div>
                         ) : (
-                          <span className="block" title="Click to edit">
-                            {customer[header] || '-'}
-                          </span>
+                          <div className="group relative">
+                            <span 
+                              className="block break-words word-wrap overflow-wrap hyphens-auto leading-relaxed" 
+                              title={`${customer[header] || 'No data'} - Click to edit`}
+                            >
+                              {customer[header] || '-'}
+                            </span>
+                            {customer[header] && customer[header].length > 50 && (
+                              <div className="absolute -top-1 -right-1 bg-blue-100 text-blue-600 text-xs px-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">
+                                {customer[header].length} chars
+                              </div>
+                            )}
+                          </div>
                         )}
                       </td>
                     ))}
