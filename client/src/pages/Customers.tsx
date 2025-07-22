@@ -13,8 +13,10 @@ const Customers: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [editingCell, setEditingCell] = useState<{customerId: string, field: string} | null>(null);
-  const [editValue, setEditValue] = useState<string>('');
+  const [editingItem, setEditingItem] = useState<Customer | null>(null);
+  const [editingField, setEditingField] = useState<string | null>(null);
+  const [editingData, setEditingData] = useState<{[key: string]: any}>({});
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [newCustomer, setNewCustomer] = useState<{[key: string]: string}>({});
   const [isManualSyncing, setIsManualSyncing] = useState(false);
@@ -52,40 +54,68 @@ const Customers: React.FC = () => {
     loadCustomers();
   }, [loadCustomers]);
 
-  // Handle cell editing
-  const handleCellClick = (customerId: string, field: string, currentValue: string) => {
-    setEditingCell({ customerId, field });
-    setEditValue(currentValue || '');
+  // Handle starting edit mode for a specific field
+  const handleStartEdit = (customer: Customer, field: string) => {
+    if (isSavingEdit) return; // Prevent starting a new edit while saving
+    
+    // If we're already editing a different field, save it first
+    if (editingItem && editingField && (editingItem.id !== customer.id || editingField !== field)) {
+      setIsSavingEdit(true);
+      handleSaveEdit().then(() => {
+        setIsSavingEdit(false);
+        // After saving, start editing the new field
+        setEditingItem(customer);
+        setEditingField(field);
+        setEditingData({ ...customer });
+      }).catch(() => {
+        setIsSavingEdit(false);
+      });
+    } else {
+      // No current edit, start editing immediately
+      setEditingItem(customer);
+      setEditingField(field);
+      setEditingData({ ...customer });
+    }
   };
 
-  const handleCellSave = async () => {
-    if (!editingCell) return;
+  // Handle canceling edit
+  const handleCancelEdit = () => {
+    setEditingItem(null);
+    setEditingField(null);
+    setEditingData({});
+  };
+
+  // Handle saving edit
+  const handleSaveEdit = useCallback(async () => {
+    if (!editingItem) return Promise.resolve();
+    setIsSavingEdit(true);
     
     try {
       // Update customer locally first
       setCustomers(prevCustomers => 
         prevCustomers.map(customer => 
-          customer.id === editingCell.customerId 
-            ? { ...customer, [editingCell.field]: editValue }
+          customer.id === editingItem.id 
+            ? { ...customer, ...editingData }
             : customer
         )
       );
       
       // Here you could add an API call to save back to Google Sheets
-      console.log('Would save:', editingCell.customerId, editingCell.field, editValue);
+      console.log('Would save customer:', editingItem.id, editingData);
       
-      setEditingCell(null);
-      setEditValue('');
+      // Clear edit state
+      setEditingItem(null);
+      setEditingField(null);
+      setEditingData({});
+      setIsSavingEdit(false);
+      return Promise.resolve();
     } catch (error) {
       console.error('Error saving customer:', error);
       setError('Failed to save changes');
+      setIsSavingEdit(false);
+      return Promise.reject(error);
     }
-  };
-
-  const handleCellCancel = () => {
-    setEditingCell(null);
-    setEditValue('');
-  };
+  }, [editingItem, editingData]);
 
   // Handle adding new customer
   const handleAddCustomer = () => {
@@ -250,6 +280,55 @@ const Customers: React.FC = () => {
     
     // Default width for other columns
     return 'min-w-32 max-w-60';
+  };
+
+  // Render editable cell content (similar to inventory page)
+  const renderEditableCell = (customer: Customer, field: string, value: string, className: string = '') => {
+    const isEditing = editingItem?.id === customer.id && editingField === field;
+    
+    if (isEditing) {
+      return (
+        <textarea
+          value={editingData[field] || ''}
+          onChange={(e) => setEditingData({...editingData, [field]: e.target.value})}
+          className={`w-full px-4 py-3 border border-blue-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none min-h-20 max-h-48 overflow-y-auto shadow-sm ${className}`}
+          rows={3}
+          autoFocus
+          style={{
+            height: 'auto',
+            minHeight: '80px'
+          }}
+          onInput={(e) => {
+            const target = e.target as HTMLTextAreaElement;
+            target.style.height = 'auto';
+            target.style.height = Math.min(target.scrollHeight, 192) + 'px';
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              handleSaveEdit();
+            } else if (e.key === 'Escape') {
+              e.preventDefault();
+              handleCancelEdit();
+            }
+          }}
+          disabled={isSavingEdit}
+        />
+      );
+    }
+    
+    return (
+      <div 
+        className={`cursor-pointer hover:bg-blue-50 px-2 py-1 rounded transition-colors break-words word-wrap overflow-wrap hyphens-auto leading-relaxed ${className}`}
+        onClick={(e) => {
+          e.stopPropagation();
+          handleStartEdit(customer, field);
+        }}
+        title={`${value || 'No data'} - Click to edit`}
+      >
+        {value || '-'}
+      </div>
+    );
   };
 
   // Filter customers based on search term
@@ -451,83 +530,9 @@ const Customers: React.FC = () => {
                     {headers.map((header) => (
                       <td
                         key={header}
-                        className={`px-6 py-4 text-sm text-gray-900 cursor-pointer transition-colors duration-150 hover:bg-blue-100 ${getColumnWidthClasses(header)}`}
-                        onClick={() => handleCellClick(customer.id, header, customer[header] || '')}
+                        className={`px-6 py-4 text-sm text-gray-900 ${getColumnWidthClasses(header)}`}
                       >
-                        {editingCell?.customerId === customer.id && editingCell?.field === header ? (
-                          <div className="flex items-start space-x-2">
-                            <textarea
-                              value={editValue}
-                              onChange={(e) => setEditValue(e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter' && !e.shiftKey) {
-                                  e.preventDefault();
-                                  handleCellSave();
-                                }
-                                if (e.key === 'Escape') handleCellCancel();
-                              }}
-                              className="w-full px-4 py-3 border border-blue-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none min-h-20 max-h-48 overflow-y-auto shadow-sm"
-                              autoFocus
-                              rows={3}
-                              style={{
-                                height: 'auto',
-                                minHeight: '80px'
-                              }}
-                              onInput={(e) => {
-                                const target = e.target as HTMLTextAreaElement;
-                                target.style.height = 'auto';
-                                target.style.height = Math.min(target.scrollHeight, 192) + 'px';
-                              }}
-                            />
-                            <div className="flex flex-col space-y-1">
-                              <div className="flex space-x-1">
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleCellSave();
-                                  }}
-                                  className="p-1 text-green-600 hover:text-green-800 bg-green-50 hover:bg-green-100 rounded"
-                                  title="Save (Enter)"
-                                >
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                  </svg>
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleCellCancel();
-                                  }}
-                                  className="p-1 text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 rounded"
-                                  title="Cancel (Esc)"
-                                >
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                  </svg>
-                                </button>
-                              </div>
-                              {editValue.length > 30 && (
-                                <div className="text-xs text-gray-500 whitespace-nowrap">
-                                  {editValue.length} chars
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="group relative">
-                            <span 
-                              className="block break-words word-wrap overflow-wrap hyphens-auto leading-relaxed" 
-                              title={`${customer[header] || 'No data'} - Click to edit`}
-                            >
-                              {customer[header] || '-'}
-                            </span>
-                            {customer[header] && customer[header].length > 50 && (
-                              <div className="absolute -top-1 -right-1 bg-blue-100 text-blue-600 text-xs px-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">
-                                {customer[header].length} chars
-                              </div>
-                            )}
-                          </div>
-                        )}
+                        {renderEditableCell(customer, header, customer[header] || '')}
                       </td>
                     ))}
                   </tr>
