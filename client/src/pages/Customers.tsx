@@ -234,6 +234,24 @@ const Customers: React.FC = () => {
     return Object.keys(firstCustomer).filter(key => key !== 'id' && key !== '_headers');
   };
 
+  // Get column width classes based on header content
+  const getColumnWidthClasses = (header: string) => {
+    const displayHeader = getDisplayHeader(header);
+    
+    // Check for company column (Công ty)
+    if (displayHeader.toLowerCase().includes('công ty')) {
+      return 'min-w-64 max-w-80'; // 2x wider (from 32->64, 60->80)
+    }
+    
+    // Check for address column (Địa chỉ)
+    if (displayHeader.toLowerCase().includes('địa chỉ')) {
+      return 'min-w-96 max-w-none'; // 3x wider (from 32->96, unlimited max)
+    }
+    
+    // Default width for other columns
+    return 'min-w-32 max-w-60';
+  };
+
   // Filter customers based on search term
   const filteredCustomers = customers.filter(customer => {
     const searchLower = searchTerm.toLowerCase();
@@ -413,7 +431,7 @@ const Customers: React.FC = () => {
                   {headers.map((header) => (
                     <th
                       key={header}
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-32 max-w-60"
+                      className={`px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider ${getColumnWidthClasses(header)}`}
                     >
                       <div className="break-words">
                         {getDisplayHeader(header)}
@@ -433,7 +451,7 @@ const Customers: React.FC = () => {
                     {headers.map((header) => (
                       <td
                         key={header}
-                        className="px-6 py-4 text-sm text-gray-900 cursor-pointer transition-colors duration-150 hover:bg-blue-100 max-w-60 min-w-32"
+                        className={`px-6 py-4 text-sm text-gray-900 cursor-pointer transition-colors duration-150 hover:bg-blue-100 ${getColumnWidthClasses(header)}`}
                         onClick={() => handleCellClick(customer.id, header, customer[header] || '')}
                       >
                         {editingCell?.customerId === customer.id && editingCell?.field === header ? (
