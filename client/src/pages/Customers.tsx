@@ -117,6 +117,41 @@ const Customers: React.FC = () => {
     }
   }, [editingItem, editingData]);
 
+  // Handle click outside to save current edit
+  const handleClickOutside = useCallback((event: MouseEvent) => {
+    if (editingItem && editingField) {
+      const target = event.target as HTMLElement;
+      
+      // Don't save if clicking on the same input field
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
+        return;
+      }
+      
+      // Don't save if clicking on action buttons
+      if (target.closest('button')) {
+        return;
+      }
+      
+      // Don't save if clicking on any editable cell div (let the cell's own click handler handle it)
+      const clickedEditableDiv = target.closest('div[title*="Click to edit"]');
+      if (clickedEditableDiv) {
+        // If clicking on a different editable cell, let the click handler process it
+        return;
+      }
+      
+      // Save when clicking outside any editable cell (including outside the table)
+      handleSaveEdit();
+    }
+  }, [editingItem, editingField, handleSaveEdit]);
+
+  // Add click outside listener
+  useEffect(() => {
+    if (editingItem && editingField) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [editingItem, editingField, handleClickOutside]);
+
   // Handle adding new customer
   const handleAddCustomer = () => {
     setShowAddForm(true);
