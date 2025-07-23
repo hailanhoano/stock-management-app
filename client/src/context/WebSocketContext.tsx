@@ -1,6 +1,12 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { io, Socket } from 'socket.io-client';
 
+interface InventoryUpdate {
+  type: 'ADD' | 'UPDATE' | 'DELETE' | 'BULK_DELETE' | 'BULK_CHECKOUT' | 'BULK_SEND_OUT' | 'RELOCATE' | 'REFRESH';
+  data: any;
+  timestamp?: number;
+}
+
 interface WebSocketContextType {
   socket: Socket | null;
   isConnected: boolean;

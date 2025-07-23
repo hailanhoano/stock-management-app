@@ -796,6 +796,8 @@ function processInventoryData(data, source = 'source1') {
     // Set warehouse based on source
     if (source === 'source2') {
       item.warehouse = 'VKT'; // Set warehouse to VKT for source 2
+    } else {
+      item.warehouse = 'TH'; // Set warehouse to TH for source 1
     }
     
         // Use actual row number in sheet (index + 2 because sheets are 1-indexed and we skip header)
@@ -2765,4 +2767,231 @@ server.listen(PORT, () => {
   console.log(`Stock Management Server running on port ${PORT}`);
   console.log(`Health check: http://localhost:${PORT}/api/health`);
   console.log(`WebSocket server ready for real-time updates`);
+}); 
+
+// Relocate inventory items between warehouses/locations
+app.post('/api/stock/inventory/relocate', authenticateToken, async (req, res) => {
+  try {
+    console.log('🔄 Relocation request received:', req.body);
+    const { itemIds, sourceLocation, destinationLocation, notes } = req.body;
+    
+    if (!itemIds || !Array.isArray(itemIds) || itemIds.length === 0) {
+      return res.status(400).json({ message: 'Item IDs are required' });
+    }
+    
+    if (!sourceLocation || !destinationLocation) {
+      return res.status(400).json({ message: 'Source and destination locations are required' });
+    }
+    
+    if (sourceLocation === destinationLocation) {
+      return res.status(400).json({ message: 'Source and destination locations cannot be the same' });
+    }
+    
+    const config = await loadConfig();
+    
+    // Determine source and destination spreadsheet IDs
+    const sourceSpreadsheetId = sourceLocation === 'TH' ? config.spreadsheetIds.inventory : config.spreadsheetIds.inventory2;
+    const destinationSpreadsheetId = destinationLocation === 'TH' ? config.spreadsheetIds.inventory : config.spreadsheetIds.inventory2;
+    
+    if (!sourceSpreadsheetId || !destinationSpreadsheetId) {
+      return res.status(400).json({ message: 'Source or destination spreadsheet not configured' });
+    }
+    
+    console.log(`📊 Relocating ${itemIds.length} items from ${sourceLocation} to ${destinationLocation}`);
+    console.log(`📋 Source sheet: ${sourceSpreadsheetId}`);
+    console.log(`📋 Destination sheet: ${destinationSpreadsheetId}`);
+    
+    // Create auth and sheets client
+    const auth = new google.auth.GoogleAuth({
+      keyFile: 'credentials.json',
+      scopes: ['https://www.googleapis.com/auth/spreadsheets']
+    });
+    const sheets = google.sheets({ version: 'v4', auth });
+    
+    // Fetch current data from source sheet
+    const sourceResponse = await sheets.spreadsheets.values.get({
+      spreadsheetId: sourceSpreadsheetId,
+      range: 'A:Z',
+    });
+    const sourceData = sourceResponse.data.values || [];
+    
+    if (!sourceData || sourceData.length < 2) {
+      return res.status(400).json({ message: 'Invalid source spreadsheet data' });
+    }
+    
+    // Fetch current data from destination sheet
+    const destinationResponse = await sheets.spreadsheets.values.get({
+      spreadsheetId: destinationSpreadsheetId,
+      range: 'A:Z',
+    });
+    const destinationData = destinationResponse.data.values || [];
+    
+    if (!destinationData || destinationData.length < 1) {
+      return res.status(400).json({ message: 'Invalid destination spreadsheet data' });
+    }
+    
+    const sourceHeaders = sourceData[0];
+    const sourceRows = sourceData.slice(1);
+    const destinationHeaders = destinationData[0];
+    
+    // Find items to relocate
+    const itemsToRelocate = [];
+    const rowsToDelete = [];
+    
+    for (const itemId of itemIds) {
+      // Extract the actual row number from the item ID
+      let actualRowNumber;
+      if (itemId.startsWith('th_')) {
+        actualRowNumber = parseInt(itemId.replace('th_', ''));
+      } else if (itemId.startsWith('vkt_')) {
+        actualRowNumber = parseInt(itemId.replace('vkt_', ''));
+      } else {
+        actualRowNumber = parseInt(itemId);
+      }
+      
+      // Find the row in source data (row number is 1-indexed, array is 0-indexed)
+      const rowIndex = actualRowNumber - 2; // -2 because sheet row 1 is header, sheet row 2 is index 0
+      
+      if (rowIndex >= 0 && rowIndex < sourceRows.length) {
+        const rowData = sourceRows[rowIndex];
+        itemsToRelocate.push({
+          originalRowNumber: actualRowNumber,
+          rowIndex: rowIndex,
+          data: rowData
+        });
+        rowsToDelete.push(actualRowNumber); // Store original row numbers for deletion
+      } else {
+        console.log(`⚠️ Item ${itemId} not found in source sheet (row ${actualRowNumber})`);
+      }
+    }
+    
+    if (itemsToRelocate.length === 0) {
+      return res.status(404).json({ message: 'No items found to relocate' });
+    }
+    
+    console.log(`📦 Found ${itemsToRelocate.length} items to relocate`);
+    
+    // Prepare new rows for destination sheet
+    const newRowsForDestination = itemsToRelocate.map(item => {
+      const newRow = [...item.data]; // Copy the row data
+      
+      // Update warehouse field to destination location
+      const warehouseHeaderIndex = sourceHeaders.findIndex(h => h === 'Tên Kho' || h.toLowerCase().includes('warehouse'));
+      if (warehouseHeaderIndex !== -1) {
+        newRow[warehouseHeaderIndex] = destinationLocation;
+      }
+      
+      // Add user-provided notes only (no automatic relocation note)
+      const notesHeaderIndex = sourceHeaders.findIndex(h => h === 'Ghi chú' || h.toLowerCase().includes('notes'));
+      if (notesHeaderIndex !== -1 && notes) {
+        const existingNotes = newRow[notesHeaderIndex] || '';
+        newRow[notesHeaderIndex] = existingNotes ? `${existingNotes}; ${notes}` : notes;
+      }
+      
+      return newRow;
+    });
+    
+    // Add new rows to destination sheet
+    console.log(`➕ Adding ${newRowsForDestination.length} rows to destination sheet`);
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: destinationSpreadsheetId,
+      range: 'A:Z',
+      valueInputOption: 'RAW',
+      insertDataOption: 'INSERT_ROWS',
+      resource: {
+        values: newRowsForDestination
+      }
+    });
+    
+    // Delete rows from source sheet (delete from bottom to top to maintain row indices)
+    rowsToDelete.sort((a, b) => b - a); // Sort descending
+    
+    console.log(`🗑️ Deleting ${rowsToDelete.length} rows from source sheet`);
+    
+    // Get sheet ID for batch delete
+    const sourceSpreadsheet = await sheets.spreadsheets.get({
+      spreadsheetId: sourceSpreadsheetId
+    });
+    const sourceSheetId = sourceSpreadsheet.data.sheets[0].properties.sheetId;
+    
+    // Prepare batch requests for row deletion
+    const deleteRequests = rowsToDelete.map(rowNumber => ({
+      deleteDimension: {
+        range: {
+          sheetId: sourceSheetId,
+          dimension: 'ROWS',
+          startIndex: rowNumber - 1, // Convert to 0-based index
+          endIndex: rowNumber // End index is exclusive
+        }
+      }
+    }));
+    
+    // Execute batch delete
+    if (deleteRequests.length > 0) {
+      await sheets.spreadsheets.batchUpdate({
+        spreadsheetId: sourceSpreadsheetId,
+        resource: {
+          requests: deleteRequests
+        }
+      });
+    }
+    
+    // Log the relocation in change log
+    const changeLog = await loadChangeLog();
+    const relocationEntries = itemsToRelocate.map(item => ({
+      timestamp: Date.now(),
+      userId: req.user.id,
+      userEmail: req.user.email,
+      action: 'RELOCATE',
+      rowId: `${sourceLocation}_${item.originalRowNumber}`,
+      oldValue: { 
+        warehouse: sourceLocation,
+        location: sourceLocation,
+        data: item.data 
+      },
+      newValue: { 
+        warehouse: destinationLocation,
+        location: destinationLocation 
+      },
+      changedFields: {
+        warehouse: {
+          old: sourceLocation,
+          new: destinationLocation,
+          fieldName: 'Warehouse'
+        }
+      },
+      metadata: ['RELOCATION', sourceLocation, destinationLocation, notes || '']
+    }));
+    
+    changeLog.push(...relocationEntries);
+    await saveChangeLog(changeLog);
+    
+    // Broadcast inventory update
+    broadcastInventoryUpdate('RELOCATE', {
+      itemIds,
+      sourceLocation,
+      destinationLocation,
+      itemCount: itemsToRelocate.length,
+      changes: relocationEntries
+    });
+    
+    // Broadcast recent changes
+    const recentChanges = changeLog.slice(-5);
+    broadcastRecentChanges(recentChanges);
+    
+    res.json({
+      success: true,
+      message: `Successfully relocated ${itemsToRelocate.length} item(s) from ${sourceLocation} to ${destinationLocation}`,
+      relocatedItems: itemsToRelocate.length,
+      sourceLocation,
+      destinationLocation
+    });
+    
+  } catch (error) {
+    console.error('❌ Error relocating inventory items:', error);
+    res.status(500).json({ 
+      message: 'Failed to relocate items',
+      error: error.message 
+    });
+  }
 }); 

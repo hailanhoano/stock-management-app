@@ -150,6 +150,90 @@ npm start
 - `GET /api/stock/overview` - Get combined data from all spreadsheets
 - `GET /api/stock/inventory` - Get inventory data
 - `GET /api/stock/analytics` - Get analytics and financial data
+- `POST /api/stock/inventory/relocate` - Relocate items between warehouses (TH ↔ VKT)
+
+### Inventory Relocation
+
+The system supports relocating inventory items between two warehouse locations:
+- **TH** (Thành Hồ) - Primary warehouse
+- **VKT** (Vụ Kiều Trung) - Secondary warehouse
+
+#### How Relocation Works
+
+1. **Multi-location Support**: Each location has its own Google Sheet
+   - TH items are stored in the primary inventory spreadsheet
+   - VKT items are stored in the secondary inventory spreadsheet
+
+2. **Cross-sheet Data Movement**: When relocating items:
+   - Items are removed from the source location's Google Sheet
+   - Items are added to the destination location's Google Sheet
+   - Warehouse field is updated automatically
+   - Relocation notes are added to track the movement
+
+3. **Real-time Updates**: All connected clients receive immediate updates via WebSocket
+
+#### Using the Relocation Feature
+
+**Frontend (Web Interface):**
+1. Go to the Inventory page
+2. Enable "Bulk Actions" mode
+3. Select items you want to relocate (all must be from the same location)
+4. Click "Relocate" button
+5. Choose destination location and add optional notes
+6. Confirm the relocation
+
+**API Endpoint:**
+```javascript
+POST /api/stock/inventory/relocate
+Content-Type: application/json
+Authorization: Bearer <token>
+
+{
+  "itemIds": ["th_2", "th_5"],           // Array of item IDs
+  "sourceLocation": "TH",                // Source warehouse: "TH" or "VKT"
+  "destinationLocation": "VKT",          // Destination warehouse: "TH" or "VKT"
+  "notes": "Reorganization transfer"     // Optional notes
+}
+```
+
+**Response:**
+```javascript
+{
+  "success": true,
+  "message": "Successfully relocated 2 item(s) from TH to VKT",
+  "relocatedItems": 2,
+  "sourceLocation": "TH",
+  "destinationLocation": "VKT"
+}
+```
+
+#### Features
+
+- ✅ **Bulk Relocation**: Move multiple items at once
+- ✅ **Data Integrity**: Automatic validation and error handling
+- ✅ **Audit Trail**: All relocations are logged with timestamps and user info
+- ✅ **Real-time Updates**: WebSocket notifications to all connected clients
+- ✅ **Google Sheets Sync**: Automatic cross-sheet data movement
+- ✅ **Validation**: Prevents invalid operations (same source/destination, missing items, etc.)
+- ✅ **Notes Support**: Add context about why items were relocated
+
+#### Error Handling
+
+The system validates:
+- All selected items exist and are from the same source location
+- Source and destination locations are different
+- Both source and destination spreadsheets are configured
+- User has proper authentication and permissions
+
+#### Testing
+
+Use the provided test script to verify relocation functionality:
+
+```bash
+node test-relocation.js
+```
+
+Make sure to update the `TEST_TOKEN` in the script with a valid authentication token.
 
 ### Health Check
 - `GET /api/health` - Server health status

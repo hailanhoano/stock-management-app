@@ -59,6 +59,8 @@ const Inventory: React.FC = () => {
   const [hasInitialized, setHasInitialized] = useState(false);
   const [showOnlySelected, setShowOnlySelected] = useState(false);
   const [showColumnVisibility, setShowColumnVisibility] = useState(false);
+  const [showRelocationTab, setShowRelocationTab] = useState(false);
+  const [isRelocating, setIsRelocating] = useState(false);
 
   // Column visibility state - initialize from localStorage
   const [columnVisibility, setColumnVisibility] = useState(() => {
@@ -116,7 +118,9 @@ const Inventory: React.FC = () => {
         const items = JSON.parse(savedSelectedItems);
         console.log('📦 Found saved items:', items.length, 'items');
         setSelectedItems(new Set(items));
-        setIsBulkActionMode(true);
+        if (items.length > 0) {
+          setIsBulkActionMode(true); // Automatically enable bulk mode for restored items
+        }
         console.log('✅ Restored selected items from localStorage');
       } catch (error) {
         console.error('❌ Error loading saved selected items:', error);
@@ -138,7 +142,9 @@ const Inventory: React.FC = () => {
       const preservedItems = location.state.selectedItems;
       const preservedSet = new Set<string>(preservedItems.map((item: { id: string }) => item.id));
       setSelectedItems(preservedSet);
-      setIsBulkActionMode(true);
+      if (preservedSet.size > 0) {
+        setIsBulkActionMode(true); // Automatically enable bulk mode for preserved items
+      }
       
       // Clear the state to prevent re-applying on subsequent renders
       navigate(location.pathname, { replace: true });
@@ -465,6 +471,31 @@ const Inventory: React.FC = () => {
               }, 5000);
             }
           }
+          break;
+          
+        case 'BULK_SEND_OUT':
+          console.log('📤 Received bulk send out event');
+          setInventory(prev => {
+            const updatedInventory = [...prev];
+            if (latestUpdate.data.changes) {
+              latestUpdate.data.changes.forEach((change: any) => {
+                const itemIndex = updatedInventory.findIndex(item => item.id === change.rowId);
+                if (itemIndex !== -1 && change.newValue && typeof change.newValue.quantity !== 'undefined') {
+                  updatedInventory[itemIndex] = {
+                    ...updatedInventory[itemIndex],
+                    quantity: change.newValue.quantity.toString()
+                  };
+                }
+              });
+            }
+            return updatedInventory;
+          });
+          break;
+          
+        case 'RELOCATE':
+          console.log('🔄 Received relocation event');
+          // Refresh the entire inventory to get the updated data from both sources
+          loadInventory();
           break;
       }
       
@@ -955,15 +986,24 @@ const handleSelectItem = (itemId: string) => {
   }
   console.log('📋 Current selected items:', Array.from(newSelected));
   setSelectedItems(newSelected);
+  
+  // Automatically enable bulk mode when items are selected
+  if (newSelected.size === 0) {
+    setIsBulkActionMode(false);
+    setShowOnlySelected(false);
+  } else {
+    setIsBulkActionMode(true);
+  }
 };
 
 const handleSelectAll = () => {
   if (selectedItems.size === filteredInventory.length) {
     setSelectedItems(new Set());
     setIsBulkActionMode(false);
+    setShowOnlySelected(false);
   } else {
     setSelectedItems(new Set(filteredInventory.map(item => item.id)));
-    setIsBulkActionMode(true);
+    setIsBulkActionMode(true); // Automatically enable bulk mode
   }
 };
 
@@ -1105,12 +1145,6 @@ const handleBulkSendOut = async () => {
     return;
   }
 
-  const confirmed = window.confirm(
-    `Are you sure you want to send out ${selectedItems.size} selected item(s)?\n\nThis will reduce the quantities by 1 and mark items as "Sent Out".`
-  );
-
-  if (!confirmed) return;
-
   try {
     setLoading(true);
     const token = localStorage.getItem('token');
@@ -1153,6 +1187,111 @@ const handleBulkSendOut = async () => {
   }
 };
 
+  // Handle relocation of selected items
+  const handleRelocateItems = async (destinationLocation: string, notes: string = '') => {
+    if (selectedItems.size === 0) {
+      alert('Please select items to relocate');
+      return;
+    }
+
+    // Determine source location based on selected items
+    const selectedItemsList = Array.from(selectedItems);
+    const firstItem = inventory.find(item => item.id === selectedItemsList[0]);
+    
+    console.log('🔍 Relocation Debug:');
+    console.log('Selected items:', selectedItemsList);
+    console.log('First item:', firstItem);
+    console.log('First item warehouse:', firstItem?.warehouse);
+    
+    if (!firstItem) {
+      alert('Selected items not found');
+      return;
+    }
+
+    const sourceLocation = firstItem.warehouse;
+    console.log('Source location determined:', sourceLocation);
+    console.log('Destination location:', destinationLocation);
+    
+    if (!sourceLocation) {
+      alert('Unable to determine source location. Please refresh the page and try again.');
+      return;
+    }
+    
+    // Validate all selected items are from the same location
+    const allFromSameLocation = selectedItemsList.every(itemId => {
+      const item = inventory.find(i => i.id === itemId);
+      return item && item.warehouse === sourceLocation;
+    });
+
+    if (!allFromSameLocation) {
+      alert('All selected items must be from the same location');
+      return;
+    }
+
+    if (sourceLocation === destinationLocation) {
+      alert('Items are already in the selected location');
+      return;
+    }
+
+    try {
+      setIsRelocating(true);
+      setShowRelocationTab(false); // Close tab immediately
+      const token = localStorage.getItem('token');
+      
+      const requestData = {
+        itemIds: selectedItemsList,
+        sourceLocation,
+        destinationLocation,
+        notes
+      };
+      
+      console.log('🚀 Sending relocation request:', requestData);
+      
+      const response = await fetch('/api/stock/inventory/relocate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(requestData)
+      });
+
+      const result = await response.json();
+      console.log('📨 Relocation response:', result);
+
+      if (response.ok) {
+        // Clear selection and refresh inventory
+        setSelectedItems(new Set());
+        setIsBulkActionMode(false);
+        setShowOnlySelected(false);
+        localStorage.removeItem('inventorySelectedItems');
+        
+        // Refresh inventory data
+        await loadInventory();
+      } else {
+        console.error('❌ Relocation failed:', result);
+        alert(`❌ Error: ${result.message}`);
+      }
+    } catch (error) {
+      console.error('❌ Error relocating items:', error);
+      alert('❌ An error occurred during relocation. Please try again.');
+    } finally {
+      setIsRelocating(false);
+    }
+  };
+
+  // Get locations for relocation
+  const getAvailableLocations = () => {
+    const locations = ['TH', 'VKT'];
+    const selectedItemsList = Array.from(selectedItems);
+    
+    if (selectedItemsList.length === 0) return locations;
+    
+    const firstItem = inventory.find(item => item.id === selectedItemsList[0]);
+    const currentLocation = firstItem?.warehouse;
+    
+    return locations.filter(loc => loc !== currentLocation);
+  };
 
   if (loading) {
     return (
@@ -1732,6 +1871,10 @@ const handleBulkSendOut = async () => {
           </div>
 
           <div className="flex items-center space-x-2">
+
+            
+
+            
             {/* Column Toggle */}
             <button
               onClick={() => setShowColumnVisibility(!showColumnVisibility)}
@@ -1741,36 +1884,203 @@ const handleBulkSendOut = async () => {
               ⊞ Columns ({Object.values(columnVisibility).filter(Boolean).length})
             </button>
             
-            {/* Bulk Actions */}
-            {selectedItems.size > 0 && (
-              <>
-                <button
-                  onClick={handleShowSelectedItems}
-                  className={`px-3 py-1.5 text-xs rounded ${
-                    showOnlySelected 
-                      ? 'bg-blue-100 text-blue-700' 
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                  title={showOnlySelected ? "Show all items" : "Show only selected"}
-                >
-                  {selectedItems.size} selected
-                </button>
-                <button onClick={handleBulkCheckout} className="px-2 py-1.5 bg-green-600 text-white text-xs rounded hover:bg-green-700" title="Checkout">
-                  🛒 {selectedItems.size}
-                </button>
-                <button onClick={handleBulkSendOut} className="px-2 py-1.5 bg-orange-600 text-white text-xs rounded hover:bg-orange-700" title="Send out">
-                  📦 {selectedItems.size}
-                </button>
-                <button onClick={handleBulkDelete} disabled={isDeletionInProgress} className="px-2 py-1.5 bg-red-600 text-white text-xs rounded hover:bg-red-700 disabled:opacity-50" title="Delete">
-                  🗑️ {selectedItems.size}
-                </button>
-                <button onClick={handleClearSelection} className="px-2 py-1.5 bg-gray-100 text-gray-700 text-xs rounded hover:bg-gray-200" title="Clear">
-                  ✕
-                </button>
-              </>
-            )}
+
           </div>
         </div>
+
+        {/* Bulk Actions Bar - Separate Prominent Section */}
+        {isBulkActionMode && selectedItems.size > 0 && (
+          <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="flex items-center space-x-2">
+                  <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <button
+                    onClick={handleShowSelectedItems}
+                    className={`text-lg font-semibold transition-colors cursor-pointer hover:underline ${
+                      showOnlySelected 
+                        ? 'text-blue-900' 
+                        : 'text-blue-800 hover:text-blue-900'
+                    }`}
+                    title={showOnlySelected ? "Click to show all items" : "Click to show only selected items"}
+                  >
+                    {selectedItems.size} item(s) selected {showOnlySelected && '(filtered)'}
+                  </button>
+                </div>
+              </div>
+              
+              <div className="flex items-center space-x-3">
+                <button
+                  onClick={() => setShowRelocationTab(!showRelocationTab)}
+                  disabled={isRelocating}
+                  className={`px-4 py-2 text-white text-sm font-medium rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 transition-colors ${
+                    showRelocationTab 
+                      ? 'bg-green-700 hover:bg-green-800' 
+                      : 'bg-green-600 hover:bg-green-700'
+                  }`}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                  <span>{isRelocating ? 'Relocating...' : showRelocationTab ? 'Hide Relocate' : 'Relocate'}</span>
+                </button>
+                
+                <button
+                  onClick={() => {
+                    handleBulkSendOut();
+                  }}
+                  disabled={isBulkDeleteInProgress}
+                  className="px-4 py-2 bg-orange-600 text-white text-sm font-medium rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {isBulkDeleteInProgress ? 'Processing...' : 'Send Out'}
+                </button>
+                
+                <button
+                  onClick={() => {
+                    handleBulkCheckout();
+                  }}
+                  className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Checkout
+                </button>
+                
+                <button
+                  onClick={() => {
+                    handleBulkDelete();
+                  }}
+                  disabled={isBulkDeleteInProgress}
+                  className="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {isBulkDeleteInProgress ? 'Deleting...' : 'Delete'}
+                </button>
+                
+                <button
+                  onClick={() => {
+                    setSelectedItems(new Set());
+                    setIsBulkActionMode(false);
+                    setShowOnlySelected(false);
+                    localStorage.removeItem('inventorySelectedItems');
+                  }}
+                  className="px-4 py-2 bg-gray-500 text-white text-sm font-medium rounded-lg hover:bg-gray-600 transition-colors"
+                >
+                  Clear Selection
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Expandable Relocation Tab */}
+        {showRelocationTab && (
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-medium text-green-800 flex items-center">
+                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+                Relocate Items
+              </h3>
+              <button
+                onClick={() => setShowRelocationTab(false)}
+                className="text-green-600 hover:text-green-800"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <div>
+                  <p className="text-sm text-green-700 mb-3">
+                    Moving <span className="font-medium">{selectedItems.size}</span> item(s) from{' '}
+                    <span className="font-medium">
+                      {(() => {
+                        const selectedItemsList = Array.from(selectedItems);
+                        const firstItem = inventory.find(item => item.id === selectedItemsList[0]);
+                        return firstItem?.warehouse || 'Unknown';
+                      })()}
+                    </span>
+                  </p>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-green-700 mb-2">
+                    Destination Location *
+                  </label>
+                  <select
+                    id="destinationLocation"
+                    className="w-full px-3 py-2 border border-green-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 bg-white"
+                    defaultValue={getAvailableLocations()[0] || ""}
+                  >
+                    {getAvailableLocations().map(location => (
+                      <option key={location} value={location}>
+                        {location === 'TH' ? 'TH - Tân Hải' : 'VKT - Vĩnh Kiến Thịnh'}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-green-700 mb-2">
+                  Relocation Notes (Optional)
+                </label>
+                <textarea
+                  id="relocationNotes"
+                  rows={4}
+                  className="w-full px-3 py-2 border border-green-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 bg-white resize-none"
+                  placeholder="Add detailed notes about this relocation...&#10;&#10;Example:&#10;• Reason for relocation&#10;• Special handling instructions&#10;• Quality notes"
+                />
+              </div>
+            </div>
+            
+            <div className="flex justify-end space-x-3 mt-4">
+              <button
+                onClick={() => setShowRelocationTab(false)}
+                disabled={isRelocating}
+                className="px-4 py-2 text-sm font-medium text-green-700 bg-green-100 rounded-md hover:bg-green-200 disabled:opacity-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  const destinationSelect = document.getElementById('destinationLocation') as HTMLSelectElement;
+                  const notesTextarea = document.getElementById('relocationNotes') as HTMLTextAreaElement;
+                  
+                  if (!destinationSelect.value) {
+                    alert('Please select a destination location');
+                    return;
+                  }
+                  
+                  handleRelocateItems(destinationSelect.value, notesTextarea.value);
+                }}
+                disabled={isRelocating}
+                className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 disabled:opacity-50 flex items-center space-x-2 transition-colors"
+              >
+                {isRelocating ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span>Relocating...</span>
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                    <span>Relocate Items</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Column Visibility Panel */}
         {showColumnVisibility && (
@@ -2346,6 +2656,9 @@ const handleBulkSendOut = async () => {
           </div>
         </div>
       )}
+
+      {/* Relocation Modal */}
+
     </div>
   );
 };
