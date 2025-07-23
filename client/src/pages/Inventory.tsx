@@ -1992,10 +1992,10 @@ const handleBulkSendOut = async () => {
               </button>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+              <div className="space-y-3">
                 <div>
-                  <p className="text-sm text-green-700 mb-3">
+                  <p className="text-sm text-green-700 mb-2">
                     Moving <span className="font-medium">{selectedItems.size}</span> item(s) from{' '}
                     <span className="font-medium">
                       {(() => {
@@ -2023,61 +2023,60 @@ const handleBulkSendOut = async () => {
                     ))}
                   </select>
                 </div>
+                
+                <div className="flex justify-start space-x-3">
+                  <button
+                    onClick={() => setShowRelocationTab(false)}
+                    disabled={isRelocating}
+                    className="px-4 py-2 text-sm font-medium text-green-700 bg-green-100 rounded-md hover:bg-green-200 disabled:opacity-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => {
+                      const destinationSelect = document.getElementById('destinationLocation') as HTMLSelectElement;
+                      const notesTextarea = document.getElementById('relocationNotes') as HTMLTextAreaElement;
+                      
+                      if (!destinationSelect.value) {
+                        alert('Please select a destination location');
+                        return;
+                      }
+                      
+                      handleRelocateItems(destinationSelect.value, notesTextarea.value);
+                    }}
+                    disabled={isRelocating}
+                    className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 disabled:opacity-50 flex items-center space-x-2 transition-colors"
+                  >
+                    {isRelocating ? (
+                      <>
+                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span>Relocating...</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                        <span>Relocate Items</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
               
-              <div>
+              <div className="flex flex-col h-full">
                 <label className="block text-sm font-medium text-green-700 mb-2">
                   Relocation Notes (Optional)
                 </label>
                 <textarea
                   id="relocationNotes"
-                  rows={4}
-                  className="w-full px-3 py-2 border border-green-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 bg-white resize-none"
+                  className="w-full px-3 py-2 border border-green-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 bg-white resize-none flex-1"
                   placeholder="Add detailed notes about this relocation...&#10;&#10;Example:&#10;• Reason for relocation&#10;• Special handling instructions&#10;• Quality notes"
                 />
               </div>
-            </div>
-            
-            <div className="flex justify-end space-x-3 mt-4">
-              <button
-                onClick={() => setShowRelocationTab(false)}
-                disabled={isRelocating}
-                className="px-4 py-2 text-sm font-medium text-green-700 bg-green-100 rounded-md hover:bg-green-200 disabled:opacity-50 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  const destinationSelect = document.getElementById('destinationLocation') as HTMLSelectElement;
-                  const notesTextarea = document.getElementById('relocationNotes') as HTMLTextAreaElement;
-                  
-                  if (!destinationSelect.value) {
-                    alert('Please select a destination location');
-                    return;
-                  }
-                  
-                  handleRelocateItems(destinationSelect.value, notesTextarea.value);
-                }}
-                disabled={isRelocating}
-                className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 disabled:opacity-50 flex items-center space-x-2 transition-colors"
-              >
-                {isRelocating ? (
-                  <>
-                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    <span>Relocating...</span>
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                    </svg>
-                    <span>Relocate Items</span>
-                  </>
-                )}
-              </button>
             </div>
           </div>
         )}
