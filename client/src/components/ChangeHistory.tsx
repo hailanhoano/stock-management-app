@@ -82,8 +82,12 @@ const ChangeHistory: React.FC<ChangeHistoryProps> = ({ isOpen, onClose }) => {
         return 'Bulk Checkout';
       case 'BULK_SEND_OUT':
         return 'Bulk Send Out';
+      case 'SEND_OUT':
+        return 'Send Out';
       case 'CHECKOUT':
         return 'Checkout';
+      case 'RELOCATE':
+        return 'Relocate';
       default:
         return action;
     }

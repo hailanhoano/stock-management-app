@@ -2227,110 +2227,176 @@ app.post('/api/stock/bulk-checkout', authenticateToken, async (req, res) => {
 
 app.post('/api/stock/bulk-send-out', authenticateToken, async (req, res) => {
   try {
-    const { itemIds, quantities } = req.body;
+    const { itemIds, quantities, notes } = req.body;
     const config = await loadConfig();
     
     if (!itemIds || !Array.isArray(itemIds) || itemIds.length === 0) {
       return res.status(400).json({ message: 'Item IDs are required' });
     }
 
-    console.log('Processing bulk send out for items:', itemIds);
+    console.log('🚀 Processing bulk send out for items:', itemIds);
+    console.log('📝 Send out notes:', notes);
     
-    // Fetch current inventory data
-    const currentData = await fetchSheetData(config.spreadsheetIds.inventory, 'A:Z');
-    const headers = currentData[0];
-    const rows = currentData.slice(1);
+    // Create auth and sheets client
+    const auth = new google.auth.GoogleAuth({
+      keyFile: 'credentials.json',
+      scopes: ['https://www.googleapis.com/auth/spreadsheets']
+    });
+    const sheets = google.sheets({ version: 'v4', auth });
     
     const changeLog = await loadChangeLog();
-    const updates = [];
+    const sendOutEntries = [];
     
+    // Process each item ID
     for (const itemId of itemIds) {
-      const rowIndex = parseInt(itemId) - 1; // Convert to 0-based index
+      let actualRowNumber;
+      let spreadsheetId;
+      let sourceLocation;
+      
+      // Determine source and row number from item ID
+      if (itemId.startsWith('th_')) {
+        actualRowNumber = parseInt(itemId.replace('th_', ''));
+        spreadsheetId = config.spreadsheetIds.inventory;
+        sourceLocation = 'TH';
+      } else if (itemId.startsWith('vkt_')) {
+        actualRowNumber = parseInt(itemId.replace('vkt_', ''));
+        spreadsheetId = config.spreadsheetIds.inventory2;
+        sourceLocation = 'VKT';
+      } else {
+        // Default to TH for backward compatibility
+        actualRowNumber = parseInt(itemId);
+        spreadsheetId = config.spreadsheetIds.inventory;
+        sourceLocation = 'TH';
+      }
+      
+      // Fetch current data from the appropriate sheet
+      const response = await sheets.spreadsheets.values.get({
+        spreadsheetId: spreadsheetId,
+        range: 'A:Z',
+      });
+      const currentData = response.data.values || [];
+      
+      if (!currentData || currentData.length < 2) {
+        continue; // Skip if no data
+      }
+      
+      const headers = currentData[0];
+      const rows = currentData.slice(1);
+      const rowIndex = actualRowNumber - 2; // -2 because sheet row 1 is header, sheet row 2 is index 0
+      
       if (rowIndex >= 0 && rowIndex < rows.length) {
-        const row = rows[rowIndex];
-        const currentQuantity = parseInt(row[headers.findIndex(h => h.toLowerCase().includes('quantity'))] || 0);
-        const requestedQuantity = quantities[itemId] || 1;
+        const row = [...rows[rowIndex]]; // Copy the row
+        const quantityColIndex = headers.findIndex(h => h.toLowerCase().includes('quantity') || h === 'Số lượng');
+        // Column O is index 14 (0-based)
+        const sentOutColIndex = 14;
         
-        if (currentQuantity < requestedQuantity) {
-          return res.status(400).json({ 
-            message: `Insufficient quantity for item ${itemId}. Available: ${currentQuantity}, Requested: ${requestedQuantity}` 
-          });
+        const currentQuantity = parseInt(row[quantityColIndex] || '0');
+        const sendOutQty = quantities && typeof quantities[itemId] === 'number' ? parseInt(quantities[itemId]) : currentQuantity;
+        const newQuantity = Math.max(0, currentQuantity - sendOutQty);
+        row[quantityColIndex] = newQuantity.toString();
+        
+        // Write sent out quantity and timestamp to column O
+        const now = new Date();
+        const melbourneTime = now.toLocaleString('en-AU', {
+          timeZone: 'Australia/Melbourne',
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false
+        });
+        // Format: 'qty @ YYYY-MM-DD HH:mm - userEmail - notes' if notes provided
+        const [datePart, timePart] = melbourneTime.split(', ');
+        const [day, month, year] = datePart.split('/');
+        // Use only the username part before @
+        const userName = req.user.email.split('@')[0];
+        let sendOutString = `${sendOutQty} @ ${year}-${month}-${day} ${timePart} - ${userName}`;
+        if (notes && notes.trim()) {
+          sendOutString += ` - ${notes.trim()}`;
         }
-        
-        // Update quantity
-        const newQuantity = currentQuantity - requestedQuantity;
-        row[headers.findIndex(h => h.toLowerCase().includes('quantity'))] = newQuantity.toString();
-        
-        // Update status to "Sent Out" if status column exists
-        const statusIndex = headers.findIndex(h => h.toLowerCase().includes('status'));
-        if (statusIndex !== -1) {
-          row[statusIndex] = 'Sent Out';
+        // Append to previous data in the cell, separated by newline
+        let prevSendOuts = row[sentOutColIndex] || '';
+        if (prevSendOuts && prevSendOuts.trim()) {
+          row[sentOutColIndex] = prevSendOuts.trim() + '\n' + sendOutString;
+        } else {
+          row[sentOutColIndex] = sendOutString;
         }
+        // Update the Google Sheet
+        await sheets.spreadsheets.values.update({
+          spreadsheetId: spreadsheetId,
+          range: `A${actualRowNumber}:Z${actualRowNumber}`,
+          valueInputOption: 'RAW',
+          resource: {
+            values: [row]
+          }
+        });
         
-        // Add to change log
+        // Create change log entry with proper user tracking and notes
         const changeEntry = {
           timestamp: Date.now(),
           userId: req.user.id,
           userEmail: req.user.email,
-          action: 'BULK_SEND_OUT',
+          action: 'SEND_OUT',
           rowId: itemId,
-          oldValue: { quantity: currentQuantity },
-          newValue: { quantity: newQuantity, status: 'Sent Out' },
+          oldValue: { 
+            quantity: currentQuantity,
+            location: sourceLocation,
+            data: rows[rowIndex]
+          },
+          newValue: { 
+            quantity: newQuantity,
+            location: sourceLocation,
+            sentOut: true
+          },
           changedFields: {
             quantity: {
               old: currentQuantity,
               new: newQuantity,
               fieldName: 'Quantity'
             },
-            status: {
-              old: row[statusIndex] || '',
-              new: 'Sent Out',
-              fieldName: 'Status'
+            sentOut: {
+              old: '',
+              new: sendOutString,
+              fieldName: 'Sent Out'
             }
           },
-          metadata: ['BULK_ACTION', 'SEND_OUT', requestedQuantity.toString()]
+          metadata: ['SEND_OUT', sourceLocation, notes || '', sendOutQty.toString()]
         };
         
-        changeLog.push(changeEntry);
-        updates.push({ rowIndex: rowIndex + 2, row }); // +2 for Google Sheets row offset
+        sendOutEntries.push(changeEntry);
       }
     }
     
-    // Update Google Sheets
-    for (const update of updates) {
-      await sheets.spreadsheets.values.update({
-        spreadsheetId: config.spreadsheetIds.inventory,
-        range: `A${update.rowIndex}:Z${update.rowIndex}`,
-        valueInputOption: 'RAW',
-        resource: {
-          values: [update.row]
-        }
-      });
-    }
-    
-    // Save change log
+    // Add all send out entries to change log
+    changeLog.push(...sendOutEntries);
     await saveChangeLog(changeLog);
     
-    // Broadcast updates
+    // Broadcast inventory update
     broadcastInventoryUpdate('BULK_SEND_OUT', {
       itemIds,
       quantities,
-      changes: changeLog.slice(-itemIds.length)
+      notes,
+      itemCount: sendOutEntries.length,
+      changes: sendOutEntries
     });
     
     // Broadcast recent changes
     const recentChanges = changeLog.slice(-5);
     broadcastRecentChanges(recentChanges);
     
+    console.log(`✅ Successfully sent out ${sendOutEntries.length} items`);
+    
     res.json({
       success: true,
-      message: `Successfully sent out ${itemIds.length} items`,
-      updatedItems: itemIds
+      message: `Successfully sent out ${sendOutEntries.length} items`,
+      updatedItems: itemIds,
+      processedItems: sendOutEntries.length
     });
     
   } catch (error) {
-    console.error('Error processing bulk send out:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    console.error('❌ Error processing bulk send out:', error);
+    res.status(500).json({ message: 'Internal server error: ' + error.message });
   }
 });
 
@@ -2773,7 +2839,7 @@ server.listen(PORT, () => {
 app.post('/api/stock/inventory/relocate', authenticateToken, async (req, res) => {
   try {
     console.log('🔄 Relocation request received:', req.body);
-    const { itemIds, sourceLocation, destinationLocation, notes } = req.body;
+    const { itemIds, sourceLocation, destinationLocation, notes, quantities } = req.body;
     
     if (!itemIds || !Array.isArray(itemIds) || itemIds.length === 0) {
       return res.status(400).json({ message: 'Item IDs are required' });
@@ -2837,7 +2903,10 @@ app.post('/api/stock/inventory/relocate', authenticateToken, async (req, res) =>
     // Find items to relocate
     const itemsToRelocate = [];
     const rowsToDelete = [];
-    
+    const rowsToUpdate = [];
+    const newRowsForDestination = [];
+    const relocationEntries = [];
+
     for (const itemId of itemIds) {
       // Extract the actual row number from the item ID
       let actualRowNumber;
@@ -2848,51 +2917,72 @@ app.post('/api/stock/inventory/relocate', authenticateToken, async (req, res) =>
       } else {
         actualRowNumber = parseInt(itemId);
       }
-      
       // Find the row in source data (row number is 1-indexed, array is 0-indexed)
       const rowIndex = actualRowNumber - 2; // -2 because sheet row 1 is header, sheet row 2 is index 0
-      
       if (rowIndex >= 0 && rowIndex < sourceRows.length) {
-        const rowData = sourceRows[rowIndex];
-        itemsToRelocate.push({
-          originalRowNumber: actualRowNumber,
-          rowIndex: rowIndex,
-          data: rowData
+        const rowData = [...sourceRows[rowIndex]];
+        const quantityColIndex = sourceHeaders.findIndex(h => h.toLowerCase().includes('quantity') || h === 'Số lượng');
+        const notesColIndex = sourceHeaders.findIndex(h => h === 'Ghi chú' || h.toLowerCase().includes('notes'));
+        const warehouseHeaderIndex = sourceHeaders.findIndex(h => h === 'Tên Kho' || h.toLowerCase().includes('warehouse'));
+        const availableQty = parseInt(rowData[quantityColIndex] || '0');
+        const relocateQty = quantities && typeof quantities[itemId] === 'number' ? parseInt(quantities[itemId]) : availableQty;
+        if (relocateQty > availableQty) continue; // skip invalid
+        // Prepare new row for destination
+        const newRow = [...rowData];
+        newRow[quantityColIndex] = relocateQty.toString();
+        if (warehouseHeaderIndex !== -1) newRow[warehouseHeaderIndex] = destinationLocation;
+        if (notesColIndex !== -1 && notes) {
+          const existingNotes = newRow[notesColIndex] || '';
+          newRow[notesColIndex] = existingNotes ? `${existingNotes}; ${notes}` : notes;
+        }
+        newRowsForDestination.push(newRow);
+        // Prepare change log entry
+        relocationEntries.push({
+          timestamp: Date.now(),
+          userId: req.user.id,
+          userEmail: req.user.email,
+          action: 'RELOCATE',
+          rowId: `${sourceLocation}_${actualRowNumber}`,
+          oldValue: {
+            warehouse: sourceLocation,
+            location: sourceLocation,
+            data: rowData,
+            quantity: availableQty
+          },
+          newValue: {
+            warehouse: destinationLocation,
+            location: destinationLocation,
+            quantity: relocateQty
+          },
+          changedFields: {
+            warehouse: {
+              old: sourceLocation,
+              new: destinationLocation,
+              fieldName: 'Warehouse'
+            },
+            quantity: {
+              old: availableQty,
+              new: availableQty - relocateQty,
+              fieldName: 'Quantity'
+            }
+          },
+          metadata: ['RELOCATION', sourceLocation, destinationLocation, notes || '', relocateQty.toString()]
         });
-        rowsToDelete.push(actualRowNumber); // Store original row numbers for deletion
-      } else {
-        console.log(`⚠️ Item ${itemId} not found in source sheet (row ${actualRowNumber})`);
+        if (relocateQty === availableQty) {
+          // Full move: delete the row from source
+          rowsToDelete.push(actualRowNumber);
+        } else {
+          // Partial move: update the source row's quantity
+          const updatedRow = [...rowData];
+          updatedRow[quantityColIndex] = (availableQty - relocateQty).toString();
+          rowsToUpdate.push({ rowIndex, updatedRow });
+        }
       }
     }
-    
-    if (itemsToRelocate.length === 0) {
+    if (newRowsForDestination.length === 0) {
       return res.status(404).json({ message: 'No items found to relocate' });
     }
-    
-    console.log(`📦 Found ${itemsToRelocate.length} items to relocate`);
-    
-    // Prepare new rows for destination sheet
-    const newRowsForDestination = itemsToRelocate.map(item => {
-      const newRow = [...item.data]; // Copy the row data
-      
-      // Update warehouse field to destination location
-      const warehouseHeaderIndex = sourceHeaders.findIndex(h => h === 'Tên Kho' || h.toLowerCase().includes('warehouse'));
-      if (warehouseHeaderIndex !== -1) {
-        newRow[warehouseHeaderIndex] = destinationLocation;
-      }
-      
-      // Add user-provided notes only (no automatic relocation note)
-      const notesHeaderIndex = sourceHeaders.findIndex(h => h === 'Ghi chú' || h.toLowerCase().includes('notes'));
-      if (notesHeaderIndex !== -1 && notes) {
-        const existingNotes = newRow[notesHeaderIndex] || '';
-        newRow[notesHeaderIndex] = existingNotes ? `${existingNotes}; ${notes}` : notes;
-      }
-      
-      return newRow;
-    });
-    
     // Add new rows to destination sheet
-    console.log(`➕ Adding ${newRowsForDestination.length} rows to destination sheet`);
     await sheets.spreadsheets.values.append({
       spreadsheetId: destinationSpreadsheetId,
       range: 'A:Z',
@@ -2902,32 +2992,34 @@ app.post('/api/stock/inventory/relocate', authenticateToken, async (req, res) =>
         values: newRowsForDestination
       }
     });
-    
-    // Delete rows from source sheet (delete from bottom to top to maintain row indices)
-    rowsToDelete.sort((a, b) => b - a); // Sort descending
-    
-    console.log(`🗑️ Deleting ${rowsToDelete.length} rows from source sheet`);
-    
-    // Get sheet ID for batch delete
-    const sourceSpreadsheet = await sheets.spreadsheets.get({
-      spreadsheetId: sourceSpreadsheetId
-    });
-    const sourceSheetId = sourceSpreadsheet.data.sheets[0].properties.sheetId;
-    
-    // Prepare batch requests for row deletion
-    const deleteRequests = rowsToDelete.map(rowNumber => ({
-      deleteDimension: {
-        range: {
-          sheetId: sourceSheetId,
-          dimension: 'ROWS',
-          startIndex: rowNumber - 1, // Convert to 0-based index
-          endIndex: rowNumber // End index is exclusive
+    // Update source rows for partial moves
+    for (const { rowIndex, updatedRow } of rowsToUpdate) {
+      await sheets.spreadsheets.values.update({
+        spreadsheetId: sourceSpreadsheetId,
+        range: `A${rowIndex + 2}:Z${rowIndex + 2}`,
+        valueInputOption: 'RAW',
+        resource: {
+          values: [updatedRow]
         }
-      }
-    }));
-    
-    // Execute batch delete
-    if (deleteRequests.length > 0) {
+      });
+    }
+    // Delete rows from source sheet (delete from bottom to top to maintain row indices)
+    rowsToDelete.sort((a, b) => b - a);
+    if (rowsToDelete.length > 0) {
+      const sourceSpreadsheet = await sheets.spreadsheets.get({
+        spreadsheetId: sourceSpreadsheetId
+      });
+      const sourceSheetId = sourceSpreadsheet.data.sheets[0].properties.sheetId;
+      const deleteRequests = rowsToDelete.map(rowNumber => ({
+        deleteDimension: {
+          range: {
+            sheetId: sourceSheetId,
+            dimension: 'ROWS',
+            startIndex: rowNumber - 1,
+            endIndex: rowNumber
+          }
+        }
+      }));
       await sheets.spreadsheets.batchUpdate({
         spreadsheetId: sourceSpreadsheetId,
         resource: {
@@ -2935,58 +3027,28 @@ app.post('/api/stock/inventory/relocate', authenticateToken, async (req, res) =>
         }
       });
     }
-    
     // Log the relocation in change log
     const changeLog = await loadChangeLog();
-    const relocationEntries = itemsToRelocate.map(item => ({
-      timestamp: Date.now(),
-      userId: req.user.id,
-      userEmail: req.user.email,
-      action: 'RELOCATE',
-      rowId: `${sourceLocation}_${item.originalRowNumber}`,
-      oldValue: { 
-        warehouse: sourceLocation,
-        location: sourceLocation,
-        data: item.data 
-      },
-      newValue: { 
-        warehouse: destinationLocation,
-        location: destinationLocation 
-      },
-      changedFields: {
-        warehouse: {
-          old: sourceLocation,
-          new: destinationLocation,
-          fieldName: 'Warehouse'
-        }
-      },
-      metadata: ['RELOCATION', sourceLocation, destinationLocation, notes || '']
-    }));
-    
     changeLog.push(...relocationEntries);
     await saveChangeLog(changeLog);
-    
     // Broadcast inventory update
     broadcastInventoryUpdate('RELOCATE', {
       itemIds,
       sourceLocation,
       destinationLocation,
-      itemCount: itemsToRelocate.length,
+      itemCount: newRowsForDestination.length,
       changes: relocationEntries
     });
-    
     // Broadcast recent changes
     const recentChanges = changeLog.slice(-5);
     broadcastRecentChanges(recentChanges);
-    
     res.json({
       success: true,
-      message: `Successfully relocated ${itemsToRelocate.length} item(s) from ${sourceLocation} to ${destinationLocation}`,
-      relocatedItems: itemsToRelocate.length,
+      message: `Successfully relocated ${newRowsForDestination.length} item(s) from ${sourceLocation} to ${destinationLocation}`,
+      relocatedItems: newRowsForDestination.length,
       sourceLocation,
       destinationLocation
     });
-    
   } catch (error) {
     console.error('❌ Error relocating inventory items:', error);
     res.status(500).json({ 

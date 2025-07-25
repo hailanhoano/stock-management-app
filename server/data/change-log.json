@@ -31268,5 +31268,2324 @@
       "admin@example.com",
       "1"
     ]
+  },
+  {
+    "timestamp": 1753274261625,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "th_101",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "23/07/2025, 10:37:41 pm",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1753439269320,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "ADD",
+    "rowId": "601",
+    "newValue": {
+      "brand": "test",
+      "product_code": "3",
+      "product_name": "3",
+      "quantity": "2",
+      "warehouse": "TH",
+      "targetSource": "source1"
+    },
+    "changedFields": {
+      "brand": {
+        "old": "",
+        "new": "test",
+        "fieldName": "brand"
+      },
+      "product_code": {
+        "old": "",
+        "new": "3",
+        "fieldName": "product_code"
+      },
+      "product_name": {
+        "old": "",
+        "new": "3",
+        "fieldName": "product_name"
+      },
+      "quantity": {
+        "old": "",
+        "new": "2",
+        "fieldName": "quantity"
+      },
+      "warehouse": {
+        "old": "",
+        "new": "TH",
+        "fieldName": "warehouse"
+      },
+      "targetSource": {
+        "old": "",
+        "new": "source1",
+        "fieldName": "targetSource"
+      }
+    },
+    "metadata": [
+      "25/07/2025, 8:27:49 pm",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1753444121830,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "vkt_130",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "25/07/2025, 9:48:41 pm",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1753444143558,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "vkt_130",
+    "oldValue": {
+      "quantity": "0"
+    },
+    "newValue": {
+      "quantity": "25"
+    },
+    "changedFields": {
+      "quantity": {
+        "old": "0",
+        "new": "25",
+        "fieldName": "Số lượng"
+      }
+    },
+    "metadata": [
+      "25/07/2025, 9:49:03 pm",
+      "admin@example.com",
+      "26"
+    ]
+  },
+  {
+    "timestamp": 1753444147569,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "vkt_131",
+    "oldValue": {
+      "quantity": ""
+    },
+    "newValue": {
+      "quantity": "43"
+    },
+    "changedFields": {
+      "quantity": {
+        "old": "",
+        "new": "43",
+        "fieldName": "Số lượng"
+      }
+    },
+    "metadata": [
+      "25/07/2025, 9:49:07 pm",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1753444163862,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "SEND_OUT",
+    "rowId": "vkt_130",
+    "oldValue": {
+      "quantity": 25,
+      "location": "VKT",
+      "data": [
+        "test",
+        "1",
+        "1",
+        "25",
+        "",
+        "",
+        "VKT",
+        "",
+        "",
+        "",
+        "test; 3; 4; luu kho; Sent out 1 items",
+        "25/07/2025, 9:49:03 pm",
+        "admin@example.com",
+        "26"
+      ]
+    },
+    "newValue": {
+      "quantity": 0,
+      "location": "VKT",
+      "sentOut": true
+    },
+    "changedFields": {
+      "quantity": {
+        "old": 25,
+        "new": 0,
+        "fieldName": "Quantity"
+      }
+    },
+    "metadata": [
+      "SEND_OUT",
+      "VKT",
+      "",
+      "25"
+    ]
+  },
+  {
+    "timestamp": 1753444164564,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "SEND_OUT",
+    "rowId": "vkt_131",
+    "oldValue": {
+      "quantity": 43,
+      "location": "VKT",
+      "data": [
+        "test",
+        "2",
+        "2",
+        "43",
+        "",
+        "",
+        "VKT",
+        "",
+        "",
+        "",
+        "test; 1; ban cho heniken...; luu kho",
+        "25/07/2025, 9:49:07 pm",
+        "admin@example.com",
+        "1"
+      ]
+    },
+    "newValue": {
+      "quantity": 0,
+      "location": "VKT",
+      "sentOut": true
+    },
+    "changedFields": {
+      "quantity": {
+        "old": 43,
+        "new": 0,
+        "fieldName": "Quantity"
+      }
+    },
+    "metadata": [
+      "SEND_OUT",
+      "VKT",
+      "",
+      "43"
+    ]
+  },
+  {
+    "timestamp": 1753444630783,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "th_601",
+    "oldValue": {
+      "quantity": "0"
+    },
+    "newValue": {
+      "quantity": "20"
+    },
+    "changedFields": {
+      "quantity": {
+        "old": "0",
+        "new": "20",
+        "fieldName": "Số lượng"
+      }
+    },
+    "metadata": [
+      "25/07/2025, 9:57:10 pm",
+      "admin@example.com",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1753444641384,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "SEND_OUT",
+    "rowId": "th_601",
+    "oldValue": {
+      "quantity": 20,
+      "location": "TH",
+      "data": [
+        "test",
+        "3",
+        "3",
+        "20",
+        "",
+        "",
+        "TH",
+        "",
+        "",
+        "",
+        "Sent out 2 items; Sent out 1 items; Sent out 1 items; den THL; Sent out 8 items",
+        "25/07/2025, 9:57:10 pm",
+        "admin@example.com",
+        "1"
+      ]
+    },
+    "newValue": {
+      "quantity": 5,
+      "location": "TH",
+      "sentOut": true
+    },
+    "changedFields": {
+      "quantity": {
+        "old": 20,
+        "new": 5,
+        "fieldName": "Quantity"
+      }
+    },
+    "metadata": [
+      "SEND_OUT",
+      "TH",
+      "",
+      "15"
+    ]
+  },
+  {
+    "timestamp": 1753444642144,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "SEND_OUT",
+    "rowId": "vkt_130",
+    "oldValue": {
+      "quantity": 35,
+      "location": "VKT",
+      "data": [
+        "test",
+        "1",
+        "1",
+        "35",
+        "",
+        "",
+        "VKT",
+        "",
+        "",
+        "",
+        "test; 3; 4; luu kho; Sent out 1 items; Sent out 25 items; Sent out 10 items; tru 10",
+        "25/07/2025, 9:49:03 pm",
+        "admin@example.com",
+        "26"
+      ]
+    },
+    "newValue": {
+      "quantity": 25,
+      "location": "VKT",
+      "sentOut": true
+    },
+    "changedFields": {
+      "quantity": {
+        "old": 35,
+        "new": 25,
+        "fieldName": "Quantity"
+      }
+    },
+    "metadata": [
+      "SEND_OUT",
+      "VKT",
+      "",
+      "10"
+    ]
+  },
+  {
+    "timestamp": 1753444994052,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "SEND_OUT",
+    "rowId": "th_601",
+    "oldValue": {
+      "quantity": 5,
+      "location": "TH",
+      "data": [
+        "test",
+        "3",
+        "3",
+        "5",
+        "",
+        "",
+        "TH",
+        "",
+        "",
+        "",
+        "Sent out 2 items; Sent out 1 items; Sent out 1 items; den THL; Sent out 8 items; Sent out 15 items",
+        "25/07/2025, 9:57:10 pm",
+        "admin@example.com",
+        "1"
+      ]
+    },
+    "newValue": {
+      "quantity": 3,
+      "location": "TH",
+      "sentOut": true
+    },
+    "changedFields": {
+      "quantity": {
+        "old": 5,
+        "new": 3,
+        "fieldName": "Quantity"
+      },
+      "sentOut": {
+        "old": "",
+        "new": "2 @ 2025-07-25 22:03",
+        "fieldName": "Sent Out"
+      }
+    },
+    "metadata": [
+      "SEND_OUT",
+      "TH",
+      "thu cot O",
+      "2"
+    ]
+  },
+  {
+    "timestamp": 1753444994755,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "SEND_OUT",
+    "rowId": "vkt_130",
+    "oldValue": {
+      "quantity": 25,
+      "location": "VKT",
+      "data": [
+        "test",
+        "1",
+        "1",
+        "25",
+        "",
+        "",
+        "VKT",
+        "",
+        "",
+        "",
+        "test; 3; 4; luu kho; Sent out 1 items; Sent out 25 items; Sent out 10 items; tru 10; Sent out 10 items",
+        "25/07/2025, 9:49:03 pm",
+        "admin@example.com",
+        "26"
+      ]
+    },
+    "newValue": {
+      "quantity": 23,
+      "location": "VKT",
+      "sentOut": true
+    },
+    "changedFields": {
+      "quantity": {
+        "old": 25,
+        "new": 23,
+        "fieldName": "Quantity"
+      },
+      "sentOut": {
+        "old": "",
+        "new": "2 @ 2025-07-25 22:03",
+        "fieldName": "Sent Out"
+      }
+    },
+    "metadata": [
+      "SEND_OUT",
+      "VKT",
+      "thu cot O",
+      "2"
+    ]
+  },
+  {
+    "timestamp": 1753445160603,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "SEND_OUT",
+    "rowId": "th_601",
+    "oldValue": {
+      "quantity": 3,
+      "location": "TH",
+      "data": [
+        "test",
+        "3",
+        "3",
+        "3",
+        "",
+        "",
+        "TH",
+        "",
+        "",
+        "",
+        "Sent out 2 items; Sent out 1 items; Sent out 1 items; den THL; Sent out 8 items; Sent out 15 items",
+        "25/07/2025, 9:57:10 pm",
+        "admin@example.com",
+        "1",
+        "2 @ 2025-07-25 22:03"
+      ]
+    },
+    "newValue": {
+      "quantity": 0,
+      "location": "TH",
+      "sentOut": true
+    },
+    "changedFields": {
+      "quantity": {
+        "old": 3,
+        "new": 0,
+        "fieldName": "Quantity"
+      },
+      "sentOut": {
+        "old": "",
+        "new": "3 @ 2025-07-25 22:06 - kiem tra lan 3",
+        "fieldName": "Sent Out"
+      }
+    },
+    "metadata": [
+      "SEND_OUT",
+      "TH",
+      "kiem tra lan 3",
+      "3"
+    ]
+  },
+  {
+    "timestamp": 1753445161377,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "SEND_OUT",
+    "rowId": "vkt_130",
+    "oldValue": {
+      "quantity": 23,
+      "location": "VKT",
+      "data": [
+        "test",
+        "1",
+        "1",
+        "23",
+        "",
+        "",
+        "VKT",
+        "",
+        "",
+        "",
+        "test; 3; 4; luu kho; Sent out 1 items; Sent out 25 items; Sent out 10 items; tru 10; Sent out 10 items",
+        "25/07/2025, 9:49:03 pm",
+        "admin@example.com",
+        "26",
+        "2 @ 2025-07-25 22:03"
+      ]
+    },
+    "newValue": {
+      "quantity": 20,
+      "location": "VKT",
+      "sentOut": true
+    },
+    "changedFields": {
+      "quantity": {
+        "old": 23,
+        "new": 20,
+        "fieldName": "Quantity"
+      },
+      "sentOut": {
+        "old": "",
+        "new": "3 @ 2025-07-25 22:06 - kiem tra lan 3",
+        "fieldName": "Sent Out"
+      }
+    },
+    "metadata": [
+      "SEND_OUT",
+      "VKT",
+      "kiem tra lan 3",
+      "3"
+    ]
+  },
+  {
+    "timestamp": 1753445371962,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "th_601",
+    "oldValue": {
+      "quantity": "0"
+    },
+    "newValue": {
+      "quantity": "55"
+    },
+    "changedFields": {
+      "quantity": {
+        "old": "0",
+        "new": "55",
+        "fieldName": "Số lượng"
+      }
+    },
+    "metadata": [
+      "25/07/2025, 10:09:31 pm",
+      "admin@example.com",
+      "26"
+    ]
+  },
+  {
+    "timestamp": 1753446167117,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "vkt_130",
+    "oldValue": {
+      "quantity": "1"
+    },
+    "newValue": {
+      "quantity": "50"
+    },
+    "changedFields": {
+      "quantity": {
+        "old": "1",
+        "new": "50",
+        "fieldName": "Số lượng"
+      }
+    },
+    "metadata": [
+      "25/07/2025, 10:22:46 pm",
+      "admin@example.com",
+      "26"
+    ]
+  },
+  {
+    "timestamp": 1753446176323,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "SEND_OUT",
+    "rowId": "th_601",
+    "oldValue": {
+      "quantity": 37,
+      "location": "TH",
+      "data": [
+        "test",
+        "3",
+        "3",
+        "37",
+        "",
+        "",
+        "TH",
+        "",
+        "",
+        "",
+        "Sent out 2 items; Sent out 1 items; Sent out 1 items; den THL; Sent out 8 items; Sent out 15 items",
+        "25/07/2025, 10:09:31 pm",
+        "admin@example.com",
+        "26",
+        "3 @ 2025-07-25 22:06 - kiem tra lan 3\n10 @ 2025-07-25 22:09 - test thu\n1 @ 2025-07-25 22:11 - lan nua xem\n1 @ 2025-07-25 22:13 - 1\n1 @ 2025-07-25 22:14 - 2\n1 @ 2025-07-25 22:15\n1 @ 2025-07-25 22:16\n1 @ 2025-07-25 22:20 - tes\n1 @ 2025-07-25 22:22 - sa\n1 @ 2025-07-25 22:22 - ba"
+      ]
+    },
+    "newValue": {
+      "quantity": 36,
+      "location": "TH",
+      "sentOut": true
+    },
+    "changedFields": {
+      "quantity": {
+        "old": 37,
+        "new": 36,
+        "fieldName": "Quantity"
+      },
+      "sentOut": {
+        "old": "",
+        "new": "1 @ 2025-07-25 22:22",
+        "fieldName": "Sent Out"
+      }
+    },
+    "metadata": [
+      "SEND_OUT",
+      "TH",
+      "",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1753446177160,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "SEND_OUT",
+    "rowId": "vkt_130",
+    "oldValue": {
+      "quantity": 50,
+      "location": "VKT",
+      "data": [
+        "test",
+        "1",
+        "1",
+        "50",
+        "",
+        "",
+        "VKT",
+        "",
+        "",
+        "",
+        "test; 3; 4; luu kho; Sent out 1 items; Sent out 25 items; Sent out 10 items; tru 10; Sent out 10 items",
+        "25/07/2025, 10:22:46 pm",
+        "admin@example.com",
+        "26",
+        "3 @ 2025-07-25 22:06 - kiem tra lan 3\n10 @ 2025-07-25 22:09 - test thu\n1 @ 2025-07-25 22:10 - kiem tra\n1 @ 2025-07-25 22:11 - lan nua xem\n1 @ 2025-07-25 22:13 - 1\n1 @ 2025-07-25 22:14 - 2\n1 @ 2025-07-25 22:15\n1 @ 2025-07-25 22:16\n1 @ 2025-07-25 22:20 - tes\n1 @ 2025-07-25 22:22 - sa\n1 @ 2025-07-25 22:22 - ba"
+      ]
+    },
+    "newValue": {
+      "quantity": 49,
+      "location": "VKT",
+      "sentOut": true
+    },
+    "changedFields": {
+      "quantity": {
+        "old": 50,
+        "new": 49,
+        "fieldName": "Quantity"
+      },
+      "sentOut": {
+        "old": "",
+        "new": "1 @ 2025-07-25 22:22",
+        "fieldName": "Sent Out"
+      }
+    },
+    "metadata": [
+      "SEND_OUT",
+      "VKT",
+      "",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1753446177850,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "SEND_OUT",
+    "rowId": "vkt_131",
+    "oldValue": {
+      "quantity": 6,
+      "location": "VKT",
+      "data": [
+        "test",
+        "2",
+        "2",
+        "6",
+        "",
+        "",
+        "VKT",
+        "",
+        "",
+        "",
+        "test; 1; ban cho heniken...; luu kho; Sent out 43 items; Sent out 10 items; tru 10",
+        "25/07/2025, 9:49:07 pm",
+        "admin@example.com",
+        "1",
+        "1 @ 2025-07-25 22:10 - kiem tra\n1 @ 2025-07-25 22:20 - tes\n1 @ 2025-07-25 22:22 - sa\n1 @ 2025-07-25 22:22 - ba"
+      ]
+    },
+    "newValue": {
+      "quantity": 5,
+      "location": "VKT",
+      "sentOut": true
+    },
+    "changedFields": {
+      "quantity": {
+        "old": 6,
+        "new": 5,
+        "fieldName": "Quantity"
+      },
+      "sentOut": {
+        "old": "",
+        "new": "1 @ 2025-07-25 22:22",
+        "fieldName": "Sent Out"
+      }
+    },
+    "metadata": [
+      "SEND_OUT",
+      "VKT",
+      "",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1753446228934,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "SEND_OUT",
+    "rowId": "th_601",
+    "oldValue": {
+      "quantity": 36,
+      "location": "TH",
+      "data": [
+        "test",
+        "3",
+        "3",
+        "36",
+        "",
+        "",
+        "TH",
+        "",
+        "",
+        "",
+        "",
+        "25/07/2025, 10:09:31 pm",
+        "admin@example.com",
+        "26",
+        "3 @ 2025-07-25 22:06 - kiem tra lan 3\n10 @ 2025-07-25 22:09 - test thu\n1 @ 2025-07-25 22:11 - lan nua xem\n1 @ 2025-07-25 22:13 - 1\n1 @ 2025-07-25 22:14 - 2\n1 @ 2025-07-25 22:15\n1 @ 2025-07-25 22:16\n1 @ 2025-07-25 22:20 - tes\n1 @ 2025-07-25 22:22 - sa\n1 @ 2025-07-25 22:22 - ba\n1 @ 2025-07-25 22:22"
+      ]
+    },
+    "newValue": {
+      "quantity": 35,
+      "location": "TH",
+      "sentOut": true
+    },
+    "changedFields": {
+      "quantity": {
+        "old": 36,
+        "new": 35,
+        "fieldName": "Quantity"
+      },
+      "sentOut": {
+        "old": "",
+        "new": "1 @ 2025-07-25 22:23 - kiem tra",
+        "fieldName": "Sent Out"
+      }
+    },
+    "metadata": [
+      "SEND_OUT",
+      "TH",
+      "kiem tra",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1753446229592,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "SEND_OUT",
+    "rowId": "vkt_130",
+    "oldValue": {
+      "quantity": 49,
+      "location": "VKT",
+      "data": [
+        "test",
+        "1",
+        "1",
+        "49",
+        "",
+        "",
+        "VKT",
+        "",
+        "",
+        "",
+        "",
+        "25/07/2025, 10:22:46 pm",
+        "admin@example.com",
+        "26",
+        "3 @ 2025-07-25 22:06 - kiem tra lan 3\n10 @ 2025-07-25 22:09 - test thu\n1 @ 2025-07-25 22:10 - kiem tra\n1 @ 2025-07-25 22:11 - lan nua xem\n1 @ 2025-07-25 22:13 - 1\n1 @ 2025-07-25 22:14 - 2\n1 @ 2025-07-25 22:15\n1 @ 2025-07-25 22:16\n1 @ 2025-07-25 22:20 - tes\n1 @ 2025-07-25 22:22 - sa\n1 @ 2025-07-25 22:22 - ba\n1 @ 2025-07-25 22:22"
+      ]
+    },
+    "newValue": {
+      "quantity": 48,
+      "location": "VKT",
+      "sentOut": true
+    },
+    "changedFields": {
+      "quantity": {
+        "old": 49,
+        "new": 48,
+        "fieldName": "Quantity"
+      },
+      "sentOut": {
+        "old": "",
+        "new": "1 @ 2025-07-25 22:23 - kiem tra",
+        "fieldName": "Sent Out"
+      }
+    },
+    "metadata": [
+      "SEND_OUT",
+      "VKT",
+      "kiem tra",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1753446230236,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "SEND_OUT",
+    "rowId": "vkt_131",
+    "oldValue": {
+      "quantity": 5,
+      "location": "VKT",
+      "data": [
+        "test",
+        "2",
+        "2",
+        "5",
+        "",
+        "",
+        "VKT",
+        "",
+        "",
+        "",
+        "",
+        "25/07/2025, 9:49:07 pm",
+        "admin@example.com",
+        "1",
+        "1 @ 2025-07-25 22:10 - kiem tra\n1 @ 2025-07-25 22:20 - tes\n1 @ 2025-07-25 22:22 - sa\n1 @ 2025-07-25 22:22 - ba\n1 @ 2025-07-25 22:22"
+      ]
+    },
+    "newValue": {
+      "quantity": 4,
+      "location": "VKT",
+      "sentOut": true
+    },
+    "changedFields": {
+      "quantity": {
+        "old": 5,
+        "new": 4,
+        "fieldName": "Quantity"
+      },
+      "sentOut": {
+        "old": "",
+        "new": "1 @ 2025-07-25 22:23 - kiem tra",
+        "fieldName": "Sent Out"
+      }
+    },
+    "metadata": [
+      "SEND_OUT",
+      "VKT",
+      "kiem tra",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1753446417431,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "SEND_OUT",
+    "rowId": "th_601",
+    "oldValue": {
+      "quantity": 35,
+      "location": "TH",
+      "data": [
+        "test",
+        "3",
+        "3",
+        "35",
+        "",
+        "",
+        "TH",
+        "",
+        "",
+        "",
+        "",
+        "25/07/2025, 10:09:31 pm",
+        "admin@example.com",
+        "26",
+        "3 @ 2025-07-25 22:06 - kiem tra lan 3\n10 @ 2025-07-25 22:09 - test thu\n1 @ 2025-07-25 22:11 - lan nua xem\n1 @ 2025-07-25 22:13 - 1\n1 @ 2025-07-25 22:14 - 2\n1 @ 2025-07-25 22:15\n1 @ 2025-07-25 22:16\n1 @ 2025-07-25 22:20 - tes\n1 @ 2025-07-25 22:22 - sa\n1 @ 2025-07-25 22:22 - ba\n1 @ 2025-07-25 22:22\n1 @ 2025-07-25 22:23 - kiem tra"
+      ]
+    },
+    "newValue": {
+      "quantity": 34,
+      "location": "TH",
+      "sentOut": true
+    },
+    "changedFields": {
+      "quantity": {
+        "old": 35,
+        "new": 34,
+        "fieldName": "Quantity"
+      },
+      "sentOut": {
+        "old": "",
+        "new": "1 @ 2025-07-25 22:26 - admin - test",
+        "fieldName": "Sent Out"
+      }
+    },
+    "metadata": [
+      "SEND_OUT",
+      "TH",
+      "test",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1753446418112,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "SEND_OUT",
+    "rowId": "vkt_130",
+    "oldValue": {
+      "quantity": 48,
+      "location": "VKT",
+      "data": [
+        "test",
+        "1",
+        "1",
+        "48",
+        "",
+        "",
+        "VKT",
+        "",
+        "",
+        "",
+        "",
+        "25/07/2025, 10:22:46 pm",
+        "admin@example.com",
+        "26",
+        "3 @ 2025-07-25 22:06 - kiem tra lan 3\n10 @ 2025-07-25 22:09 - test thu\n1 @ 2025-07-25 22:10 - kiem tra\n1 @ 2025-07-25 22:11 - lan nua xem\n1 @ 2025-07-25 22:13 - 1\n1 @ 2025-07-25 22:14 - 2\n1 @ 2025-07-25 22:15\n1 @ 2025-07-25 22:16\n1 @ 2025-07-25 22:20 - tes\n1 @ 2025-07-25 22:22 - sa\n1 @ 2025-07-25 22:22 - ba\n1 @ 2025-07-25 22:22\n1 @ 2025-07-25 22:23 - kiem tra"
+      ]
+    },
+    "newValue": {
+      "quantity": 47,
+      "location": "VKT",
+      "sentOut": true
+    },
+    "changedFields": {
+      "quantity": {
+        "old": 48,
+        "new": 47,
+        "fieldName": "Quantity"
+      },
+      "sentOut": {
+        "old": "",
+        "new": "1 @ 2025-07-25 22:26 - admin - test",
+        "fieldName": "Sent Out"
+      }
+    },
+    "metadata": [
+      "SEND_OUT",
+      "VKT",
+      "test",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1753446418772,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "SEND_OUT",
+    "rowId": "vkt_131",
+    "oldValue": {
+      "quantity": 4,
+      "location": "VKT",
+      "data": [
+        "test",
+        "2",
+        "2",
+        "4",
+        "",
+        "",
+        "VKT",
+        "",
+        "",
+        "",
+        "",
+        "25/07/2025, 9:49:07 pm",
+        "admin@example.com",
+        "1",
+        "1 @ 2025-07-25 22:10 - kiem tra\n1 @ 2025-07-25 22:20 - tes\n1 @ 2025-07-25 22:22 - sa\n1 @ 2025-07-25 22:22 - ba\n1 @ 2025-07-25 22:22\n1 @ 2025-07-25 22:23 - kiem tra"
+      ]
+    },
+    "newValue": {
+      "quantity": 3,
+      "location": "VKT",
+      "sentOut": true
+    },
+    "changedFields": {
+      "quantity": {
+        "old": 4,
+        "new": 3,
+        "fieldName": "Quantity"
+      },
+      "sentOut": {
+        "old": "",
+        "new": "1 @ 2025-07-25 22:26 - admin - test",
+        "fieldName": "Sent Out"
+      }
+    },
+    "metadata": [
+      "SEND_OUT",
+      "VKT",
+      "test",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1753446648550,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "SEND_OUT",
+    "rowId": "th_601",
+    "oldValue": {
+      "quantity": 34,
+      "location": "TH",
+      "data": [
+        "test",
+        "3",
+        "3",
+        "34",
+        "",
+        "",
+        "TH",
+        "",
+        "",
+        "",
+        "",
+        "25/07/2025, 10:09:31 pm",
+        "admin@example.com",
+        "26",
+        "3 @ 2025-07-25 22:06 - kiem tra lan 3\n10 @ 2025-07-25 22:09 - test thu\n1 @ 2025-07-25 22:11 - lan nua xem\n1 @ 2025-07-25 22:13 - 1\n1 @ 2025-07-25 22:14 - 2\n1 @ 2025-07-25 22:15\n1 @ 2025-07-25 22:16\n1 @ 2025-07-25 22:20 - tes\n1 @ 2025-07-25 22:22 - sa\n1 @ 2025-07-25 22:22 - ba\n1 @ 2025-07-25 22:22\n1 @ 2025-07-25 22:23 - kiem tra\n1 @ 2025-07-25 22:26 - admin - test"
+      ]
+    },
+    "newValue": {
+      "quantity": 33,
+      "location": "TH",
+      "sentOut": true
+    },
+    "changedFields": {
+      "quantity": {
+        "old": 34,
+        "new": 33,
+        "fieldName": "Quantity"
+      },
+      "sentOut": {
+        "old": "",
+        "new": "1 @ 2025-07-25 22:30 - admin - test",
+        "fieldName": "Sent Out"
+      }
+    },
+    "metadata": [
+      "SEND_OUT",
+      "TH",
+      "test",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1753446650015,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "SEND_OUT",
+    "rowId": "vkt_130",
+    "oldValue": {
+      "quantity": 47,
+      "location": "VKT",
+      "data": [
+        "test",
+        "1",
+        "1",
+        "47",
+        "",
+        "",
+        "VKT",
+        "",
+        "",
+        "",
+        "",
+        "25/07/2025, 10:22:46 pm",
+        "admin@example.com",
+        "26",
+        "3 @ 2025-07-25 22:06 - kiem tra lan 3\n10 @ 2025-07-25 22:09 - test thu\n1 @ 2025-07-25 22:10 - kiem tra\n1 @ 2025-07-25 22:11 - lan nua xem\n1 @ 2025-07-25 22:13 - 1\n1 @ 2025-07-25 22:14 - 2\n1 @ 2025-07-25 22:15\n1 @ 2025-07-25 22:16\n1 @ 2025-07-25 22:20 - tes\n1 @ 2025-07-25 22:22 - sa\n1 @ 2025-07-25 22:22 - ba\n1 @ 2025-07-25 22:22\n1 @ 2025-07-25 22:23 - kiem tra\n1 @ 2025-07-25 22:26 - admin - test"
+      ]
+    },
+    "newValue": {
+      "quantity": 46,
+      "location": "VKT",
+      "sentOut": true
+    },
+    "changedFields": {
+      "quantity": {
+        "old": 47,
+        "new": 46,
+        "fieldName": "Quantity"
+      },
+      "sentOut": {
+        "old": "",
+        "new": "1 @ 2025-07-25 22:30 - admin - test",
+        "fieldName": "Sent Out"
+      }
+    },
+    "metadata": [
+      "SEND_OUT",
+      "VKT",
+      "test",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1753446650976,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "SEND_OUT",
+    "rowId": "vkt_131",
+    "oldValue": {
+      "quantity": 3,
+      "location": "VKT",
+      "data": [
+        "test",
+        "2",
+        "2",
+        "3",
+        "",
+        "",
+        "VKT",
+        "",
+        "",
+        "",
+        "",
+        "25/07/2025, 9:49:07 pm",
+        "admin@example.com",
+        "1",
+        "1 @ 2025-07-25 22:10 - kiem tra\n1 @ 2025-07-25 22:20 - tes\n1 @ 2025-07-25 22:22 - sa\n1 @ 2025-07-25 22:22 - ba\n1 @ 2025-07-25 22:22\n1 @ 2025-07-25 22:23 - kiem tra\n1 @ 2025-07-25 22:26 - admin - test"
+      ]
+    },
+    "newValue": {
+      "quantity": 2,
+      "location": "VKT",
+      "sentOut": true
+    },
+    "changedFields": {
+      "quantity": {
+        "old": 3,
+        "new": 2,
+        "fieldName": "Quantity"
+      },
+      "sentOut": {
+        "old": "",
+        "new": "1 @ 2025-07-25 22:30 - admin - test",
+        "fieldName": "Sent Out"
+      }
+    },
+    "metadata": [
+      "SEND_OUT",
+      "VKT",
+      "test",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1753446666199,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "SEND_OUT",
+    "rowId": "th_601",
+    "oldValue": {
+      "quantity": 33,
+      "location": "TH",
+      "data": [
+        "test",
+        "3",
+        "3",
+        "33",
+        "",
+        "",
+        "TH",
+        "",
+        "",
+        "",
+        "",
+        "25/07/2025, 10:09:31 pm",
+        "admin@example.com",
+        "26",
+        "3 @ 2025-07-25 22:06 - kiem tra lan 3\n10 @ 2025-07-25 22:09 - test thu\n1 @ 2025-07-25 22:11 - lan nua xem\n1 @ 2025-07-25 22:13 - 1\n1 @ 2025-07-25 22:14 - 2\n1 @ 2025-07-25 22:15\n1 @ 2025-07-25 22:16\n1 @ 2025-07-25 22:20 - tes\n1 @ 2025-07-25 22:22 - sa\n1 @ 2025-07-25 22:22 - ba\n1 @ 2025-07-25 22:22\n1 @ 2025-07-25 22:23 - kiem tra\n1 @ 2025-07-25 22:26 - admin - test\n1 @ 2025-07-25 22:30 - admin - test"
+      ]
+    },
+    "newValue": {
+      "quantity": 32,
+      "location": "TH",
+      "sentOut": true
+    },
+    "changedFields": {
+      "quantity": {
+        "old": 33,
+        "new": 32,
+        "fieldName": "Quantity"
+      },
+      "sentOut": {
+        "old": "",
+        "new": "1 @ 2025-07-25 22:31 - admin - test 13424",
+        "fieldName": "Sent Out"
+      }
+    },
+    "metadata": [
+      "SEND_OUT",
+      "TH",
+      "test 13424",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1753446666882,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "SEND_OUT",
+    "rowId": "vkt_130",
+    "oldValue": {
+      "quantity": 46,
+      "location": "VKT",
+      "data": [
+        "test",
+        "1",
+        "1",
+        "46",
+        "",
+        "",
+        "VKT",
+        "",
+        "",
+        "",
+        "",
+        "25/07/2025, 10:22:46 pm",
+        "admin@example.com",
+        "26",
+        "3 @ 2025-07-25 22:06 - kiem tra lan 3\n10 @ 2025-07-25 22:09 - test thu\n1 @ 2025-07-25 22:10 - kiem tra\n1 @ 2025-07-25 22:11 - lan nua xem\n1 @ 2025-07-25 22:13 - 1\n1 @ 2025-07-25 22:14 - 2\n1 @ 2025-07-25 22:15\n1 @ 2025-07-25 22:16\n1 @ 2025-07-25 22:20 - tes\n1 @ 2025-07-25 22:22 - sa\n1 @ 2025-07-25 22:22 - ba\n1 @ 2025-07-25 22:22\n1 @ 2025-07-25 22:23 - kiem tra\n1 @ 2025-07-25 22:26 - admin - test\n1 @ 2025-07-25 22:30 - admin - test"
+      ]
+    },
+    "newValue": {
+      "quantity": 45,
+      "location": "VKT",
+      "sentOut": true
+    },
+    "changedFields": {
+      "quantity": {
+        "old": 46,
+        "new": 45,
+        "fieldName": "Quantity"
+      },
+      "sentOut": {
+        "old": "",
+        "new": "1 @ 2025-07-25 22:31 - admin - test 13424",
+        "fieldName": "Sent Out"
+      }
+    },
+    "metadata": [
+      "SEND_OUT",
+      "VKT",
+      "test 13424",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1753446696955,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "SEND_OUT",
+    "rowId": "th_601",
+    "oldValue": {
+      "quantity": 32,
+      "location": "TH",
+      "data": [
+        "test",
+        "3",
+        "3",
+        "32",
+        "",
+        "",
+        "TH",
+        "",
+        "",
+        "",
+        "",
+        "25/07/2025, 10:09:31 pm",
+        "admin@example.com",
+        "26",
+        "3 @ 2025-07-25 22:06 - kiem tra lan 3\n10 @ 2025-07-25 22:09 - test thu\n1 @ 2025-07-25 22:11 - lan nua xem\n1 @ 2025-07-25 22:13 - 1\n1 @ 2025-07-25 22:14 - 2\n1 @ 2025-07-25 22:15\n1 @ 2025-07-25 22:16\n1 @ 2025-07-25 22:20 - tes\n1 @ 2025-07-25 22:22 - sa\n1 @ 2025-07-25 22:22 - ba\n1 @ 2025-07-25 22:22\n1 @ 2025-07-25 22:23 - kiem tra\n1 @ 2025-07-25 22:26 - admin - test\n1 @ 2025-07-25 22:30 - admin - test\n1 @ 2025-07-25 22:31 - admin - test 13424"
+      ]
+    },
+    "newValue": {
+      "quantity": 31,
+      "location": "TH",
+      "sentOut": true
+    },
+    "changedFields": {
+      "quantity": {
+        "old": 32,
+        "new": 31,
+        "fieldName": "Quantity"
+      },
+      "sentOut": {
+        "old": "",
+        "new": "1 @ 2025-07-25 22:31 - admin - t",
+        "fieldName": "Sent Out"
+      }
+    },
+    "metadata": [
+      "SEND_OUT",
+      "TH",
+      "t",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1753446697635,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "SEND_OUT",
+    "rowId": "vkt_130",
+    "oldValue": {
+      "quantity": 45,
+      "location": "VKT",
+      "data": [
+        "test",
+        "1",
+        "1",
+        "45",
+        "",
+        "",
+        "VKT",
+        "",
+        "",
+        "",
+        "",
+        "25/07/2025, 10:22:46 pm",
+        "admin@example.com",
+        "26",
+        "3 @ 2025-07-25 22:06 - kiem tra lan 3\n10 @ 2025-07-25 22:09 - test thu\n1 @ 2025-07-25 22:10 - kiem tra\n1 @ 2025-07-25 22:11 - lan nua xem\n1 @ 2025-07-25 22:13 - 1\n1 @ 2025-07-25 22:14 - 2\n1 @ 2025-07-25 22:15\n1 @ 2025-07-25 22:16\n1 @ 2025-07-25 22:20 - tes\n1 @ 2025-07-25 22:22 - sa\n1 @ 2025-07-25 22:22 - ba\n1 @ 2025-07-25 22:22\n1 @ 2025-07-25 22:23 - kiem tra\n1 @ 2025-07-25 22:26 - admin - test\n1 @ 2025-07-25 22:30 - admin - test\n1 @ 2025-07-25 22:31 - admin - test 13424"
+      ]
+    },
+    "newValue": {
+      "quantity": 44,
+      "location": "VKT",
+      "sentOut": true
+    },
+    "changedFields": {
+      "quantity": {
+        "old": 45,
+        "new": 44,
+        "fieldName": "Quantity"
+      },
+      "sentOut": {
+        "old": "",
+        "new": "1 @ 2025-07-25 22:31 - admin - t",
+        "fieldName": "Sent Out"
+      }
+    },
+    "metadata": [
+      "SEND_OUT",
+      "VKT",
+      "t",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1753446698357,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "SEND_OUT",
+    "rowId": "vkt_131",
+    "oldValue": {
+      "quantity": 2,
+      "location": "VKT",
+      "data": [
+        "test",
+        "2",
+        "2",
+        "2",
+        "",
+        "",
+        "VKT",
+        "",
+        "",
+        "",
+        "",
+        "25/07/2025, 9:49:07 pm",
+        "admin@example.com",
+        "1",
+        "1 @ 2025-07-25 22:10 - kiem tra\n1 @ 2025-07-25 22:20 - tes\n1 @ 2025-07-25 22:22 - sa\n1 @ 2025-07-25 22:22 - ba\n1 @ 2025-07-25 22:22\n1 @ 2025-07-25 22:23 - kiem tra\n1 @ 2025-07-25 22:26 - admin - test\n1 @ 2025-07-25 22:30 - admin - test"
+      ]
+    },
+    "newValue": {
+      "quantity": 1,
+      "location": "VKT",
+      "sentOut": true
+    },
+    "changedFields": {
+      "quantity": {
+        "old": 2,
+        "new": 1,
+        "fieldName": "Quantity"
+      },
+      "sentOut": {
+        "old": "",
+        "new": "1 @ 2025-07-25 22:31 - admin - t",
+        "fieldName": "Sent Out"
+      }
+    },
+    "metadata": [
+      "SEND_OUT",
+      "VKT",
+      "t",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1753448768123,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "SEND_OUT",
+    "rowId": "th_601",
+    "oldValue": {
+      "quantity": 31,
+      "location": "TH",
+      "data": [
+        "test",
+        "3",
+        "3",
+        "31",
+        "",
+        "",
+        "TH",
+        "",
+        "",
+        "",
+        "",
+        "25/07/2025, 10:09:31 pm",
+        "admin@example.com",
+        "26",
+        "3 @ 2025-07-25 22:06 - kiem tra lan 3\n10 @ 2025-07-25 22:09 - test thu\n1 @ 2025-07-25 22:11 - lan nua xem\n1 @ 2025-07-25 22:13 - 1\n1 @ 2025-07-25 22:14 - 2\n1 @ 2025-07-25 22:15\n1 @ 2025-07-25 22:16\n1 @ 2025-07-25 22:20 - tes\n1 @ 2025-07-25 22:22 - sa\n1 @ 2025-07-25 22:22 - ba\n1 @ 2025-07-25 22:22\n1 @ 2025-07-25 22:23 - kiem tra\n1 @ 2025-07-25 22:26 - admin - test\n1 @ 2025-07-25 22:30 - admin - test\n1 @ 2025-07-25 22:31 - admin - test 13424\n1 @ 2025-07-25 22:31 - admin - t"
+      ]
+    },
+    "newValue": {
+      "quantity": 30,
+      "location": "TH",
+      "sentOut": true
+    },
+    "changedFields": {
+      "quantity": {
+        "old": 31,
+        "new": 30,
+        "fieldName": "Quantity"
+      },
+      "sentOut": {
+        "old": "",
+        "new": "1 @ 2025-07-25 23:06 - admin - test",
+        "fieldName": "Sent Out"
+      }
+    },
+    "metadata": [
+      "SEND_OUT",
+      "TH",
+      "test",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1753448768900,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "SEND_OUT",
+    "rowId": "vkt_130",
+    "oldValue": {
+      "quantity": 44,
+      "location": "VKT",
+      "data": [
+        "test",
+        "1",
+        "1",
+        "44",
+        "",
+        "",
+        "VKT",
+        "",
+        "",
+        "",
+        "",
+        "25/07/2025, 10:22:46 pm",
+        "admin@example.com",
+        "26",
+        "3 @ 2025-07-25 22:06 - kiem tra lan 3\n10 @ 2025-07-25 22:09 - test thu\n1 @ 2025-07-25 22:10 - kiem tra\n1 @ 2025-07-25 22:11 - lan nua xem\n1 @ 2025-07-25 22:13 - 1\n1 @ 2025-07-25 22:14 - 2\n1 @ 2025-07-25 22:15\n1 @ 2025-07-25 22:16\n1 @ 2025-07-25 22:20 - tes\n1 @ 2025-07-25 22:22 - sa\n1 @ 2025-07-25 22:22 - ba\n1 @ 2025-07-25 22:22\n1 @ 2025-07-25 22:23 - kiem tra\n1 @ 2025-07-25 22:26 - admin - test\n1 @ 2025-07-25 22:30 - admin - test\n1 @ 2025-07-25 22:31 - admin - test 13424\n1 @ 2025-07-25 22:31 - admin - t"
+      ]
+    },
+    "newValue": {
+      "quantity": 43,
+      "location": "VKT",
+      "sentOut": true
+    },
+    "changedFields": {
+      "quantity": {
+        "old": 44,
+        "new": 43,
+        "fieldName": "Quantity"
+      },
+      "sentOut": {
+        "old": "",
+        "new": "1 @ 2025-07-25 23:06 - admin - test",
+        "fieldName": "Sent Out"
+      }
+    },
+    "metadata": [
+      "SEND_OUT",
+      "VKT",
+      "test",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1753448769651,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "SEND_OUT",
+    "rowId": "vkt_131",
+    "oldValue": {
+      "quantity": 1,
+      "location": "VKT",
+      "data": [
+        "test",
+        "2",
+        "2",
+        "1",
+        "",
+        "",
+        "VKT",
+        "",
+        "",
+        "",
+        "",
+        "25/07/2025, 9:49:07 pm",
+        "admin@example.com",
+        "1",
+        "1 @ 2025-07-25 22:10 - kiem tra\n1 @ 2025-07-25 22:20 - tes\n1 @ 2025-07-25 22:22 - sa\n1 @ 2025-07-25 22:22 - ba\n1 @ 2025-07-25 22:22\n1 @ 2025-07-25 22:23 - kiem tra\n1 @ 2025-07-25 22:26 - admin - test\n1 @ 2025-07-25 22:30 - admin - test\n1 @ 2025-07-25 22:31 - admin - t"
+      ]
+    },
+    "newValue": {
+      "quantity": 0,
+      "location": "VKT",
+      "sentOut": true
+    },
+    "changedFields": {
+      "quantity": {
+        "old": 1,
+        "new": 0,
+        "fieldName": "Quantity"
+      },
+      "sentOut": {
+        "old": "",
+        "new": "1 @ 2025-07-25 23:06 - admin - test",
+        "fieldName": "Sent Out"
+      }
+    },
+    "metadata": [
+      "SEND_OUT",
+      "VKT",
+      "test",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1753448799262,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "SEND_OUT",
+    "rowId": "th_601",
+    "oldValue": {
+      "quantity": 30,
+      "location": "TH",
+      "data": [
+        "test",
+        "3",
+        "3",
+        "30",
+        "",
+        "",
+        "TH",
+        "",
+        "",
+        "",
+        "",
+        "25/07/2025, 10:09:31 pm",
+        "admin@example.com",
+        "26",
+        "3 @ 2025-07-25 22:06 - kiem tra lan 3\n10 @ 2025-07-25 22:09 - test thu\n1 @ 2025-07-25 22:11 - lan nua xem\n1 @ 2025-07-25 22:13 - 1\n1 @ 2025-07-25 22:14 - 2\n1 @ 2025-07-25 22:15\n1 @ 2025-07-25 22:16\n1 @ 2025-07-25 22:20 - tes\n1 @ 2025-07-25 22:22 - sa\n1 @ 2025-07-25 22:22 - ba\n1 @ 2025-07-25 22:22\n1 @ 2025-07-25 22:23 - kiem tra\n1 @ 2025-07-25 22:26 - admin - test\n1 @ 2025-07-25 22:30 - admin - test\n1 @ 2025-07-25 22:31 - admin - test 13424\n1 @ 2025-07-25 22:31 - admin - t\n1 @ 2025-07-25 23:06 - admin - test"
+      ]
+    },
+    "newValue": {
+      "quantity": 29,
+      "location": "TH",
+      "sentOut": true
+    },
+    "changedFields": {
+      "quantity": {
+        "old": 30,
+        "new": 29,
+        "fieldName": "Quantity"
+      },
+      "sentOut": {
+        "old": "",
+        "new": "1 @ 2025-07-25 23:06 - admin",
+        "fieldName": "Sent Out"
+      }
+    },
+    "metadata": [
+      "SEND_OUT",
+      "TH",
+      "",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1753448799988,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "SEND_OUT",
+    "rowId": "vkt_130",
+    "oldValue": {
+      "quantity": 43,
+      "location": "VKT",
+      "data": [
+        "test",
+        "1",
+        "1",
+        "43",
+        "",
+        "",
+        "VKT",
+        "",
+        "",
+        "",
+        "",
+        "25/07/2025, 10:22:46 pm",
+        "admin@example.com",
+        "26",
+        "3 @ 2025-07-25 22:06 - kiem tra lan 3\n10 @ 2025-07-25 22:09 - test thu\n1 @ 2025-07-25 22:10 - kiem tra\n1 @ 2025-07-25 22:11 - lan nua xem\n1 @ 2025-07-25 22:13 - 1\n1 @ 2025-07-25 22:14 - 2\n1 @ 2025-07-25 22:15\n1 @ 2025-07-25 22:16\n1 @ 2025-07-25 22:20 - tes\n1 @ 2025-07-25 22:22 - sa\n1 @ 2025-07-25 22:22 - ba\n1 @ 2025-07-25 22:22\n1 @ 2025-07-25 22:23 - kiem tra\n1 @ 2025-07-25 22:26 - admin - test\n1 @ 2025-07-25 22:30 - admin - test\n1 @ 2025-07-25 22:31 - admin - test 13424\n1 @ 2025-07-25 22:31 - admin - t\n1 @ 2025-07-25 23:06 - admin - test"
+      ]
+    },
+    "newValue": {
+      "quantity": 42,
+      "location": "VKT",
+      "sentOut": true
+    },
+    "changedFields": {
+      "quantity": {
+        "old": 43,
+        "new": 42,
+        "fieldName": "Quantity"
+      },
+      "sentOut": {
+        "old": "",
+        "new": "1 @ 2025-07-25 23:06 - admin",
+        "fieldName": "Sent Out"
+      }
+    },
+    "metadata": [
+      "SEND_OUT",
+      "VKT",
+      "",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1753449848676,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "vkt_131",
+    "oldValue": {
+      "quantity": "0"
+    },
+    "newValue": {
+      "quantity": "44"
+    },
+    "changedFields": {
+      "quantity": {
+        "old": "0",
+        "new": "44",
+        "fieldName": "Số lượng"
+      }
+    },
+    "metadata": [
+      "25/07/2025, 11:24:08 pm",
+      "admin@example.com",
+      "26"
+    ]
+  },
+  {
+    "timestamp": 1753449934114,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "RELOCATE",
+    "rowId": "TH_601",
+    "oldValue": {
+      "warehouse": "TH",
+      "location": "TH",
+      "data": [
+        "test",
+        "3",
+        "3",
+        "29",
+        "",
+        "",
+        "TH",
+        "",
+        "",
+        "",
+        "",
+        "25/07/2025, 10:09:31 pm",
+        "admin@example.com",
+        "26",
+        "3 @ 2025-07-25 22:06 - kiem tra lan 3\n10 @ 2025-07-25 22:09 - test thu\n1 @ 2025-07-25 22:11 - lan nua xem\n1 @ 2025-07-25 22:13 - 1\n1 @ 2025-07-25 22:14 - 2\n1 @ 2025-07-25 22:15\n1 @ 2025-07-25 22:16\n1 @ 2025-07-25 22:20 - tes\n1 @ 2025-07-25 22:22 - sa\n1 @ 2025-07-25 22:22 - ba\n1 @ 2025-07-25 22:22\n1 @ 2025-07-25 22:23 - kiem tra\n1 @ 2025-07-25 22:26 - admin - test\n1 @ 2025-07-25 22:30 - admin - test\n1 @ 2025-07-25 22:31 - admin - test 13424\n1 @ 2025-07-25 22:31 - admin - t\n1 @ 2025-07-25 23:06 - admin - test\n1 @ 2025-07-25 23:06 - admin"
+      ],
+      "quantity": 29
+    },
+    "newValue": {
+      "warehouse": "VKT",
+      "location": "VKT",
+      "quantity": 12
+    },
+    "changedFields": {
+      "warehouse": {
+        "old": "TH",
+        "new": "VKT",
+        "fieldName": "Warehouse"
+      },
+      "quantity": {
+        "old": 29,
+        "new": 17,
+        "fieldName": "Quantity"
+      }
+    },
+    "metadata": [
+      "RELOCATION",
+      "TH",
+      "VKT",
+      "test",
+      "12"
+    ]
+  },
+  {
+    "timestamp": 1753449988063,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "RELOCATE",
+    "rowId": "VKT_131",
+    "oldValue": {
+      "warehouse": "VKT",
+      "location": "VKT",
+      "data": [
+        "test",
+        "2",
+        "2",
+        "44",
+        "",
+        "",
+        "VKT",
+        "",
+        "",
+        "",
+        "",
+        "25/07/2025, 11:24:08 pm",
+        "admin@example.com",
+        "26",
+        "1 @ 2025-07-25 22:10 - kiem tra\n1 @ 2025-07-25 22:20 - tes\n1 @ 2025-07-25 22:22 - sa\n1 @ 2025-07-25 22:22 - ba\n1 @ 2025-07-25 22:22\n1 @ 2025-07-25 22:23 - kiem tra\n1 @ 2025-07-25 22:26 - admin - test\n1 @ 2025-07-25 22:30 - admin - test\n1 @ 2025-07-25 22:31 - admin - t\n1 @ 2025-07-25 23:06 - admin - test"
+      ],
+      "quantity": 44
+    },
+    "newValue": {
+      "warehouse": "TH",
+      "location": "TH",
+      "quantity": 1
+    },
+    "changedFields": {
+      "warehouse": {
+        "old": "VKT",
+        "new": "TH",
+        "fieldName": "Warehouse"
+      },
+      "quantity": {
+        "old": 44,
+        "new": 43,
+        "fieldName": "Quantity"
+      }
+    },
+    "metadata": [
+      "RELOCATION",
+      "VKT",
+      "TH",
+      "test 1",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1753450158658,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "RELOCATE",
+    "rowId": "VKT_131",
+    "oldValue": {
+      "warehouse": "VKT",
+      "location": "VKT",
+      "data": [
+        "test",
+        "2",
+        "2",
+        "43",
+        "",
+        "",
+        "VKT",
+        "",
+        "",
+        "",
+        "",
+        "25/07/2025, 11:24:08 pm",
+        "admin@example.com",
+        "26",
+        "1 @ 2025-07-25 22:10 - kiem tra\n1 @ 2025-07-25 22:20 - tes\n1 @ 2025-07-25 22:22 - sa\n1 @ 2025-07-25 22:22 - ba\n1 @ 2025-07-25 22:22\n1 @ 2025-07-25 22:23 - kiem tra\n1 @ 2025-07-25 22:26 - admin - test\n1 @ 2025-07-25 22:30 - admin - test\n1 @ 2025-07-25 22:31 - admin - t\n1 @ 2025-07-25 23:06 - admin - test"
+      ],
+      "quantity": 43
+    },
+    "newValue": {
+      "warehouse": "TH",
+      "location": "TH",
+      "quantity": 1
+    },
+    "changedFields": {
+      "warehouse": {
+        "old": "VKT",
+        "new": "TH",
+        "fieldName": "Warehouse"
+      },
+      "quantity": {
+        "old": 43,
+        "new": 42,
+        "fieldName": "Quantity"
+      }
+    },
+    "metadata": [
+      "RELOCATION",
+      "VKT",
+      "TH",
+      "anh",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1753450303328,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "RELOCATE",
+    "rowId": "VKT_130",
+    "oldValue": {
+      "warehouse": "VKT",
+      "location": "VKT",
+      "data": [
+        "test",
+        "1",
+        "1",
+        "42",
+        "",
+        "",
+        "VKT",
+        "",
+        "",
+        "",
+        "",
+        "25/07/2025, 10:22:46 pm",
+        "admin@example.com",
+        "26",
+        "3 @ 2025-07-25 22:06 - kiem tra lan 3\n10 @ 2025-07-25 22:09 - test thu\n1 @ 2025-07-25 22:10 - kiem tra\n1 @ 2025-07-25 22:11 - lan nua xem\n1 @ 2025-07-25 22:13 - 1\n1 @ 2025-07-25 22:14 - 2\n1 @ 2025-07-25 22:15\n1 @ 2025-07-25 22:16\n1 @ 2025-07-25 22:20 - tes\n1 @ 2025-07-25 22:22 - sa\n1 @ 2025-07-25 22:22 - ba\n1 @ 2025-07-25 22:22\n1 @ 2025-07-25 22:23 - kiem tra\n1 @ 2025-07-25 22:26 - admin - test\n1 @ 2025-07-25 22:30 - admin - test\n1 @ 2025-07-25 22:31 - admin - test 13424\n1 @ 2025-07-25 22:31 - admin - t\n1 @ 2025-07-25 23:06 - admin - test\n1 @ 2025-07-25 23:06 - admin"
+      ],
+      "quantity": 42
+    },
+    "newValue": {
+      "warehouse": "TH",
+      "location": "TH",
+      "quantity": 1
+    },
+    "changedFields": {
+      "warehouse": {
+        "old": "VKT",
+        "new": "TH",
+        "fieldName": "Warehouse"
+      },
+      "quantity": {
+        "old": 42,
+        "new": 41,
+        "fieldName": "Quantity"
+      }
+    },
+    "metadata": [
+      "RELOCATION",
+      "VKT",
+      "TH",
+      "bb",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1753450623161,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "RELOCATE",
+    "rowId": "VKT_130",
+    "oldValue": {
+      "warehouse": "VKT",
+      "location": "VKT",
+      "data": [
+        "test",
+        "1",
+        "1",
+        "41",
+        "",
+        "",
+        "VKT",
+        "",
+        "",
+        "",
+        "",
+        "25/07/2025, 10:22:46 pm",
+        "admin@example.com",
+        "26",
+        "3 @ 2025-07-25 22:06 - kiem tra lan 3\n10 @ 2025-07-25 22:09 - test thu\n1 @ 2025-07-25 22:10 - kiem tra\n1 @ 2025-07-25 22:11 - lan nua xem\n1 @ 2025-07-25 22:13 - 1\n1 @ 2025-07-25 22:14 - 2\n1 @ 2025-07-25 22:15\n1 @ 2025-07-25 22:16\n1 @ 2025-07-25 22:20 - tes\n1 @ 2025-07-25 22:22 - sa\n1 @ 2025-07-25 22:22 - ba\n1 @ 2025-07-25 22:22\n1 @ 2025-07-25 22:23 - kiem tra\n1 @ 2025-07-25 22:26 - admin - test\n1 @ 2025-07-25 22:30 - admin - test\n1 @ 2025-07-25 22:31 - admin - test 13424\n1 @ 2025-07-25 22:31 - admin - t\n1 @ 2025-07-25 23:06 - admin - test\n1 @ 2025-07-25 23:06 - admin"
+      ],
+      "quantity": 41
+    },
+    "newValue": {
+      "warehouse": "TH",
+      "location": "TH",
+      "quantity": 1
+    },
+    "changedFields": {
+      "warehouse": {
+        "old": "VKT",
+        "new": "TH",
+        "fieldName": "Warehouse"
+      },
+      "quantity": {
+        "old": 41,
+        "new": 40,
+        "fieldName": "Quantity"
+      }
+    },
+    "metadata": [
+      "RELOCATION",
+      "VKT",
+      "TH",
+      "aa",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1753450678162,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "RELOCATE",
+    "rowId": "VKT_130",
+    "oldValue": {
+      "warehouse": "VKT",
+      "location": "VKT",
+      "data": [
+        "test",
+        "1",
+        "1",
+        "40",
+        "",
+        "",
+        "VKT",
+        "",
+        "",
+        "",
+        "",
+        "25/07/2025, 10:22:46 pm",
+        "admin@example.com",
+        "26",
+        "3 @ 2025-07-25 22:06 - kiem tra lan 3\n10 @ 2025-07-25 22:09 - test thu\n1 @ 2025-07-25 22:10 - kiem tra\n1 @ 2025-07-25 22:11 - lan nua xem\n1 @ 2025-07-25 22:13 - 1\n1 @ 2025-07-25 22:14 - 2\n1 @ 2025-07-25 22:15\n1 @ 2025-07-25 22:16\n1 @ 2025-07-25 22:20 - tes\n1 @ 2025-07-25 22:22 - sa\n1 @ 2025-07-25 22:22 - ba\n1 @ 2025-07-25 22:22\n1 @ 2025-07-25 22:23 - kiem tra\n1 @ 2025-07-25 22:26 - admin - test\n1 @ 2025-07-25 22:30 - admin - test\n1 @ 2025-07-25 22:31 - admin - test 13424\n1 @ 2025-07-25 22:31 - admin - t\n1 @ 2025-07-25 23:06 - admin - test\n1 @ 2025-07-25 23:06 - admin"
+      ],
+      "quantity": 40
+    },
+    "newValue": {
+      "warehouse": "TH",
+      "location": "TH",
+      "quantity": 1
+    },
+    "changedFields": {
+      "warehouse": {
+        "old": "VKT",
+        "new": "TH",
+        "fieldName": "Warehouse"
+      },
+      "quantity": {
+        "old": 40,
+        "new": 39,
+        "fieldName": "Quantity"
+      }
+    },
+    "metadata": [
+      "RELOCATION",
+      "VKT",
+      "TH",
+      "aaa",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1753450714781,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "RELOCATE",
+    "rowId": "VKT_130",
+    "oldValue": {
+      "warehouse": "VKT",
+      "location": "VKT",
+      "data": [
+        "test",
+        "1",
+        "1",
+        "39",
+        "",
+        "",
+        "VKT",
+        "",
+        "",
+        "",
+        "",
+        "25/07/2025, 10:22:46 pm",
+        "admin@example.com",
+        "26",
+        "3 @ 2025-07-25 22:06 - kiem tra lan 3\n10 @ 2025-07-25 22:09 - test thu\n1 @ 2025-07-25 22:10 - kiem tra\n1 @ 2025-07-25 22:11 - lan nua xem\n1 @ 2025-07-25 22:13 - 1\n1 @ 2025-07-25 22:14 - 2\n1 @ 2025-07-25 22:15\n1 @ 2025-07-25 22:16\n1 @ 2025-07-25 22:20 - tes\n1 @ 2025-07-25 22:22 - sa\n1 @ 2025-07-25 22:22 - ba\n1 @ 2025-07-25 22:22\n1 @ 2025-07-25 22:23 - kiem tra\n1 @ 2025-07-25 22:26 - admin - test\n1 @ 2025-07-25 22:30 - admin - test\n1 @ 2025-07-25 22:31 - admin - test 13424\n1 @ 2025-07-25 22:31 - admin - t\n1 @ 2025-07-25 23:06 - admin - test\n1 @ 2025-07-25 23:06 - admin"
+      ],
+      "quantity": 39
+    },
+    "newValue": {
+      "warehouse": "TH",
+      "location": "TH",
+      "quantity": 1
+    },
+    "changedFields": {
+      "warehouse": {
+        "old": "VKT",
+        "new": "TH",
+        "fieldName": "Warehouse"
+      },
+      "quantity": {
+        "old": 39,
+        "new": 38,
+        "fieldName": "Quantity"
+      }
+    },
+    "metadata": [
+      "RELOCATION",
+      "VKT",
+      "TH",
+      "aaaa",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1753450852404,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "RELOCATE",
+    "rowId": "VKT_130",
+    "oldValue": {
+      "warehouse": "VKT",
+      "location": "VKT",
+      "data": [
+        "test",
+        "1",
+        "1",
+        "38",
+        "",
+        "",
+        "VKT",
+        "",
+        "",
+        "",
+        "",
+        "25/07/2025, 10:22:46 pm",
+        "admin@example.com",
+        "26",
+        "3 @ 2025-07-25 22:06 - kiem tra lan 3\n10 @ 2025-07-25 22:09 - test thu\n1 @ 2025-07-25 22:10 - kiem tra\n1 @ 2025-07-25 22:11 - lan nua xem\n1 @ 2025-07-25 22:13 - 1\n1 @ 2025-07-25 22:14 - 2\n1 @ 2025-07-25 22:15\n1 @ 2025-07-25 22:16\n1 @ 2025-07-25 22:20 - tes\n1 @ 2025-07-25 22:22 - sa\n1 @ 2025-07-25 22:22 - ba\n1 @ 2025-07-25 22:22\n1 @ 2025-07-25 22:23 - kiem tra\n1 @ 2025-07-25 22:26 - admin - test\n1 @ 2025-07-25 22:30 - admin - test\n1 @ 2025-07-25 22:31 - admin - test 13424\n1 @ 2025-07-25 22:31 - admin - t\n1 @ 2025-07-25 23:06 - admin - test\n1 @ 2025-07-25 23:06 - admin"
+      ],
+      "quantity": 38
+    },
+    "newValue": {
+      "warehouse": "TH",
+      "location": "TH",
+      "quantity": 1
+    },
+    "changedFields": {
+      "warehouse": {
+        "old": "VKT",
+        "new": "TH",
+        "fieldName": "Warehouse"
+      },
+      "quantity": {
+        "old": 38,
+        "new": 37,
+        "fieldName": "Quantity"
+      }
+    },
+    "metadata": [
+      "RELOCATION",
+      "VKT",
+      "TH",
+      "",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1753450871094,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "RELOCATE",
+    "rowId": "VKT_131",
+    "oldValue": {
+      "warehouse": "VKT",
+      "location": "VKT",
+      "data": [
+        "test",
+        "2",
+        "2",
+        "42",
+        "",
+        "",
+        "VKT",
+        "",
+        "",
+        "",
+        "",
+        "25/07/2025, 11:24:08 pm",
+        "admin@example.com",
+        "26",
+        "1 @ 2025-07-25 22:10 - kiem tra\n1 @ 2025-07-25 22:20 - tes\n1 @ 2025-07-25 22:22 - sa\n1 @ 2025-07-25 22:22 - ba\n1 @ 2025-07-25 22:22\n1 @ 2025-07-25 22:23 - kiem tra\n1 @ 2025-07-25 22:26 - admin - test\n1 @ 2025-07-25 22:30 - admin - test\n1 @ 2025-07-25 22:31 - admin - t\n1 @ 2025-07-25 23:06 - admin - test"
+      ],
+      "quantity": 42
+    },
+    "newValue": {
+      "warehouse": "TH",
+      "location": "TH",
+      "quantity": 1
+    },
+    "changedFields": {
+      "warehouse": {
+        "old": "VKT",
+        "new": "TH",
+        "fieldName": "Warehouse"
+      },
+      "quantity": {
+        "old": 42,
+        "new": 41,
+        "fieldName": "Quantity"
+      }
+    },
+    "metadata": [
+      "RELOCATION",
+      "VKT",
+      "TH",
+      "aa",
+      "1"
+    ]
+  },
+  {
+    "timestamp": 1753450895111,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "RELOCATE",
+    "rowId": "VKT_131",
+    "oldValue": {
+      "warehouse": "VKT",
+      "location": "VKT",
+      "data": [
+        "test",
+        "2",
+        "2",
+        "41",
+        "",
+        "",
+        "VKT",
+        "",
+        "",
+        "",
+        "",
+        "25/07/2025, 11:24:08 pm",
+        "admin@example.com",
+        "26",
+        "1 @ 2025-07-25 22:10 - kiem tra\n1 @ 2025-07-25 22:20 - tes\n1 @ 2025-07-25 22:22 - sa\n1 @ 2025-07-25 22:22 - ba\n1 @ 2025-07-25 22:22\n1 @ 2025-07-25 22:23 - kiem tra\n1 @ 2025-07-25 22:26 - admin - test\n1 @ 2025-07-25 22:30 - admin - test\n1 @ 2025-07-25 22:31 - admin - t\n1 @ 2025-07-25 23:06 - admin - test"
+      ],
+      "quantity": 41
+    },
+    "newValue": {
+      "warehouse": "TH",
+      "location": "TH",
+      "quantity": 15
+    },
+    "changedFields": {
+      "warehouse": {
+        "old": "VKT",
+        "new": "TH",
+        "fieldName": "Warehouse"
+      },
+      "quantity": {
+        "old": 41,
+        "new": 26,
+        "fieldName": "Quantity"
+      }
+    },
+    "metadata": [
+      "RELOCATION",
+      "VKT",
+      "TH",
+      "",
+      "15"
+    ]
+  },
+  {
+    "timestamp": 1753450920871,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "RELOCATE",
+    "rowId": "VKT_131",
+    "oldValue": {
+      "warehouse": "VKT",
+      "location": "VKT",
+      "data": [
+        "test",
+        "2",
+        "2",
+        "26",
+        "",
+        "",
+        "VKT",
+        "",
+        "",
+        "",
+        "",
+        "25/07/2025, 11:24:08 pm",
+        "admin@example.com",
+        "26",
+        "1 @ 2025-07-25 22:10 - kiem tra\n1 @ 2025-07-25 22:20 - tes\n1 @ 2025-07-25 22:22 - sa\n1 @ 2025-07-25 22:22 - ba\n1 @ 2025-07-25 22:22\n1 @ 2025-07-25 22:23 - kiem tra\n1 @ 2025-07-25 22:26 - admin - test\n1 @ 2025-07-25 22:30 - admin - test\n1 @ 2025-07-25 22:31 - admin - t\n1 @ 2025-07-25 23:06 - admin - test"
+      ],
+      "quantity": 26
+    },
+    "newValue": {
+      "warehouse": "TH",
+      "location": "TH",
+      "quantity": 26
+    },
+    "changedFields": {
+      "warehouse": {
+        "old": "VKT",
+        "new": "TH",
+        "fieldName": "Warehouse"
+      },
+      "quantity": {
+        "old": 26,
+        "new": 0,
+        "fieldName": "Quantity"
+      }
+    },
+    "metadata": [
+      "RELOCATION",
+      "VKT",
+      "TH",
+      "",
+      "26"
+    ]
   }
 ]

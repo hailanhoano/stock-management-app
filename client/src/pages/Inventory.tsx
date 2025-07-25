@@ -61,6 +61,8 @@ const Inventory: React.FC = () => {
   const [showColumnVisibility, setShowColumnVisibility] = useState(false);
   const [showRelocationTab, setShowRelocationTab] = useState(false);
   const [isRelocating, setIsRelocating] = useState(false);
+  const [showSendOutTab, setShowSendOutTab] = useState(false);
+  const [isSendingOut, setIsSendingOut] = useState(false);
 
   // Column visibility state - initialize from localStorage
   const [columnVisibility, setColumnVisibility] = useState(() => {
@@ -474,7 +476,8 @@ const Inventory: React.FC = () => {
           break;
           
         case 'BULK_SEND_OUT':
-          console.log('📤 Received bulk send out event');
+        case 'SEND_OUT':
+          console.log('📤 Received send out event');
           setInventory(prev => {
             const updatedInventory = [...prev];
             if (latestUpdate.data.changes) {
@@ -494,8 +497,23 @@ const Inventory: React.FC = () => {
           
         case 'RELOCATE':
           console.log('🔄 Received relocation event');
-          // Refresh the entire inventory to get the updated data from both sources
-          loadInventory();
+          // Instead of full reload, update only affected items
+          if (latestUpdate.data.changes) {
+            setInventory(prev =>
+              prev
+                .map(item => {
+                  const change = latestUpdate.data.changes.find((c: any) =>
+                    c.rowId && item.id && c.rowId.endsWith(item.id.replace(/^(th_|vkt_)/, ''))
+                  );
+                  if (change && typeof change.oldValue?.quantity === 'number' && typeof change.newValue?.quantity === 'number') {
+                    const newQty = change.oldValue.quantity - change.newValue.quantity;
+                    return { ...item, quantity: String(newQty) };
+                  }
+                  return item;
+                })
+                .filter(item => parseInt(item.quantity) > 0)
+            );
+          }
           break;
       }
       
@@ -1139,21 +1157,30 @@ const handleClearSelection = () => {
     }
   };
 
-const handleBulkSendOut = async () => {
+// Add state for send out quantities
+const [sendOutQuantities, setSendOutQuantities] = useState<{ [key: string]: number }>({});
+
+// Update handleBulkSendOut to accept quantities
+const handleBulkSendOut = async (notes: string = '', quantitiesOverride?: { [key: string]: number }) => {
   if (selectedItems.size === 0) {
     alert('Please select items to send out');
     return;
   }
 
   try {
-    setLoading(true);
+    setIsSendingOut(true); // Show spinner/disable UI
     const token = localStorage.getItem('token');
     const itemIds = Array.from(selectedItems);
+    // Use the passed-in quantities or the state
     const quantities: { [key: string]: number } = {};
-    
-    // Set quantity to 1 for each selected item
     itemIds.forEach(id => {
-      quantities[id] = 1;
+      let qty = 1;
+      if (quantitiesOverride && typeof quantitiesOverride[id] === 'number') {
+        qty = quantitiesOverride[id];
+      } else if (typeof sendOutQuantities[id] === 'number') {
+        qty = sendOutQuantities[id];
+      }
+      quantities[id] = qty;
     });
 
     const response = await fetch('/api/stock/bulk-send-out', {
@@ -1162,33 +1189,50 @@ const handleBulkSendOut = async () => {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
       },
-      body: JSON.stringify({ itemIds, quantities })
+      body: JSON.stringify({ 
+        itemIds, 
+        quantities,
+        notes: notes.trim() || undefined
+      })
     });
 
     const result = await response.json();
 
     if (response.ok) {
-      alert(`✅ Successfully sent out ${itemIds.length} items!`);
-      // Refresh inventory data
-      loadInventory();
-      // Clear selection
+      // Clear selection and update only affected items in inventory
       setSelectedItems(new Set());
       setIsBulkActionMode(false);
-      // Clear localStorage
+      setShowOnlySelected(false);
+      setSendOutQuantities({});
       localStorage.removeItem('inventorySelectedItems');
+      // Update only the affected items in inventory
+      if (result.updatedItems && result.updatedItems.length) {
+        setInventory(prev =>
+          prev.map(item => {
+            if (result.updatedItems.includes(item.id)) {
+              const sentQty = quantities[item.id] || 1;
+              const newQty = Math.max(0, parseInt(item.quantity) - sentQty);
+              return { ...item, quantity: String(newQty) };
+            }
+            return item;
+          })
+        );
+      }
+      setShowSendOutTab(false); // Close tab after update
     } else {
+      console.error('❌ Send out failed:', result);
       alert(`❌ Error: ${result.message}`);
     }
   } catch (error) {
-    console.error('Error during bulk send out:', error);
+    console.error('❌ Error during bulk send out:', error);
     alert('❌ An error occurred while sending items out. Please try again.');
   } finally {
-    setLoading(false);
+    setIsSendingOut(false); // Remove spinner/enable UI
   }
 };
 
   // Handle relocation of selected items
-  const handleRelocateItems = async (destinationLocation: string, notes: string = '') => {
+  const handleRelocateItems = async (destinationLocation: string, notes: string = '', quantitiesOverride?: { [key: string]: number }) => {
     if (selectedItems.size === 0) {
       alert('Please select items to relocate');
       return;
@@ -1237,16 +1281,19 @@ const handleBulkSendOut = async () => {
       setIsRelocating(true);
       setShowRelocationTab(false); // Close tab immediately
       const token = localStorage.getItem('token');
-      
-      const requestData = {
+      const selectedItemsList = Array.from(selectedItems);
+      const requestData: any = {
         itemIds: selectedItemsList,
-        sourceLocation,
+        sourceLocation: inventory.find(item => item.id === selectedItemsList[0])?.warehouse,
         destinationLocation,
         notes
       };
-      
-      console.log('🚀 Sending relocation request:', requestData);
-      
+      if (quantitiesOverride) {
+        requestData.quantities = {};
+        selectedItemsList.forEach(id => {
+          requestData.quantities[id] = quantitiesOverride[id] || 1;
+        });
+      }
       const response = await fetch('/api/stock/inventory/relocate', {
         method: 'POST',
         headers: {
@@ -1255,19 +1302,30 @@ const handleBulkSendOut = async () => {
         },
         body: JSON.stringify(requestData)
       });
-
       const result = await response.json();
-      console.log('📨 Relocation response:', result);
-
       if (response.ok) {
-        // Clear selection and refresh inventory
         setSelectedItems(new Set());
         setIsBulkActionMode(false);
         setShowOnlySelected(false);
         localStorage.removeItem('inventorySelectedItems');
-        
-        // Refresh inventory data
-        await loadInventory();
+        // Update only the affected items in inventory
+        if (result.itemIds && result.itemIds.length && result.changes) {
+          setInventory(prev =>
+            prev
+              .map(item => {
+                const change = result.changes.find((c: any) =>
+                  c.rowId && item.id && c.rowId.endsWith(item.id.replace(/^(th_|vkt_)/, ''))
+                );
+                if (change && typeof change.oldValue?.quantity === 'number' && typeof change.newValue?.quantity === 'number') {
+                  const newQty = change.oldValue.quantity - change.newValue.quantity;
+                  return { ...item, quantity: String(newQty) };
+                }
+                return item;
+              })
+              .filter(item => parseInt(item.quantity) > 0)
+          );
+        }
+        // Do NOT call await loadInventory();
       } else {
         console.error('❌ Relocation failed:', result);
         alert(`❌ Error: ${result.message}`);
@@ -1292,6 +1350,76 @@ const handleBulkSendOut = async () => {
     
     return locations.filter(loc => loc !== currentLocation);
   };
+
+  // Add state for relocate quantities
+  const [relocateQuantities, setRelocateQuantities] = useState<{ [key: string]: number }>({});
+
+  // In the Relocate tab, add a table similar to Send Out tab
+  // Replace the Relocate tab's summary and controls with:
+  // ...
+  <div className="mb-4">
+    <table className="min-w-full divide-y divide-gray-200 bg-white rounded shadow">
+      <thead>
+        <tr>
+          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Brand</th>
+          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Product Code</th>
+          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Product</th>
+          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Places</th>
+          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Available</th>
+          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Relocate Qty</th>
+        </tr>
+      </thead>
+      <tbody>
+        {Array.from(selectedItems).map((itemId, idx) => {
+          const item = inventory.find(i => i.id === itemId);
+          if (!item) return null;
+          const rowClass = idx % 2 === 0 ? 'bg-white' : 'bg-green-50';
+          return (
+            <tr key={item.id} className={rowClass}>
+              <td className="px-4 py-2 text-sm text-gray-700">{item.brand}</td>
+              <td className="px-4 py-2 text-sm text-gray-700">{item.product_code}</td>
+              <td className="px-4 py-2 text-sm text-gray-900">{item.product_name || item.product_code}</td>
+              <td className="px-4 py-2 text-sm text-gray-700">{item.warehouse}</td>
+              <td className="px-4 py-2 text-sm text-gray-700">{item.quantity}</td>
+              <td className="px-4 py-2">
+                <input
+                  type="number"
+                  min={1}
+                  max={parseInt(item.quantity) || 1}
+                  value={relocateQuantities[item.id] || 1}
+                  onChange={e => {
+                    const val = Math.max(1, Math.min(parseInt(e.target.value) || 1, parseInt(item.quantity) || 1));
+                    setRelocateQuantities(q => ({ ...q, [item.id]: val }));
+                  }}
+                  className="w-20 border border-green-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-green-500"
+                />
+              </td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
+  </div>
+  // ...
+  // In the Relocate button onClick handler, validate and pass relocateQuantities to handleRelocateItems
+  // Replace:
+  //   handleRelocateItems(destinationSelect.value, notesTextarea.value);
+  // With:
+  //   // Validate all relocate quantities
+  //   let valid = true;
+  //   Array.from(selectedItems).forEach(itemId => {
+  //     const item = inventory.find(i => i.id === itemId);
+  //     const qty = relocateQuantities[itemId] || 1;
+  //     if (!item || qty < 1 || qty > parseInt(item.quantity)) valid = false;
+  //   });
+  //   if (!valid) {
+  //     alert('Please enter valid relocate quantities for all items.');
+  //     return;
+  //   }
+  //   handleRelocateItems(destinationSelect.value, notesTextarea.value, relocateQuantities);
+  // ...
+  // Update handleRelocateItems to accept the quantities object and send it to the backend
+  // ... existing code ...
 
   if (loading) {
     return (
@@ -1594,7 +1722,7 @@ const handleBulkSendOut = async () => {
               placeholder="Location"
               value={newItem.location || ''}
               onChange={(e) => setNewItem({...newItem, location: e.target.value})}
-              className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   e.preventDefault();
@@ -1655,7 +1783,7 @@ const handleBulkSendOut = async () => {
                 placeholder="dd-mm-yyyy"
                 value={newItem.expiry_date || ''}
                 onChange={(e) => setNewItem({...newItem, expiry_date: e.target.value})}
-                className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     e.preventDefault();
@@ -1679,7 +1807,7 @@ const handleBulkSendOut = async () => {
                 placeholder="dd-mm-yyyy"
                 value={newItem.import_date || ''}
                 onChange={(e) => setNewItem({...newItem, import_date: e.target.value})}
-                className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     e.preventDefault();
@@ -1736,6 +1864,23 @@ const handleBulkSendOut = async () => {
       </tr>
     );
   };
+
+  // Add a helper to check if all selected items are from the same warehouse
+  const allFromSameWarehouse = (() => {
+    const selectedItemsList = Array.from(selectedItems);
+    const warehouses = selectedItemsList
+      .map(id => inventory.find(item => item.id === id)?.warehouse)
+      .filter(Boolean);
+    return new Set(warehouses).size <= 1;
+  })();
+
+  // Compute unique warehouses for selected items
+  const selectedItemsList = Array.from(selectedItems);
+  const warehouses = selectedItemsList
+    .map(id => inventory.find(item => item.id === id)?.warehouse)
+    .filter(Boolean);
+  const uniqueWarehouses = Array.from(new Set(warehouses));
+  const isMultiWarehouse = uniqueWarehouses.length > 1;
 
   return (
     <div className="space-y-6">
@@ -1928,13 +2073,18 @@ const handleBulkSendOut = async () => {
                 </button>
                 
                 <button
-                  onClick={() => {
-                    handleBulkSendOut();
-                  }}
-                  disabled={isBulkDeleteInProgress}
-                  className="px-4 py-2 bg-orange-600 text-white text-sm font-medium rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  onClick={() => setShowSendOutTab(!showSendOutTab)}
+                  disabled={isSendingOut}
+                  className={`px-4 py-2 text-white text-sm font-medium rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 transition-colors ${
+                    showSendOutTab 
+                      ? 'bg-orange-700 hover:bg-orange-800' 
+                      : 'bg-orange-600 hover:bg-orange-700'
+                  }`}
                 >
-                  {isBulkDeleteInProgress ? 'Processing...' : 'Send Out'}
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12l-1.411-1.411L13 16.172V4h-2v12.172l-5.589-5.583L4 12l8 8 8-8z" />
+                  </svg>
+                  <span>{isSendingOut ? 'Sending Out...' : showSendOutTab ? 'Hide Send Out' : 'Send Out'}</span>
                 </button>
                 
                 <button
@@ -1991,20 +2141,75 @@ const handleBulkSendOut = async () => {
                 </svg>
               </button>
             </div>
-            
+            {/* Relocate Items Table */}
+            <div className="mb-4">
+              <table className="min-w-full divide-y divide-gray-200 bg-white rounded shadow">
+                <thead>
+                  <tr>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Brand</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Product Code</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Product</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Places</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Available</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Relocate Qty</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {Array.from(selectedItems).map((itemId, idx) => {
+                    const item = inventory.find(i => i.id === itemId);
+                    if (!item) return null;
+                    const rowClass = idx % 2 === 0 ? 'bg-white' : 'bg-green-50';
+                    return (
+                      <tr key={item.id} className={rowClass}>
+                        <td className="px-4 py-2 text-sm text-gray-700">{item.brand}</td>
+                        <td className="px-4 py-2 text-sm text-gray-700">{item.product_code}</td>
+                        <td className="px-4 py-2 text-sm text-gray-900">{item.product_name || item.product_code}</td>
+                        <td className="px-4 py-2 text-sm text-gray-700">{item.warehouse}</td>
+                        <td className="px-4 py-2 text-sm text-gray-700">{item.quantity}</td>
+                        <td className="px-4 py-2">
+                          <input
+                            type="number"
+                            min={1}
+                            max={parseInt(item.quantity) || 1}
+                            value={relocateQuantities[item.id] || 1}
+                            onChange={e => {
+                              const val = Math.max(1, Math.min(parseInt(e.target.value) || 1, parseInt(item.quantity) || 1));
+                              setRelocateQuantities(q => ({ ...q, [item.id]: val }));
+                            }}
+                            className="w-20 border border-green-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-green-500"
+                          />
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
               <div className="space-y-3">
                 <div>
-                  <p className="text-sm text-green-700 mb-2">
-                    Moving <span className="font-medium">{selectedItems.size}</span> item(s) from{' '}
-                    <span className="font-medium">
-                      {(() => {
-                        const selectedItemsList = Array.from(selectedItems);
-                        const firstItem = inventory.find(item => item.id === selectedItemsList[0]);
-                        return firstItem?.warehouse || 'Unknown';
-                      })()}
-                    </span>
-                  </p>
+                  {(() => {
+                    const selectedItemsList = Array.from(selectedItems);
+                    const warehouses = selectedItemsList
+                      .map(id => inventory.find(item => item.id === id)?.warehouse)
+                      .filter(Boolean);
+                    const uniqueWarehouses = Array.from(new Set(warehouses));
+                    if (uniqueWarehouses.length === 1) {
+                      return (
+                        <p className="text-sm text-green-700 mb-2">
+                          Moving <span className="font-medium">{selectedItems.size}</span> item(s) from <span className="font-medium">{uniqueWarehouses[0]}</span>
+                        </p>
+                      );
+                    } else if (uniqueWarehouses.length > 1) {
+                      return (
+                        <p className="text-sm text-red-600 mb-2">
+                          Moving <span className="font-medium">{selectedItems.size}</span> item(s) from different places
+                        </p>
+                      );
+                    } else {
+                      return null;
+                    }
+                  })()}
                 </div>
                 
                 <div>
@@ -2014,13 +2219,18 @@ const handleBulkSendOut = async () => {
                   <select
                     id="destinationLocation"
                     className="w-full px-3 py-2 border border-green-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 bg-white"
-                    defaultValue={getAvailableLocations()[0] || ""}
+                    value={isMultiWarehouse ? '' : undefined}
+                    disabled={isMultiWarehouse}
                   >
-                    {getAvailableLocations().map(location => (
-                      <option key={location} value={location}>
-                        {location === 'TH' ? 'TH - Tân Hải' : 'VKT - Vĩnh Kiến Thịnh'}
-                      </option>
-                    ))}
+                    {isMultiWarehouse ? (
+                      <option value="">--</option>
+                    ) : (
+                      getAvailableLocations().map(location => (
+                        <option key={location} value={location}>
+                          {location === 'TH' ? 'TH - Tân Hải' : 'VKT - Vĩnh Kiến Thịnh'}
+                        </option>
+                      ))
+                    )}
                   </select>
                 </div>
                 
@@ -2036,15 +2246,20 @@ const handleBulkSendOut = async () => {
                     onClick={() => {
                       const destinationSelect = document.getElementById('destinationLocation') as HTMLSelectElement;
                       const notesTextarea = document.getElementById('relocationNotes') as HTMLTextAreaElement;
-                      
-                      if (!destinationSelect.value) {
-                        alert('Please select a destination location');
+                      // Validate all relocate quantities
+                      let valid = true;
+                      Array.from(selectedItems).forEach(itemId => {
+                        const item = inventory.find(i => i.id === itemId);
+                        const qty = relocateQuantities[itemId] || 1;
+                        if (!item || qty < 1 || qty > parseInt(item.quantity)) valid = false;
+                      });
+                      if (!valid) {
+                        alert('Please enter valid relocate quantities for all items.');
                         return;
                       }
-                      
-                      handleRelocateItems(destinationSelect.value, notesTextarea.value);
+                      handleRelocateItems(destinationSelect.value, notesTextarea.value, relocateQuantities);
                     }}
-                    disabled={isRelocating}
+                    disabled={isRelocating || !allFromSameWarehouse}
                     className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 disabled:opacity-50 flex items-center space-x-2 transition-colors"
                   >
                     {isRelocating ? (
@@ -2058,7 +2273,7 @@ const handleBulkSendOut = async () => {
                     ) : (
                       <>
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                         </svg>
                         <span>Relocate Items</span>
                       </>
@@ -2066,7 +2281,6 @@ const handleBulkSendOut = async () => {
                   </button>
                 </div>
               </div>
-              
               <div className="flex flex-col h-full">
                 <label className="block text-sm font-medium text-green-700 mb-2">
                   Relocation Notes (Optional)
@@ -2074,7 +2288,156 @@ const handleBulkSendOut = async () => {
                 <textarea
                   id="relocationNotes"
                   className="w-full px-3 py-2 border border-green-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 bg-white resize-none flex-1"
-                  placeholder="Add detailed notes about this relocation...&#10;&#10;Example:&#10;• Reason for relocation&#10;• Special handling instructions&#10;• Quality notes"
+                  placeholder=""
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Expandable Send Out Tab */}
+        {showSendOutTab && (
+          <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-medium text-orange-800 flex items-center">
+                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12l-1.411-1.411L13 16.172V4h-2v12.172l-5.589-5.583L4 12l8 8 8-8z" />
+                </svg>
+                Send Out Items
+              </h3>
+              <button
+                onClick={() => setShowSendOutTab(false)}
+                className="text-orange-600 hover:text-orange-800"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            {/* New: Table of selected items with adjustable send out quantities */}
+            <div className="mb-4">
+              <table className="min-w-full divide-y divide-gray-200 bg-white rounded shadow">
+                <thead>
+                  <tr>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Brand</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Product Code</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Product</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Places</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Available</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Send Out Qty</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {Array.from(selectedItems).map((itemId, idx) => {
+                    const item = inventory.find(i => i.id === itemId);
+                    if (!item) return null;
+                    const rowClass = idx % 2 === 0 ? 'bg-white' : 'bg-orange-50';
+                    return (
+                      <tr key={item.id} className={rowClass}>
+                        <td className="px-4 py-2 text-sm text-gray-700">{item.brand}</td>
+                        <td className="px-4 py-2 text-sm text-gray-700">{item.product_code}</td>
+                        <td className="px-4 py-2 text-sm text-gray-900">{item.product_name || item.product_code}</td>
+                        <td className="px-4 py-2 text-sm text-gray-700">{item.warehouse}</td>
+                        <td className="px-4 py-2 text-sm text-gray-700">{item.quantity}</td>
+                        <td className="px-4 py-2">
+                          <input
+                            type="number"
+                            min={1}
+                            max={parseInt(item.quantity) || 1}
+                            value={sendOutQuantities[item.id] || 1}
+                            onChange={e => {
+                              const val = Math.max(1, Math.min(parseInt(e.target.value) || 1, parseInt(item.quantity) || 1));
+                              setSendOutQuantities(q => ({ ...q, [item.id]: val }));
+                            }}
+                            className="w-20 border border-orange-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-orange-500"
+                          />
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+              <div className="space-y-3">
+                <div>
+                  <div className="text-sm text-orange-700 mb-2">
+                    {(() => {
+                      const selectedItemsList = Array.from(selectedItems);
+                      const warehouseCounts: { [key: string]: number } = {};
+                      selectedItemsList.forEach(id => {
+                        const wh = inventory.find(item => item.id === id)?.warehouse;
+                        if (wh) warehouseCounts[wh] = (warehouseCounts[wh] || 0) + 1;
+                      });
+                      const entries = Object.entries(warehouseCounts)
+                        .filter(([wh, count]) => count > 0)
+                        .map(([wh, count]) => (
+                          <span key={wh} className="mr-4">
+                            <span className="font-medium">{count}</span> item{count > 1 ? 's' : ''} from <span className="font-medium">{wh}</span>
+                          </span>
+                        ));
+                      return entries.length > 0 ? entries : <span>No items selected</span>;
+                    })()}
+                  </div>
+                  <p className="text-xs text-orange-600 mt-1">
+                    Enter the quantity to send out for each item (cannot exceed available quantity)
+                  </p>
+                </div>
+                <div className="flex justify-start space-x-3">
+                  <button
+                    onClick={() => setShowSendOutTab(false)}
+                    disabled={isSendingOut}
+                    className="px-4 py-2 text-sm font-medium text-orange-700 bg-orange-100 rounded-md hover:bg-orange-200 disabled:opacity-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => {
+                      const notesTextarea = document.getElementById('sendOutNotes') as HTMLTextAreaElement;
+                      // Validate all send out quantities
+                      let valid = true;
+                      Array.from(selectedItems).forEach(itemId => {
+                        const item = inventory.find(i => i.id === itemId);
+                        const qty = sendOutQuantities[itemId] || 1;
+                        if (!item || qty < 1 || qty > parseInt(item.quantity)) valid = false;
+                      });
+                      if (!valid) {
+                        alert('Please enter valid send out quantities for all items.');
+                        return;
+                      }
+                      setShowSendOutTab(false);
+                      handleBulkSendOut(notesTextarea.value, sendOutQuantities);
+                    }}
+                    disabled={isSendingOut}
+                    className="px-4 py-2 text-sm font-medium text-white bg-orange-600 rounded-md hover:bg-orange-700 disabled:opacity-50 flex items-center space-x-2 transition-colors"
+                  >
+                    {isSendingOut ? (
+                      <>
+                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span>Sending Out...</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12l-1.411-1.411L13 16.172V4h-2v12.172l-5.589-5.583L4 12l8 8 8-8z" />
+                        </svg>
+                        <span>Send Out Items</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+              <div className="flex flex-col h-full">
+                <label className="block text-sm font-medium text-orange-700 mb-2">
+                  Send Out Notes (Optional)
+                </label>
+                <textarea
+                  id="sendOutNotes"
+                  className="w-full px-3 py-2 border border-orange-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 bg-white resize-none flex-1"
+                  placeholder=""
                 />
               </div>
             </div>
