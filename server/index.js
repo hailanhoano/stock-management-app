@@ -84,13 +84,13 @@ app.use(express.json());
 // app.use(limiter);
 
 // Google Sheets configuration
-let auth;
-let sheets;
+let auth = null;
+let sheets = null;
 let googleSheetsEnabled = false;
 
 // Check if Google Sheets is explicitly disabled
 if (process.env.DISABLE_GOOGLE_SHEETS === 'true') {
-  console.log('🛑 Google Sheets disabled via environment variable');
+  console.log('🛑 Google Sheets disabled via environment variable - using mock data only');
   googleSheetsEnabled = false;
 } else {
   try {
@@ -3168,10 +3168,15 @@ async function setupCredentials() {
         console.log('✅ Google credentials file created from environment variable');
       } catch (err) {
         console.log('⚠️ Could not parse credentials from environment variable');
+        throw err; // Re-throw to trigger fallback
       }
     }
   } catch (err) {
     console.log('⚠️ Could not setup credentials file:', err.message);
+    // Don't crash the app, just disable Google Sheets
+    googleSheetsEnabled = false;
+    auth = null;
+    sheets = null;
   }
 }
 
@@ -3179,18 +3184,21 @@ async function setupCredentials() {
 async function startServer() {
   try {
     console.log('🚀 Starting server...');
+    console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`📊 Google Sheets enabled: ${googleSheetsEnabled}`);
     
-    // Setup credentials
-    await setupCredentials();
-    
-    // Start Google Sheets polling
-    await startGoogleSheetsPolling();
+    // Setup credentials only if Google Sheets is enabled
+    if (googleSheetsEnabled) {
+      await setupCredentials();
+      await startGoogleSheetsPolling();
+    } else {
+      console.log('⚠️ Skipping Google Sheets setup - using mock data');
+    }
     
     // Start the server
     server.listen(PORT, () => {
       console.log(`✅ Server running on port ${PORT}`);
-      console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
-      console.log(`📊 Google Sheets polling: Active`);
+      console.log(`📊 Google Sheets polling: ${googleSheetsEnabled ? 'Active' : 'Disabled'}`);
     });
     
   } catch (error) {
