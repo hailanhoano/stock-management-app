@@ -82,10 +82,21 @@ app.use(express.json());
 // app.use(limiter);
 
 // Google Sheets configuration
-const auth = new google.auth.GoogleAuth({
-  keyFile: process.env.GOOGLE_APPLICATION_CREDENTIALS || './credentials.json',
-  scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
-});
+function createGoogleAuth() {
+  if (process.env.GOOGLE_SHEETS_CREDENTIALS) {
+    return new google.auth.GoogleAuth({
+      credentials: JSON.parse(process.env.GOOGLE_SHEETS_CREDENTIALS),
+      scopes: ['https://www.googleapis.com/auth/spreadsheets']
+    });
+  } else {
+    return new google.auth.GoogleAuth({
+      keyFile: process.env.GOOGLE_APPLICATION_CREDENTIALS || './credentials.json',
+      scopes: ['https://www.googleapis.com/auth/spreadsheets']
+    });
+  }
+}
+
+const auth = createGoogleAuth();
 
 const sheets = google.sheets({ version: 'v4', auth });
 
@@ -238,10 +249,7 @@ app.post('/api/stock/inventory/:id/start-edit', authenticateToken, async (req, r
     }
 
     // Create a new auth and sheets client
-    const auth = new google.auth.GoogleAuth({
-      keyFile: 'credentials.json',
-      scopes: ['https://www.googleapis.com/auth/spreadsheets']
-    });
+    const auth = createGoogleAuth();
     const sheets = google.sheets({ version: 'v4', auth });
 
     // Fetch current data to get the row being edited
@@ -1165,10 +1173,7 @@ app.put('/api/stock/inventory/:id', authenticateToken, async (req, res) => {
     }
 
     // Create a new auth and sheets client with write access
-    const auth = new google.auth.GoogleAuth({
-      keyFile: 'credentials.json',
-      scopes: ['https://www.googleapis.com/auth/spreadsheets']
-    });
+    const auth = createGoogleAuth();
     const sheets = google.sheets({ version: 'v4', auth });
 
     // Fetch current data to get headers and check for conflicts
@@ -1443,10 +1448,7 @@ app.post('/api/stock/inventory', authenticateToken, async (req, res) => {
     }
 
     // Create a new auth and sheets client with write access
-    const auth = new google.auth.GoogleAuth({
-      keyFile: 'credentials.json',
-      scopes: ['https://www.googleapis.com/auth/spreadsheets']
-    });
+    const auth = createGoogleAuth();
     const sheets = google.sheets({ version: 'v4', auth });
 
     // Fetch current data to get headers
@@ -2237,10 +2239,7 @@ app.post('/api/stock/bulk-send-out', authenticateToken, async (req, res) => {
     console.log('📝 Send out notes:', notes);
     
     // Create auth and sheets client
-    const auth = new google.auth.GoogleAuth({
-      keyFile: 'credentials.json',
-      scopes: ['https://www.googleapis.com/auth/spreadsheets']
-    });
+    const auth = createGoogleAuth();
     const sheets = google.sheets({ version: 'v4', auth });
     
     const changeLog = await loadChangeLog();
@@ -2867,10 +2866,7 @@ app.post('/api/stock/inventory/relocate', authenticateToken, async (req, res) =>
     console.log(`📋 Destination sheet: ${destinationSpreadsheetId}`);
     
     // Create auth and sheets client
-    const auth = new google.auth.GoogleAuth({
-      keyFile: 'credentials.json',
-      scopes: ['https://www.googleapis.com/auth/spreadsheets']
-    });
+    const auth = createGoogleAuth();
     const sheets = google.sheets({ version: 'v4', auth });
     
     // Fetch current data from source sheet
