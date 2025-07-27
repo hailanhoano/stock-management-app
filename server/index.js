@@ -729,8 +729,7 @@ async function fetchSheetData(spreadsheetId, range, tabName = null) {
     return response.data.values || [];
   } catch (error) {
     console.error(`Error fetching data from spreadsheet ${spreadsheetId}:`, error);
-    // Return empty array instead of throwing to prevent crashes
-    return [];
+    throw error; // Re-throw the error instead of falling back to mock data
   }
 }
 

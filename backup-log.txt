@@ -1,1 +1,2 @@
 ✅ Wed Jul 23 22:15:56 AEST 2025: Inventory relocation UX improvements - Modal to expandable tab, auto bulk mode, simplified interface
+✅ Sun Jul 27 16:30:00 AEST 2025: Restored backup data and stable application state before going online - Reverted to stable commit 98fc30f, restored data from backup commit 9674047
