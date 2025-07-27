@@ -85,7 +85,12 @@ app.use(express.json());
 
 // Google Sheets configuration
 const auth = new google.auth.GoogleAuth({
-  keyFile: process.env.GOOGLE_APPLICATION_CREDENTIALS || './credentials.json',
+  keyFile: process.env.GOOGLE_APPLICATION_CREDENTIALS && !process.env.GOOGLE_APPLICATION_CREDENTIALS.startsWith('/') 
+    ? undefined 
+    : (process.env.GOOGLE_APPLICATION_CREDENTIALS || './credentials.json'),
+  credentials: process.env.GOOGLE_APPLICATION_CREDENTIALS && !process.env.GOOGLE_APPLICATION_CREDENTIALS.startsWith('/')
+    ? JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS)
+    : undefined,
   scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
 });
 
