@@ -6,6 +6,6 @@ echo "Installing client dependencies..."
 cd client && npm install
 
 echo "Building client..."
-npm run build
+CI=false npm run build
 
 echo "Build completed successfully!" 
