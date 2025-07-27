@@ -3131,3 +3131,49 @@ async function setupCredentials() {
     console.log('⚠️ Could not setup credentials file:', err.message);
   }
 }
+
+// Start the server
+async function startServer() {
+  try {
+    console.log('🚀 Starting server...');
+    
+    // Setup credentials
+    await setupCredentials();
+    
+    // Start Google Sheets polling
+    await startGoogleSheetsPolling();
+    
+    // Start the server
+    server.listen(PORT, () => {
+      console.log(`✅ Server running on port ${PORT}`);
+      console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`📊 Google Sheets polling: Active`);
+    });
+    
+  } catch (error) {
+    console.error('❌ Failed to start server:', error);
+    process.exit(1);
+  }
+}
+
+// Handle graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('🛑 Received SIGTERM, shutting down gracefully...');
+  cleanup();
+  server.close(() => {
+    console.log('✅ Server closed');
+    process.exit(0);
+  });
+});
+
+process.on('SIGINT', () => {
+  console.log('🛑 Received SIGINT, shutting down gracefully...');
+  cleanup();
+  server.close(() => {
+    console.log('✅ Server closed');
+    process.exit(0);
+  });
+});
+
+// Start the server
+startServer();
