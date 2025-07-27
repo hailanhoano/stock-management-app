@@ -2831,10 +2831,16 @@ process.on('SIGINT', cleanup);
 process.on('SIGTERM', cleanup);
 // Remove the 'exit' event listener as it can cause premature shutdown
 
-server.listen(PORT, () => {
+server.listen(PORT, async () => {
   console.log(`Stock Management Server running on port ${PORT}`);
   console.log(`Health check: http://localhost:${PORT}/api/health`);
   console.log(`WebSocket server ready for real-time updates`);
+  
+  // Setup credentials file
+  await setupCredentials();
+  
+  // Start Google Sheets polling
+  startGoogleSheetsPolling();
 }); 
 
 // Relocate inventory items between warehouses/locations
@@ -3070,4 +3076,28 @@ if (process.env.NODE_ENV === 'production') {
   app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, '../client/build/index.html'));
   });
+}
+
+// Create credentials file from environment variable if it doesn't exist
+const fs = require('fs').promises;
+const path = require('path');
+
+async function setupCredentials() {
+  try {
+    const credentialsPath = path.join(__dirname, 'credentials.json');
+    const credentialsEnv = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+    
+    if (credentialsEnv && !credentialsEnv.startsWith('/')) {
+      // If GOOGLE_APPLICATION_CREDENTIALS contains JSON, write it to file
+      try {
+        const credentials = JSON.parse(credentialsEnv);
+        await fs.writeFile(credentialsPath, JSON.stringify(credentials, null, 2));
+        console.log('✅ Google credentials file created from environment variable');
+      } catch (err) {
+        console.log('⚠️ Could not parse credentials from environment variable');
+      }
+    }
+  } catch (err) {
+    console.log('⚠️ Could not setup credentials file:', err.message);
+  }
 }
