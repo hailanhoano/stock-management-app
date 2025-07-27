@@ -41,10 +41,6 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
   const [syncStatus, setSyncStatus] = useState<'syncing' | 'synced' | 'error' | 'unknown'>('unknown');
 
-  const SOCKET_URL = process.env.NODE_ENV === 'production' 
-    ? window.location.origin.replace(/^https?:\/\//, 'wss://')
-    : 'http://localhost:3001';
-
   const connect = (token: string) => {
     if (socket) {
       console.log('Disconnecting existing socket...');
@@ -52,7 +48,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
     }
 
     console.log('Connecting to WebSocket server...');
-    const newSocket = io(SOCKET_URL, {
+    const newSocket = io('http://localhost:3001', {
       transports: ['websocket', 'polling'],
       timeout: 10000,
       reconnection: true,

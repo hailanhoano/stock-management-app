@@ -16,9 +16,7 @@ const app = express();
 const server = createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: process.env.NODE_ENV === 'production' 
-      ? process.env.CLIENT_URL || "https://your-app-name.railway.app"
-      : "http://localhost:3000",
+    origin: "http://localhost:3000",
     methods: ["GET", "POST"]
   }
 });
@@ -84,52 +82,12 @@ app.use(express.json());
 // app.use(limiter);
 
 // Google Sheets configuration
-let auth = null;
-let sheets = null;
-let googleSheetsEnabled = false;
+const auth = new google.auth.GoogleAuth({
+  keyFile: process.env.GOOGLE_APPLICATION_CREDENTIALS || './credentials.json',
+  scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
+});
 
-// Check if Google Sheets is explicitly disabled
-if (process.env.DISABLE_GOOGLE_SHEETS === 'true') {
-  console.log('🛑 Google Sheets disabled via environment variable - using mock data only');
-  googleSheetsEnabled = false;
-} else {
-  try {
-    if (process.env.GOOGLE_APPLICATION_CREDENTIALS && !process.env.GOOGLE_APPLICATION_CREDENTIALS.startsWith('/')) {
-      // Use credentials from environment variable
-      const credentials = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS);
-      auth = new google.auth.GoogleAuth({
-        credentials: credentials,
-        scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly']
-      });
-      sheets = google.sheets({ version: 'v4', auth });
-      googleSheetsEnabled = true;
-      console.log('✅ Google Sheets API configured with environment credentials');
-    } else {
-      // Use keyFile
-      auth = new google.auth.GoogleAuth({
-        keyFile: process.env.GOOGLE_APPLICATION_CREDENTIALS || './credentials.json',
-        scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly']
-      });
-      sheets = google.sheets({ version: 'v4', auth });
-      googleSheetsEnabled = true;
-      console.log('✅ Google Sheets API configured with keyFile');
-    }
-  } catch (error) {
-    console.error('❌ Google Sheets API configuration failed:', error.message);
-    console.log('⚠️ App will run with mock data only');
-    googleSheetsEnabled = false;
-  }
-}
-
-// Function to disable Google Sheets if auth fails
-function disableGoogleSheets() {
-  if (googleSheetsEnabled) {
-    console.log('🛑 Disabling Google Sheets due to authentication errors');
-    googleSheetsEnabled = false;
-    auth = null;
-    sheets = null;
-  }
-}
+const sheets = google.sheets({ version: 'v4', auth });
 
 // User data file path
 const USERS_FILE = path.join(__dirname, 'data', 'users.json');
@@ -755,24 +713,9 @@ app.get('/api/stock/analytics', async (req, res) => {
 
 // Helper functions
 async function fetchSheetData(spreadsheetId, range, tabName = null) {
-  // If Google Sheets is disabled, return mock data
-  if (!googleSheetsEnabled) {
-    console.log(`🔄 Google Sheets disabled, using mock data...`);
-    return [
-      ['Tên hãng', 'Mã hàng', 'Tên hàng', 'Số lượng', 'Đơn vị', 'Tên Kho'],
-      ['Test Brand', 'TEST001', 'Test Product', '100', 'pcs', 'TH'],
-      ['Test Brand 2', 'TEST002', 'Test Product 2', '50', 'boxes', 'VKT'],
-      ['Sample Brand', 'SAMPLE001', 'Sample Product', '75', 'units', 'TH'],
-      ['Demo Brand', 'DEMO001', 'Demo Product', '25', 'pcs', 'VKT']
-    ];
-  }
-
   try {
     // If tabName is provided, use it in the range
     const fullRange = tabName ? `${tabName}!${range}` : range;
-    
-    console.log(`📊 Fetching data from spreadsheet: ${spreadsheetId}, range: ${fullRange}`);
-    console.log(`🔑 Auth status:`, auth ? 'Configured' : 'Not configured');
     
     const response = await Promise.race([
       sheets.spreadsheets.values.get({
@@ -783,26 +726,11 @@ async function fetchSheetData(spreadsheetId, range, tabName = null) {
         setTimeout(() => reject(new Error('Google Sheets API timeout')), 30000)
       )
     ]);
-    
-    console.log(`✅ Successfully fetched ${response.data.values?.length || 0} rows from spreadsheet`);
     return response.data.values || [];
   } catch (error) {
-    console.error(`❌ Error fetching data from spreadsheet ${spreadsheetId}:`, error.message);
-    
-    // If it's an auth error, disable Google Sheets permanently
-    if (error.message.includes('invalid_grant') || error.message.includes('Invalid JWT Signature')) {
-      disableGoogleSheets();
-    }
-    
-    // Return mock data for testing
-    console.log(`🔄 Using mock data due to Google Sheets error...`);
-    return [
-      ['Tên hãng', 'Mã hàng', 'Tên hàng', 'Số lượng', 'Đơn vị', 'Tên Kho'],
-      ['Test Brand', 'TEST001', 'Test Product', '100', 'pcs', 'TH'],
-      ['Test Brand 2', 'TEST002', 'Test Product 2', '50', 'boxes', 'VKT'],
-      ['Sample Brand', 'SAMPLE001', 'Sample Product', '75', 'units', 'TH'],
-      ['Demo Brand', 'DEMO001', 'Demo Product', '25', 'pcs', 'VKT']
-    ];
+    console.error(`Error fetching data from spreadsheet ${spreadsheetId}:`, error);
+    // Return empty array instead of throwing to prevent crashes
+    return [];
   }
 }
 
@@ -2668,11 +2596,6 @@ const UPDATE_DEBOUNCE_MS = 5000; // 5 seconds debounce
 let isManualDeletionInProgress = false;
 
 async function startGoogleSheetsPolling() {
-  if (!googleSheetsEnabled) {
-    console.log('⚠️ Google Sheets polling disabled - using mock data');
-    return;
-  }
-  
   try {
     const config = await loadConfig();
     if (!config.spreadsheetIds.inventory && !config.spreadsheetIds.inventory2) {
@@ -2906,16 +2829,10 @@ process.on('SIGINT', cleanup);
 process.on('SIGTERM', cleanup);
 // Remove the 'exit' event listener as it can cause premature shutdown
 
-server.listen(PORT, async () => {
+server.listen(PORT, () => {
   console.log(`Stock Management Server running on port ${PORT}`);
   console.log(`Health check: http://localhost:${PORT}/api/health`);
   console.log(`WebSocket server ready for real-time updates`);
-  
-  // Setup credentials file
-  await setupCredentials();
-  
-  // Start Google Sheets polling
-  startGoogleSheetsPolling();
 }); 
 
 // Relocate inventory items between warehouses/locations
@@ -3140,91 +3057,3 @@ app.post('/api/stock/inventory/relocate', authenticateToken, async (req, res) =>
     });
   }
 }); 
-
-// Serve static files from the React build in production
-if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, '../client/build')));
-}
-
-// Catch-all handler for React app in production
-if (process.env.NODE_ENV === 'production') {
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../client/build/index.html'));
-  });
-}
-
-// Create credentials file from environment variable if it doesn't exist
-
-async function setupCredentials() {
-  try {
-    const credentialsPath = path.join(__dirname, 'credentials.json');
-    const credentialsEnv = process.env.GOOGLE_APPLICATION_CREDENTIALS;
-    
-    if (credentialsEnv && !credentialsEnv.startsWith('/')) {
-      // If GOOGLE_APPLICATION_CREDENTIALS contains JSON, write it to file
-      try {
-        const credentials = JSON.parse(credentialsEnv);
-        await fs.writeFile(credentialsPath, JSON.stringify(credentials, null, 2));
-        console.log('✅ Google credentials file created from environment variable');
-      } catch (err) {
-        console.log('⚠️ Could not parse credentials from environment variable');
-        throw err; // Re-throw to trigger fallback
-      }
-    }
-  } catch (err) {
-    console.log('⚠️ Could not setup credentials file:', err.message);
-    // Don't crash the app, just disable Google Sheets
-    googleSheetsEnabled = false;
-    auth = null;
-    sheets = null;
-  }
-}
-
-// Start the server
-async function startServer() {
-  try {
-    console.log('🚀 Starting server...');
-    console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
-    console.log(`📊 Google Sheets enabled: ${googleSheetsEnabled}`);
-    
-    // Setup credentials only if Google Sheets is enabled
-    if (googleSheetsEnabled) {
-      await setupCredentials();
-      await startGoogleSheetsPolling();
-    } else {
-      console.log('⚠️ Skipping Google Sheets setup - using mock data');
-    }
-    
-    // Start the server
-    server.listen(PORT, () => {
-      console.log(`✅ Server running on port ${PORT}`);
-      console.log(`📊 Google Sheets polling: ${googleSheetsEnabled ? 'Active' : 'Disabled'}`);
-    });
-    
-  } catch (error) {
-    console.error('❌ Failed to start server:', error);
-    process.exit(1);
-  }
-}
-
-// Handle graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('🛑 Received SIGTERM, shutting down gracefully...');
-  cleanup();
-  server.close(() => {
-    console.log('✅ Server closed');
-    process.exit(0);
-  });
-});
-
-process.on('SIGINT', () => {
-  console.log('🛑 Received SIGINT, shutting down gracefully...');
-  cleanup();
-  server.close(() => {
-    console.log('✅ Server closed');
-    process.exit(0);
-  });
-});
-
-// Start the server
-startServer();

@@ -123,10 +123,6 @@ const StockContext = createContext<{
   updateSpreadsheetIds: (ids: { inventory: string; sales: string; purchases: string }) => void;
 } | undefined>(undefined);
 
-const API_BASE_URL = process.env.NODE_ENV === 'production' 
-  ? window.location.origin
-  : 'http://localhost:3001';
-
 // Provider
 export const StockProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [state, dispatch] = useReducer(stockReducer, initialState);
@@ -138,7 +134,7 @@ export const StockProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         // Add a small delay to prevent rapid requests
         await new Promise(resolve => setTimeout(resolve, 100));
         
-        const response = await fetch(`${API_BASE_URL}/api/config`, {
+        const response = await fetch('/api/config', {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           }
@@ -172,7 +168,7 @@ export const StockProvider: React.FC<{ children: ReactNode }> = ({ children }) =
           spreadsheetId3: state.spreadsheetIds.purchases
       });
 
-      const response = await fetch(`${API_BASE_URL}/api/stock/overview?${params}`);
+      const response = await fetch(`/api/stock/overview?${params}`);
       const data = await response.json();
 
       if (data.success) {
@@ -203,7 +199,7 @@ export const StockProvider: React.FC<{ children: ReactNode }> = ({ children }) =
           return;
         }
         
-        const response = await fetch(`${API_BASE_URL}/api/config`, {
+        const response = await fetch('/api/config', {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -234,7 +230,7 @@ export const StockProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
       console.log('Fetching inventory with params:', params.toString());
       const token = localStorage.getItem('token');
-      const response = await fetch(`${API_BASE_URL}/api/stock/inventory?${params}`, {
+      const response = await fetch(`/api/stock/inventory?${params}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -291,7 +287,7 @@ export const StockProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
   const updateSpreadsheetIds = useCallback(async (ids: { inventory: string; sales: string; purchases: string }) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/config`, {
+      const response = await fetch('/api/config', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
