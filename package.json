@@ -10,7 +10,7 @@
     "build": "cd client && npm run build",
     "install-all": "npm install && cd client && npm install",
     "start": "node server/index.js",
-    "postinstall": "cd client && npm install && npm run build"
+    "postinstall": "cd client && npm install && CI=false npm run build"
   },
   "keywords": [
     "stock",
