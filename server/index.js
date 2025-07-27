@@ -3111,8 +3111,6 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 // Create credentials file from environment variable if it doesn't exist
-const fs = require('fs').promises;
-const path = require('path');
 
 async function setupCredentials() {
   try {
