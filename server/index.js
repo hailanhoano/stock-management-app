@@ -88,31 +88,47 @@ let auth;
 let sheets;
 let googleSheetsEnabled = false;
 
-try {
-  if (process.env.GOOGLE_APPLICATION_CREDENTIALS && !process.env.GOOGLE_APPLICATION_CREDENTIALS.startsWith('/')) {
-    // Use credentials from environment variable
-    const credentials = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS);
-    auth = new google.auth.GoogleAuth({
-      credentials: credentials,
-      scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly']
-    });
-    sheets = google.sheets({ version: 'v4', auth });
-    googleSheetsEnabled = true;
-    console.log('✅ Google Sheets API configured with environment credentials');
-  } else {
-    // Use keyFile
-    auth = new google.auth.GoogleAuth({
-      keyFile: process.env.GOOGLE_APPLICATION_CREDENTIALS || './credentials.json',
-      scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly']
-    });
-    sheets = google.sheets({ version: 'v4', auth });
-    googleSheetsEnabled = true;
-    console.log('✅ Google Sheets API configured with keyFile');
-  }
-} catch (error) {
-  console.error('❌ Google Sheets API configuration failed:', error.message);
-  console.log('⚠️ App will run with mock data only');
+// Check if Google Sheets is explicitly disabled
+if (process.env.DISABLE_GOOGLE_SHEETS === 'true') {
+  console.log('🛑 Google Sheets disabled via environment variable');
   googleSheetsEnabled = false;
+} else {
+  try {
+    if (process.env.GOOGLE_APPLICATION_CREDENTIALS && !process.env.GOOGLE_APPLICATION_CREDENTIALS.startsWith('/')) {
+      // Use credentials from environment variable
+      const credentials = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS);
+      auth = new google.auth.GoogleAuth({
+        credentials: credentials,
+        scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly']
+      });
+      sheets = google.sheets({ version: 'v4', auth });
+      googleSheetsEnabled = true;
+      console.log('✅ Google Sheets API configured with environment credentials');
+    } else {
+      // Use keyFile
+      auth = new google.auth.GoogleAuth({
+        keyFile: process.env.GOOGLE_APPLICATION_CREDENTIALS || './credentials.json',
+        scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly']
+      });
+      sheets = google.sheets({ version: 'v4', auth });
+      googleSheetsEnabled = true;
+      console.log('✅ Google Sheets API configured with keyFile');
+    }
+  } catch (error) {
+    console.error('❌ Google Sheets API configuration failed:', error.message);
+    console.log('⚠️ App will run with mock data only');
+    googleSheetsEnabled = false;
+  }
+}
+
+// Function to disable Google Sheets if auth fails
+function disableGoogleSheets() {
+  if (googleSheetsEnabled) {
+    console.log('🛑 Disabling Google Sheets due to authentication errors');
+    googleSheetsEnabled = false;
+    auth = null;
+    sheets = null;
+  }
 }
 
 // User data file path
@@ -772,7 +788,11 @@ async function fetchSheetData(spreadsheetId, range, tabName = null) {
     return response.data.values || [];
   } catch (error) {
     console.error(`❌ Error fetching data from spreadsheet ${spreadsheetId}:`, error.message);
-    console.error(`🔍 Error details:`, error);
+    
+    // If it's an auth error, disable Google Sheets permanently
+    if (error.message.includes('invalid_grant') || error.message.includes('Invalid JWT Signature')) {
+      disableGoogleSheets();
+    }
     
     // Return mock data for testing
     console.log(`🔄 Using mock data due to Google Sheets error...`);
