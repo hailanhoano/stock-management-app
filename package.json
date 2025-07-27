@@ -12,7 +12,7 @@
     "client": "cd client && npm start",
     "build": "cd client && npm run build",
     "install-all": "npm install && cd client && npm install",
-    "start": "NODE_OPTIONS='--openssl-legacy-provider' node server/index.js"
+    "start": "node --openssl-legacy-provider server/index.js"
   },
   "keywords": [
     "stock",
