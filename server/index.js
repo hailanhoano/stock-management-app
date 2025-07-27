@@ -84,15 +84,30 @@ app.use(express.json());
 // app.use(limiter);
 
 // Google Sheets configuration
-const auth = new google.auth.GoogleAuth({
-  keyFile: process.env.GOOGLE_APPLICATION_CREDENTIALS && !process.env.GOOGLE_APPLICATION_CREDENTIALS.startsWith('/') 
-    ? undefined 
-    : (process.env.GOOGLE_APPLICATION_CREDENTIALS || './credentials.json'),
-  credentials: process.env.GOOGLE_APPLICATION_CREDENTIALS && !process.env.GOOGLE_APPLICATION_CREDENTIALS.startsWith('/')
-    ? JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS)
-    : undefined,
-  scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
-});
+let auth;
+try {
+  if (process.env.GOOGLE_APPLICATION_CREDENTIALS && !process.env.GOOGLE_APPLICATION_CREDENTIALS.startsWith('/')) {
+    // Use credentials from environment variable
+    const credentials = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS);
+    auth = new google.auth.GoogleAuth({
+      credentials: credentials,
+      scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly']
+    });
+  } else {
+    // Use keyFile
+    auth = new google.auth.GoogleAuth({
+      keyFile: process.env.GOOGLE_APPLICATION_CREDENTIALS || './credentials.json',
+      scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly']
+    });
+  }
+} catch (error) {
+  console.error('Error setting up Google auth:', error.message);
+  // Fallback to keyFile
+  auth = new google.auth.GoogleAuth({
+    keyFile: './credentials.json',
+    scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly']
+  });
+}
 
 const sheets = google.sheets({ version: 'v4', auth });
 
@@ -724,6 +739,9 @@ async function fetchSheetData(spreadsheetId, range, tabName = null) {
     // If tabName is provided, use it in the range
     const fullRange = tabName ? `${tabName}!${range}` : range;
     
+    console.log(`📊 Fetching data from spreadsheet: ${spreadsheetId}, range: ${fullRange}`);
+    console.log(`🔑 Auth status:`, auth ? 'Configured' : 'Not configured');
+    
     const response = await Promise.race([
       sheets.spreadsheets.values.get({
         spreadsheetId,
@@ -733,9 +751,12 @@ async function fetchSheetData(spreadsheetId, range, tabName = null) {
         setTimeout(() => reject(new Error('Google Sheets API timeout')), 30000)
       )
     ]);
+    
+    console.log(`✅ Successfully fetched ${response.data.values?.length || 0} rows from spreadsheet`);
     return response.data.values || [];
   } catch (error) {
-    console.error(`Error fetching data from spreadsheet ${spreadsheetId}:`, error);
+    console.error(`❌ Error fetching data from spreadsheet ${spreadsheetId}:`, error.message);
+    console.error(`🔍 Error details:`, error);
     // Return empty array instead of throwing to prevent crashes
     return [];
   }
