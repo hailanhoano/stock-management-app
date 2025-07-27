@@ -33587,5 +33587,510 @@
       "",
       "26"
     ]
+  },
+  {
+    "timestamp": 1753588651334,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "th_611",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "27/07/2025, 1:57:31 pm",
+      "admin@example.com",
+      "26"
+    ]
+  },
+  {
+    "timestamp": 1753588768039,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "th_601",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "27/07/2025, 1:59:27 pm",
+      "admin@example.com",
+      "26"
+    ]
+  },
+  {
+    "timestamp": 1753588771132,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "th_602",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "27/07/2025, 1:59:30 pm",
+      "admin@example.com",
+      "26"
+    ]
+  },
+  {
+    "timestamp": 1753588778403,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "th_601",
+    "oldValue": {
+      "quantity": "17"
+    },
+    "newValue": {
+      "quantity": "24"
+    },
+    "changedFields": {
+      "quantity": {
+        "old": "17",
+        "new": "24",
+        "fieldName": "Số lượng"
+      }
+    },
+    "metadata": [
+      "27/07/2025, 1:59:38 pm",
+      "admin@example.com",
+      "28"
+    ]
+  },
+  {
+    "timestamp": 1753588813610,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "th_602",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "27/07/2025, 2:00:13 pm",
+      "admin@example.com",
+      "28"
+    ]
+  },
+  {
+    "timestamp": 1753588824466,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "th_601",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "27/07/2025, 2:00:23 pm",
+      "admin@example.com",
+      "28"
+    ]
+  },
+  {
+    "timestamp": 1753588827240,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "th_602",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "27/07/2025, 2:00:26 pm",
+      "admin@example.com",
+      "28"
+    ]
+  },
+  {
+    "timestamp": 1753588832224,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "th_601",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "27/07/2025, 2:00:31 pm",
+      "admin@example.com",
+      "28"
+    ]
+  },
+  {
+    "timestamp": 1753588876465,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "th_604",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "27/07/2025, 2:01:16 pm",
+      "admin@example.com",
+      "26"
+    ]
+  },
+  {
+    "timestamp": 1753588901105,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "th_603",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "27/07/2025, 2:01:40 pm",
+      "admin@example.com",
+      "26"
+    ]
+  },
+  {
+    "timestamp": 1753588906592,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "th_603",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "27/07/2025, 2:01:46 pm",
+      "admin@example.com",
+      "28"
+    ]
+  },
+  {
+    "timestamp": 1753588913674,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "th_602",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "27/07/2025, 2:01:53 pm",
+      "admin@example.com",
+      "28"
+    ]
+  },
+  {
+    "timestamp": 1753588917946,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "th_602",
+    "oldValue": {
+      "quantity": "1"
+    },
+    "newValue": {
+      "quantity": "0"
+    },
+    "changedFields": {
+      "quantity": {
+        "old": "1",
+        "new": "0",
+        "fieldName": "Số lượng"
+      }
+    },
+    "metadata": [
+      "27/07/2025, 2:01:57 pm",
+      "admin@example.com",
+      "28"
+    ]
+  },
+  {
+    "timestamp": 1753588926581,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "th_602",
+    "oldValue": {
+      "quantity": "0"
+    },
+    "newValue": {
+      "quantity": "22"
+    },
+    "changedFields": {
+      "quantity": {
+        "old": "0",
+        "new": "22",
+        "fieldName": "Số lượng"
+      }
+    },
+    "metadata": [
+      "27/07/2025, 2:02:06 pm",
+      "admin@example.com",
+      "28"
+    ]
+  },
+  {
+    "timestamp": 1753588932797,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "th_603",
+    "oldValue": {
+      "quantity": "1"
+    },
+    "newValue": {
+      "quantity": "23"
+    },
+    "changedFields": {
+      "quantity": {
+        "old": "1",
+        "new": "23",
+        "fieldName": "Số lượng"
+      }
+    },
+    "metadata": [
+      "27/07/2025, 2:02:12 pm",
+      "admin@example.com",
+      "28"
+    ]
+  },
+  {
+    "timestamp": 1753588945048,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "th_604",
+    "oldValue": {
+      "quantity": "1"
+    },
+    "newValue": {
+      "quantity": "15"
+    },
+    "changedFields": {
+      "quantity": {
+        "old": "1",
+        "new": "15",
+        "fieldName": "Số lượng"
+      }
+    },
+    "metadata": [
+      "27/07/2025, 2:02:24 pm",
+      "admin@example.com",
+      "28"
+    ]
+  },
+  {
+    "timestamp": 1753588949701,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "th_605",
+    "oldValue": {
+      "quantity": "1"
+    },
+    "newValue": {
+      "quantity": "14"
+    },
+    "changedFields": {
+      "quantity": {
+        "old": "1",
+        "new": "14",
+        "fieldName": "Số lượng"
+      }
+    },
+    "metadata": [
+      "27/07/2025, 2:02:29 pm",
+      "admin@example.com",
+      "26"
+    ]
+  },
+  {
+    "timestamp": 1753588957323,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "th_606",
+    "oldValue": {
+      "quantity": "1"
+    },
+    "newValue": {
+      "quantity": "015"
+    },
+    "changedFields": {
+      "quantity": {
+        "old": "1",
+        "new": "015",
+        "fieldName": "Số lượng"
+      }
+    },
+    "metadata": [
+      "27/07/2025, 2:02:37 pm",
+      "admin@example.com",
+      "26"
+    ]
+  },
+  {
+    "timestamp": 1753588962448,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "th_606",
+    "oldValue": {},
+    "newValue": {},
+    "changedFields": {},
+    "metadata": [
+      "27/07/2025, 2:02:42 pm",
+      "admin@example.com",
+      "28"
+    ]
+  },
+  {
+    "timestamp": 1753588980009,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "th_607",
+    "oldValue": {
+      "quantity": "1"
+    },
+    "newValue": {
+      "quantity": "33"
+    },
+    "changedFields": {
+      "quantity": {
+        "old": "1",
+        "new": "33",
+        "fieldName": "Số lượng"
+      }
+    },
+    "metadata": [
+      "27/07/2025, 2:02:59 pm",
+      "admin@example.com",
+      "26"
+    ]
+  },
+  {
+    "timestamp": 1753588986596,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "vkt_130",
+    "oldValue": {
+      "quantity": "37"
+    },
+    "newValue": {
+      "quantity": "370"
+    },
+    "changedFields": {
+      "quantity": {
+        "old": "37",
+        "new": "370",
+        "fieldName": "Số lượng"
+      }
+    },
+    "metadata": [
+      "27/07/2025, 2:03:05 pm",
+      "admin@example.com",
+      "26"
+    ]
+  },
+  {
+    "timestamp": 1753588999288,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "vkt_131",
+    "oldValue": {
+      "quantity": "12"
+    },
+    "newValue": {
+      "quantity": "46"
+    },
+    "changedFields": {
+      "quantity": {
+        "old": "12",
+        "new": "46",
+        "fieldName": "Số lượng"
+      }
+    },
+    "metadata": [
+      "27/07/2025, 2:03:18 pm",
+      "admin@example.com",
+      "26"
+    ]
+  },
+  {
+    "timestamp": 1753589023429,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "vkt_131",
+    "oldValue": {
+      "quantity": "46"
+    },
+    "newValue": {
+      "quantity": "44"
+    },
+    "changedFields": {
+      "quantity": {
+        "old": "46",
+        "new": "44",
+        "fieldName": "Số lượng"
+      }
+    },
+    "metadata": [
+      "27/07/2025, 2:03:42 pm",
+      "admin@example.com",
+      "28"
+    ]
+  },
+  {
+    "timestamp": 1753589029629,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "th_607",
+    "oldValue": {
+      "quantity": "33"
+    },
+    "newValue": {
+      "quantity": "22"
+    },
+    "changedFields": {
+      "quantity": {
+        "old": "33",
+        "new": "22",
+        "fieldName": "Số lượng"
+      }
+    },
+    "metadata": [
+      "27/07/2025, 2:03:49 pm",
+      "admin@example.com",
+      "28"
+    ]
+  },
+  {
+    "timestamp": 1753589036643,
+    "userId": "1",
+    "userEmail": "admin@example.com",
+    "action": "UPDATE",
+    "rowId": "th_609",
+    "oldValue": {
+      "quantity": "1"
+    },
+    "newValue": {
+      "quantity": "88"
+    },
+    "changedFields": {
+      "quantity": {
+        "old": "1",
+        "new": "88",
+        "fieldName": "Số lượng"
+      }
+    },
+    "metadata": [
+      "27/07/2025, 2:03:56 pm",
+      "admin@example.com",
+      "26"
+    ]
   }
 ]

@@ -2751,10 +2751,20 @@ const handleBulkSendOut = async (notes: string = '', quantitiesOverride?: { [key
                             value={editingData.quantity ?? ''}
                             onChange={e => setEditingData({ ...editingData, quantity: e.target.value })}
                             className="w-16 border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            autoFocus
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                handleSaveEdit();
+                              } else if (e.key === 'Escape') {
+                                e.preventDefault();
+                                handleCancelEdit();
+                              }
+                            }}
                             disabled={isSavingEdit}
                           />
                         ) : (
-                          item.quantity ?? ''
+                          renderEditableCell(item, 'quantity', item.quantity ?? '')
                         )}
                       </td>
                     )}
