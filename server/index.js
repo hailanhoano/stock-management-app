@@ -85,6 +85,9 @@ app.use(express.json());
 
 // Google Sheets configuration
 let auth;
+let sheets;
+let googleSheetsEnabled = false;
+
 try {
   if (process.env.GOOGLE_APPLICATION_CREDENTIALS && !process.env.GOOGLE_APPLICATION_CREDENTIALS.startsWith('/')) {
     // Use credentials from environment variable
@@ -93,23 +96,24 @@ try {
       credentials: credentials,
       scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly']
     });
+    sheets = google.sheets({ version: 'v4', auth });
+    googleSheetsEnabled = true;
+    console.log('✅ Google Sheets API configured with environment credentials');
   } else {
     // Use keyFile
     auth = new google.auth.GoogleAuth({
       keyFile: process.env.GOOGLE_APPLICATION_CREDENTIALS || './credentials.json',
       scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly']
     });
+    sheets = google.sheets({ version: 'v4', auth });
+    googleSheetsEnabled = true;
+    console.log('✅ Google Sheets API configured with keyFile');
   }
 } catch (error) {
-  console.error('Error setting up Google auth:', error.message);
-  // Fallback to keyFile
-  auth = new google.auth.GoogleAuth({
-    keyFile: './credentials.json',
-    scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly']
-  });
+  console.error('❌ Google Sheets API configuration failed:', error.message);
+  console.log('⚠️ App will run with mock data only');
+  googleSheetsEnabled = false;
 }
-
-const sheets = google.sheets({ version: 'v4', auth });
 
 // User data file path
 const USERS_FILE = path.join(__dirname, 'data', 'users.json');
@@ -735,6 +739,18 @@ app.get('/api/stock/analytics', async (req, res) => {
 
 // Helper functions
 async function fetchSheetData(spreadsheetId, range, tabName = null) {
+  // If Google Sheets is disabled, return mock data
+  if (!googleSheetsEnabled) {
+    console.log(`🔄 Google Sheets disabled, using mock data...`);
+    return [
+      ['Tên hãng', 'Mã hàng', 'Tên hàng', 'Số lượng', 'Đơn vị', 'Tên Kho'],
+      ['Test Brand', 'TEST001', 'Test Product', '100', 'pcs', 'TH'],
+      ['Test Brand 2', 'TEST002', 'Test Product 2', '50', 'boxes', 'VKT'],
+      ['Sample Brand', 'SAMPLE001', 'Sample Product', '75', 'units', 'TH'],
+      ['Demo Brand', 'DEMO001', 'Demo Product', '25', 'pcs', 'VKT']
+    ];
+  }
+
   try {
     // If tabName is provided, use it in the range
     const fullRange = tabName ? `${tabName}!${range}` : range;
@@ -759,11 +775,13 @@ async function fetchSheetData(spreadsheetId, range, tabName = null) {
     console.error(`🔍 Error details:`, error);
     
     // Return mock data for testing
-    console.log(`🔄 Using mock data for testing...`);
+    console.log(`🔄 Using mock data due to Google Sheets error...`);
     return [
       ['Tên hãng', 'Mã hàng', 'Tên hàng', 'Số lượng', 'Đơn vị', 'Tên Kho'],
       ['Test Brand', 'TEST001', 'Test Product', '100', 'pcs', 'TH'],
-      ['Test Brand 2', 'TEST002', 'Test Product 2', '50', 'boxes', 'VKT']
+      ['Test Brand 2', 'TEST002', 'Test Product 2', '50', 'boxes', 'VKT'],
+      ['Sample Brand', 'SAMPLE001', 'Sample Product', '75', 'units', 'TH'],
+      ['Demo Brand', 'DEMO001', 'Demo Product', '25', 'pcs', 'VKT']
     ];
   }
 }
@@ -2630,6 +2648,11 @@ const UPDATE_DEBOUNCE_MS = 5000; // 5 seconds debounce
 let isManualDeletionInProgress = false;
 
 async function startGoogleSheetsPolling() {
+  if (!googleSheetsEnabled) {
+    console.log('⚠️ Google Sheets polling disabled - using mock data');
+    return;
+  }
+  
   try {
     const config = await loadConfig();
     if (!config.spreadsheetIds.inventory && !config.spreadsheetIds.inventory2) {
