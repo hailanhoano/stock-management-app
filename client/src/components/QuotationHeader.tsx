@@ -7,9 +7,12 @@ interface QuotationHeaderProps {
   salesRep?: string;
   salesEmail?: string;
   salesPhone?: string;
+  availableQuotationNumbers?: string[];
+  loadingQuotationNumbers?: boolean;
   onDateChange?: (date: string) => void;
   onExpiryDateChange?: (expiryDate: string) => void;
   onSalesRepChange?: (salesRep: string, email: string, phone: string) => void;
+  onQuotationNumberChange?: (quotationNumber: string) => void;
 }
 
 interface User {
@@ -26,9 +29,12 @@ const QuotationHeader: React.FC<QuotationHeaderProps> = ({
   salesRep = 'Tam Giang - 0916999013',
   salesEmail = 'admin@example.com',
   salesPhone = '0916999013',
+  availableQuotationNumbers = [],
+  loadingQuotationNumbers = false,
   onDateChange,
   onExpiryDateChange,
-  onSalesRepChange
+  onSalesRepChange,
+  onQuotationNumberChange
 }) => {
   const [contactDetails, setContactDetails] = useState(
     'No. 100 Street 9, Hamlet 2, Binh Hung Commune\nHo Chi Minh City, Vietnam\nTel: +84 28 66719597\nWebsite: www.tamhunglong.vn'
@@ -46,6 +52,7 @@ const QuotationHeader: React.FC<QuotationHeaderProps> = ({
   const [currentSalesPhone, setCurrentSalesPhone] = useState(salesPhone);
   const [users, setUsers] = useState<User[]>([]);
   const [showUserDropdown, setShowUserDropdown] = useState(false);
+  const [showQuotationDropdown, setShowQuotationDropdown] = useState(false);
 
   // Load users for dropdown
   useEffect(() => {
@@ -280,7 +287,43 @@ const QuotationHeader: React.FC<QuotationHeaderProps> = ({
                 <div className="text-sm leading-6 pl-1">{currentSalesEmail}</div>
                 
                 <div className="font-medium text-sm leading-6">Quote #:</div>
-                <div className="text-sm leading-6">{quotationNumber}</div>
+                <div className="text-sm leading-6 relative">
+                  <input
+                    type="text"
+                    value={quotationNumber}
+                    onChange={(e) => onQuotationNumberChange?.(e.target.value)}
+                    onFocus={() => setShowQuotationDropdown(true)}
+                    onBlur={() => setTimeout(() => setShowQuotationDropdown(false), 200)}
+                    className="w-20 px-1 py-0 border border-gray-300 rounded text-sm"
+                    placeholder={loadingQuotationNumbers ? "Loading..." : "Type..."}
+                    disabled={loadingQuotationNumbers}
+                  />
+                  {loadingQuotationNumbers && (
+                    <div className="absolute right-1 top-1/2 transform -translate-y-1/2">
+                      <div className="h-3 w-3 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin"></div>
+                    </div>
+                  )}
+                  {showQuotationDropdown && availableQuotationNumbers.length > 0 && (
+                    <div className="absolute top-full left-0 right-0 z-20 mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-32 overflow-y-auto">
+                      {availableQuotationNumbers
+                        .filter(number => 
+                          number.toLowerCase().includes(quotationNumber.toLowerCase())
+                        )
+                        .map(number => (
+                          <div
+                            key={number}
+                            onClick={() => {
+                              onQuotationNumberChange?.(number);
+                              setShowQuotationDropdown(false);
+                            }}
+                            className="px-2 py-1 hover:bg-gray-100 cursor-pointer text-sm"
+                          >
+                            {number}
+                          </div>
+                        ))}
+                    </div>
+                  )}
+                </div>
                 
                 <div className="font-medium text-sm leading-6">Expiry date:</div>
                 <div className="text-sm leading-6">

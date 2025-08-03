@@ -75,6 +75,7 @@ const Quotation: React.FC = () => {
   const [availableQuotationNumbers, setAvailableQuotationNumbers] = useState<string[]>([]);
   const [loadingQuotationNumbers, setLoadingQuotationNumbers] = useState(false);
   const [showQuotationDropdown, setShowQuotationDropdown] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
 
   // Helper function to get default expiry date in DD-MM-YYYY format
   const getDefaultExpiryDate = () => {
@@ -234,7 +235,7 @@ const Quotation: React.FC = () => {
 
   // Calculate and update duration when expiry date changes (from header)
   useEffect(() => {
-    if (expiryDate) {
+    if (expiryDate && !isResetting) {
       const today = new Date();
       const expiry = new Date(expiryDate.split('-').reverse().join('-'));
       const diffTime = expiry.getTime() - today.getTime();
@@ -243,7 +244,7 @@ const Quotation: React.FC = () => {
         setExpiryDuration(diffDays);
       }
     }
-  }, [expiryDate]);
+  }, [expiryDate, isResetting]);
 
   // Load customers from API
   const loadCustomers = async () => {
@@ -496,6 +497,8 @@ const Quotation: React.FC = () => {
   };
 
   const resetForm = () => {
+    setIsResetting(true);
+    
     setCustomer(null);
     setItems([]);
     setNotes('');
@@ -506,12 +509,17 @@ const Quotation: React.FC = () => {
     setHeaderSalesRep('Tam Giang - 0916999013');
     setHeaderSalesEmail('admin@example.com');
     setHeaderSalesPhone('0916999013');
-    // Reset shared expiry date
-    setExpiryDate(getDefaultExpiryDate());
-    // Reset duration
-    setExpiryDuration(30);
+    // Reset duration and expiry date together to avoid circular dependency
+    const newDuration = 30;
+    setExpiryDuration(newDuration);
+    // Calculate new expiry date based on the reset duration
+    const newExpiryDate = new Date(Date.now() + newDuration * 24 * 60 * 60 * 1000);
+    const day = newExpiryDate.getDate().toString().padStart(2, '0');
+    const month = (newExpiryDate.getMonth() + 1).toString().padStart(2, '0');
+    const year = newExpiryDate.getFullYear();
+    setExpiryDate(`${day}-${month}-${year}`);
     // Reset quotation number
-    setQuotationNumber('10935');
+    setQuotationNumber('');
     // Reload quotation numbers
     loadQuotationNumbers();
     // Clear localStorage
@@ -527,6 +535,11 @@ const Quotation: React.FC = () => {
     localStorage.removeItem('quotation_expiryDate');
     localStorage.removeItem('quotation_expiryDuration');
     localStorage.removeItem('quotation_number');
+    
+    // Reset the flag after a short delay to allow state updates to complete
+    setTimeout(() => {
+      setIsResetting(false);
+    }, 100);
   };
 
   const toggleQuotationExpansion = (quotationId: string) => {
@@ -681,6 +694,8 @@ const Quotation: React.FC = () => {
               salesRep={headerSalesRep}
               salesEmail={headerSalesEmail}
               salesPhone={headerSalesPhone}
+              availableQuotationNumbers={availableQuotationNumbers}
+              loadingQuotationNumbers={loadingQuotationNumbers}
               onDateChange={(date) => {
                 setHeaderDate(date);
               }}
@@ -691,6 +706,9 @@ const Quotation: React.FC = () => {
                 setHeaderSalesRep(salesRep);
                 setHeaderSalesEmail(email);
                 setHeaderSalesPhone(phone);
+              }}
+              onQuotationNumberChange={(number) => {
+                setQuotationNumber(number);
               }}
             />
             
@@ -971,11 +989,11 @@ const Quotation: React.FC = () => {
                         <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-8">
                           SL
                         </th>
-                        <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/12">
-                          Đơn giá
+                        <th className="px-2 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-1/12">
+                          Đơn giá (₫)
                         </th>
-                        <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/12">
-                          Thành Tiền
+                        <th className="px-2 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-1/12">
+                          Thành Tiền (₫)
                         </th>
                         <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-2/12">
                           Ghi chú
@@ -1042,19 +1060,19 @@ const Quotation: React.FC = () => {
                           <td className="px-2 py-2 align-top">
                           <input
                             type="text"
-                              value={item.unit_price ? `${item.unit_price.toLocaleString('en-US')} ₫` : ''}
+                              value={item.unit_price ? item.unit_price.toLocaleString('en-US') : ''}
                               onChange={(e) => {
                                 const value = e.target.value.replace(/[^\d]/g, '');
                                 handleUpdateItem(item.id, 'unit_price', parseFloat(value) || 0);
                               }}
                               className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm text-right"
-                              placeholder="0 ₫"
+                              placeholder="0"
                               style={{ textAlign: 'right' }}
                             />
                           </td>
                           <td className="px-2 py-2 align-top">
                             <div className="text-sm font-medium text-gray-900 text-right" style={{ textAlign: 'right' }}>
-                              {item.total_price.toLocaleString('en-US')} ₫
+                              {item.total_price.toLocaleString('en-US')}
                         </div>
                           </td>
                           <td className="px-3 py-2 align-top">
@@ -1082,15 +1100,15 @@ const Quotation: React.FC = () => {
                   <div className="w-64 space-y-2">
                     <div className="flex justify-between">
                       <span className="text-gray-600">Tổng cộng:</span>
-                      <span className="font-medium">{subtotal.toLocaleString('en-US')} ₫</span>
+                      <span className="font-medium">{subtotal.toLocaleString('en-US')}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">Thuế ({taxRate}%):</span>
-                      <span className="font-medium">{taxAmount.toLocaleString('en-US')} ₫</span>
+                      <span className="font-medium">{taxAmount.toLocaleString('en-US')}</span>
                     </div>
                     <div className="flex justify-between text-lg font-bold border-t pt-2">
                       <span>Tổng tiền:</span>
-                      <span>{total.toLocaleString('en-US')} ₫</span>
+                      <span>{total.toLocaleString('en-US')}</span>
                     </div>
                   </div>
                 </div>
