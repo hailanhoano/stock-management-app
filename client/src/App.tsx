@@ -8,6 +8,7 @@ import Analytics from './pages/Analytics';
 import Settings from './pages/Settings';
 import Login from './pages/Login';
 import Customers from './pages/Customers';
+import Quotation from './pages/Quotation';
 import ProtectedRoute from './components/ProtectedRoute';
 import { StockProvider } from './context/StockContext';
 import { AuthProvider } from './context/AuthContext';
@@ -54,6 +55,7 @@ function App() {
                     <Route path="/inventory" element={<Inventory />} />
                     <Route path="/checkout" element={<Checkout />} />
                     <Route path="/customers" element={<Customers />} />
+                    <Route path="/quotation" element={<Quotation />} />
                     <Route path="/analytics" element={<Analytics />} />
                     <Route path="/settings" element={<Settings />} />
                   </Routes>

@@ -12,6 +12,7 @@ interface User {
   email: string;
   name: string;
   role: string;
+  phone?: string;
 }
 
 const UserManagement: React.FC = () => {
@@ -27,7 +28,8 @@ const UserManagement: React.FC = () => {
     email: '',
     name: '',
     password: '',
-    role: 'user'
+    role: 'user',
+    phone: ''
   });
 
   useEffect(() => {
@@ -77,7 +79,7 @@ const UserManagement: React.FC = () => {
 
       if (response.ok) {
         setUsers([...users, data.user]);
-        setNewUser({ email: '', name: '', password: '', role: 'user' });
+        setNewUser({ email: '', name: '', password: '', role: 'user', phone: '' });
         setShowAddForm(false);
       } else {
         setError(data.message || 'Failed to create user');
@@ -103,7 +105,8 @@ const UserManagement: React.FC = () => {
         body: JSON.stringify({
           name: editingUser.name,
           email: editingUser.email,
-          role: editingUser.role
+          role: editingUser.role,
+          phone: editingUser.phone
         }),
       });
 
@@ -270,6 +273,16 @@ const UserManagement: React.FC = () => {
                 />
               </div>
               <div>
+                <label className="block text-sm font-medium text-gray-700">Phone</label>
+                <input
+                  type="tel"
+                  value={newUser.phone}
+                  onChange={(e) => setNewUser({ ...newUser, phone: e.target.value })}
+                  className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="+84 xxx xxx xxx"
+                />
+              </div>
+              <div>
                 <label className="block text-sm font-medium text-gray-700">Password</label>
                 <input
                   type="password"
@@ -308,71 +321,6 @@ const UserManagement: React.FC = () => {
             </div>
           </form>
                  </div>
-       )}
-
-       {editingUser && (
-         <div className="bg-gray-50 border border-gray-200 rounded-md p-6">
-           <h4 className="text-md font-medium text-gray-900 mb-4">
-             {editingUser.id === currentUser?.id ? 'Edit Your Account' : 'Edit User'}
-           </h4>
-           {editingUser.id === currentUser?.id && (
-             <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
-               <p className="text-sm text-blue-800">
-                 You are editing your own account. Changes will affect your current session.
-               </p>
-             </div>
-           )}
-           <form onSubmit={handleEditUser} className="space-y-4">
-             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-               <div>
-                 <label className="block text-sm font-medium text-gray-700">Name</label>
-                 <input
-                   type="text"
-                   required
-                   value={editingUser.name}
-                   onChange={(e) => setEditingUser({ ...editingUser, name: e.target.value })}
-                   className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                 />
-               </div>
-               <div>
-                 <label className="block text-sm font-medium text-gray-700">Email</label>
-                 <input
-                   type="email"
-                   required
-                   value={editingUser.email}
-                   onChange={(e) => setEditingUser({ ...editingUser, email: e.target.value })}
-                   className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                 />
-               </div>
-               <div>
-                 <label className="block text-sm font-medium text-gray-700">Role</label>
-                 <select
-                   value={editingUser.role}
-                   onChange={(e) => setEditingUser({ ...editingUser, role: e.target.value })}
-                   className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                 >
-                   <option value="user">User</option>
-                   <option value="admin">Admin</option>
-                 </select>
-               </div>
-             </div>
-             <div className="flex justify-end space-x-3">
-               <button
-                 type="button"
-                 onClick={() => setEditingUser(null)}
-                 className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-               >
-                 Cancel
-               </button>
-               <button
-                 type="submit"
-                 className="px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-               >
-                 Update User
-               </button>
-             </div>
-           </form>
-         </div>
        )}
 
        {resettingPassword && (
@@ -425,66 +373,146 @@ const UserManagement: React.FC = () => {
         <ul className="divide-y divide-gray-200">
           {users.map((user) => (
             <li key={user.id} className="px-6 py-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <div className="flex-shrink-0">
-                    {user.role === 'admin' ? (
-                      <ShieldCheckIcon className="h-6 w-6 text-red-500" />
-                    ) : (
-                      <UserIcon className="h-6 w-6 text-gray-400" />
-                    )}
+              {editingUser && editingUser.id === user.id ? (
+                // Edit form inline
+                <div className="bg-gray-50 border border-gray-200 rounded-md p-4">
+                  <h4 className="text-md font-medium text-gray-900 mb-4">
+                    {editingUser.id === currentUser?.id ? 'Edit Your Account' : 'Edit User'}
+                  </h4>
+                  {editingUser.id === currentUser?.id && (
+                    <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                      <p className="text-sm text-blue-800">
+                        You are editing your own account. Changes will affect your current session.
+                      </p>
+                    </div>
+                  )}
+                  <form onSubmit={handleEditUser} className="space-y-4">
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Name</label>
+                        <input
+                          type="text"
+                          required
+                          value={editingUser.name}
+                          onChange={(e) => setEditingUser({ ...editingUser, name: e.target.value })}
+                          className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Email</label>
+                        <input
+                          type="email"
+                          required
+                          value={editingUser.email}
+                          onChange={(e) => setEditingUser({ ...editingUser, email: e.target.value })}
+                          className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Phone</label>
+                        <input
+                          type="tel"
+                          value={editingUser.phone || ''}
+                          onChange={(e) => setEditingUser({ ...editingUser, phone: e.target.value })}
+                          className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                          placeholder="+84 xxx xxx xxx"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Role</label>
+                        <select
+                          value={editingUser.role}
+                          onChange={(e) => setEditingUser({ ...editingUser, role: e.target.value })}
+                          className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                        >
+                          <option value="user">User</option>
+                          <option value="admin">Admin</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div className="flex justify-end space-x-3">
+                      <button
+                        type="button"
+                        onClick={() => setEditingUser(null)}
+                        className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        className="px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                      >
+                        Update User
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              ) : (
+                // Normal user display
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <div className="flex-shrink-0">
+                      {user.role === 'admin' ? (
+                        <ShieldCheckIcon className="h-6 w-6 text-red-500" />
+                      ) : (
+                        <UserIcon className="h-6 w-6 text-gray-400" />
+                      )}
+                    </div>
+                    <div className="ml-4">
+                      <div className="text-sm font-medium text-gray-900 flex items-center">
+                        {user.name}
+                        {user.id === currentUser?.id && (
+                          <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                            You
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-sm text-gray-500">{user.email}</div>
+                      {user.phone && (
+                        <div className="text-sm text-gray-500">{user.phone}</div>
+                      )}
+                    </div>
                   </div>
-                                   <div className="ml-4">
-                   <div className="text-sm font-medium text-gray-900 flex items-center">
-                     {user.name}
-                     {user.id === currentUser?.id && (
-                       <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
-                         You
-                       </span>
-                     )}
-                   </div>
-                   <div className="text-sm text-gray-500">{user.email}</div>
-                 </div>
+                  <div className="flex items-center space-x-3">
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                      user.role === 'admin' 
+                        ? 'bg-red-100 text-red-800' 
+                        : 'bg-gray-100 text-gray-800'
+                    }`}>
+                      {user.role}
+                    </span>
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={() => setEditingUser(user)}
+                        className="text-blue-600 hover:text-blue-900"
+                        title="Edit user"
+                      >
+                        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => setResettingPassword(user.id)}
+                        className="text-green-600 hover:text-green-900"
+                        title="Reset password"
+                      >
+                        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                        </svg>
+                      </button>
+                      {user.id !== currentUser?.id && (
+                        <button
+                          onClick={() => handleDeleteUser(user.id)}
+                          className="text-red-600 hover:text-red-900"
+                          title="Delete user"
+                        >
+                          <TrashIcon className="h-5 w-5" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-center space-x-3">
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                    user.role === 'admin' 
-                      ? 'bg-red-100 text-red-800' 
-                      : 'bg-gray-100 text-gray-800'
-                  }`}>
-                    {user.role}
-                  </span>
-                                     <div className="flex items-center space-x-2">
-                     <button
-                       onClick={() => setEditingUser(user)}
-                       className="text-blue-600 hover:text-blue-900"
-                       title="Edit user"
-                     >
-                       <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                       </svg>
-                     </button>
-                     <button
-                       onClick={() => setResettingPassword(user.id)}
-                       className="text-green-600 hover:text-green-900"
-                       title="Reset password"
-                     >
-                       <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-                       </svg>
-                     </button>
-                     {user.id !== currentUser?.id && (
-                       <button
-                         onClick={() => handleDeleteUser(user.id)}
-                         className="text-red-600 hover:text-red-900"
-                         title="Delete user"
-                       >
-                         <TrashIcon className="h-5 w-5" />
-                       </button>
-                     )}
-                   </div>
-                </div>
-              </div>
+              )}
             </li>
           ))}
         </ul>

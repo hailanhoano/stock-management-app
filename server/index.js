@@ -82,23 +82,19 @@ app.use(express.json());
 // app.use(limiter);
 
 // Google Sheets configuration
-function createGoogleAuth() {
-  if (process.env.GOOGLE_SHEETS_CREDENTIALS) {
-    return new google.auth.GoogleAuth({
-      credentials: JSON.parse(process.env.GOOGLE_SHEETS_CREDENTIALS),
-      scopes: ['https://www.googleapis.com/auth/spreadsheets']
-    });
-  } else {
-    return new google.auth.GoogleAuth({
-      keyFile: process.env.GOOGLE_APPLICATION_CREDENTIALS || './credentials.json',
-      scopes: ['https://www.googleapis.com/auth/spreadsheets']
-    });
-  }
+let auth, sheets;
+
+try {
+  auth = new google.auth.GoogleAuth({
+    keyFile: './credentials.json',
+    scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+  });
+  sheets = google.sheets({ version: 'v4', auth });
+  console.log('Google Sheets API initialized successfully');
+} catch (error) {
+  console.error('Error initializing Google Sheets API:', error);
+  console.log('Please ensure credentials.json exists in the server directory');
 }
-
-const auth = createGoogleAuth();
-
-const sheets = google.sheets({ version: 'v4', auth });
 
 // User data file path
 const USERS_FILE = path.join(__dirname, 'data', 'users.json');
@@ -165,7 +161,7 @@ app.post('/api/auth/login', async (req, res) => {
     }
 
     const token = jwt.sign(
-      { id: user.id, email: user.email, name: user.name, role: user.role },
+      { id: user.id, email: user.email, name: user.name, role: user.role, phone: user.phone },
       JWT_SECRET,
       { expiresIn: '24h' }
     );
@@ -176,7 +172,8 @@ app.post('/api/auth/login', async (req, res) => {
         id: user.id,
         email: user.email,
         name: user.name,
-        role: user.role
+        role: user.role,
+        phone: user.phone
       }
     });
   } catch (error) {
@@ -200,7 +197,8 @@ app.get('/api/auth/me', authenticateToken, async (req, res) => {
         id: user.id,
         email: user.email,
         name: user.name,
-        role: user.role
+        role: user.role,
+        phone: user.phone
       }
     });
 
@@ -209,7 +207,8 @@ app.get('/api/auth/me', authenticateToken, async (req, res) => {
         id: user.id,
         email: user.email,
         name: user.name,
-        role: user.role
+        role: user.role,
+        phone: user.phone
       }
     });
   } catch (error) {
@@ -249,7 +248,10 @@ app.post('/api/stock/inventory/:id/start-edit', authenticateToken, async (req, r
     }
 
     // Create a new auth and sheets client
-    const auth = createGoogleAuth();
+    const auth = new google.auth.GoogleAuth({
+      keyFile: 'credentials.json',
+      scopes: ['https://www.googleapis.com/auth/spreadsheets']
+    });
     const sheets = google.sheets({ version: 'v4', auth });
 
     // Fetch current data to get the row being edited
@@ -381,7 +383,8 @@ app.get('/api/users', authenticateToken, async (req, res) => {
       id: user.id,
       email: user.email,
       name: user.name,
-      role: user.role
+      role: user.role,
+      phone: user.phone
     }));
 
     res.json(usersWithoutPasswords);
@@ -397,7 +400,7 @@ app.post('/api/users', authenticateToken, async (req, res) => {
       return res.status(403).json({ message: 'Admin access required' });
     }
 
-    const { email, name, password, role } = req.body;
+    const { email, name, password, role, phone } = req.body;
 
     if (!email || !name || !password) {
       return res.status(400).json({ message: 'Email, name, and password are required' });
@@ -416,7 +419,8 @@ app.post('/api/users', authenticateToken, async (req, res) => {
       email,
       name,
       password: hashedPassword,
-      role: role || 'user'
+      role: role || 'user',
+      phone: phone || ''
     };
 
     users.push(newUser);
@@ -428,7 +432,8 @@ app.post('/api/users', authenticateToken, async (req, res) => {
         id: newUser.id,
         email: newUser.email,
         name: newUser.name,
-        role: newUser.role
+        role: newUser.role,
+        phone: newUser.phone
       }
     });
   } catch (error) {
@@ -444,7 +449,7 @@ app.put('/api/users/:id', authenticateToken, async (req, res) => {
     }
 
     const { id } = req.params;
-    const { name, email, role } = req.body;
+    const { name, email, role, phone } = req.body;
     const users = await loadUsers();
     
     const userIndex = users.findIndex(u => u.id === id);
@@ -463,7 +468,8 @@ app.put('/api/users/:id', authenticateToken, async (req, res) => {
       ...users[userIndex],
       name,
       email,
-      role
+      role,
+      phone: phone || ''
     };
 
     await saveUsers(users);
@@ -472,7 +478,8 @@ app.put('/api/users/:id', authenticateToken, async (req, res) => {
       id: users[userIndex].id,
       email: users[userIndex].email,
       name: users[userIndex].name,
-      role: users[userIndex].role
+      role: users[userIndex].role,
+      phone: users[userIndex].phone
     };
 
     res.json({
@@ -1173,7 +1180,10 @@ app.put('/api/stock/inventory/:id', authenticateToken, async (req, res) => {
     }
 
     // Create a new auth and sheets client with write access
-    const auth = createGoogleAuth();
+    const auth = new google.auth.GoogleAuth({
+      keyFile: 'credentials.json',
+      scopes: ['https://www.googleapis.com/auth/spreadsheets']
+    });
     const sheets = google.sheets({ version: 'v4', auth });
 
     // Fetch current data to get headers and check for conflicts
@@ -1448,7 +1458,10 @@ app.post('/api/stock/inventory', authenticateToken, async (req, res) => {
     }
 
     // Create a new auth and sheets client with write access
-    const auth = createGoogleAuth();
+    const auth = new google.auth.GoogleAuth({
+      keyFile: 'credentials.json',
+      scopes: ['https://www.googleapis.com/auth/spreadsheets']
+    });
     const sheets = google.sheets({ version: 'v4', auth });
 
     // Fetch current data to get headers
@@ -2239,7 +2252,10 @@ app.post('/api/stock/bulk-send-out', authenticateToken, async (req, res) => {
     console.log('📝 Send out notes:', notes);
     
     // Create auth and sheets client
-    const auth = createGoogleAuth();
+    const auth = new google.auth.GoogleAuth({
+      keyFile: 'credentials.json',
+      scopes: ['https://www.googleapis.com/auth/spreadsheets']
+    });
     const sheets = google.sheets({ version: 'v4', auth });
     
     const changeLog = await loadChangeLog();
@@ -2500,6 +2516,105 @@ app.post('/api/stock/checkout', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Error processing checkout:', error);
     res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// Quotations API endpoints
+const QUOTATIONS_FILE = path.join(__dirname, 'data', 'quotations.json');
+
+// Load quotations from file
+async function loadQuotations() {
+  try {
+    const data = await fs.readFile(QUOTATIONS_FILE, 'utf8');
+    return JSON.parse(data);
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      // File doesn't exist, return empty array
+      return [];
+    }
+    throw error;
+  }
+}
+
+// Save quotations to file
+async function saveQuotations(quotations) {
+  await fs.writeFile(QUOTATIONS_FILE, JSON.stringify(quotations, null, 2));
+}
+
+// Get all quotations
+app.get('/api/quotations', authenticateToken, async (req, res) => {
+  try {
+    const quotations = await loadQuotations();
+    res.json(quotations);
+  } catch (error) {
+    console.error('Error loading quotations:', error);
+    res.status(500).json({ message: 'Failed to load quotations' });
+  }
+});
+
+// Create new quotation
+app.post('/api/quotations', authenticateToken, async (req, res) => {
+  try {
+    const quotation = req.body;
+    const quotations = await loadQuotations();
+    
+    // Add creation timestamp and user info
+    quotation.created_by = req.user.id;
+    quotation.created_at = new Date().toISOString();
+    
+    quotations.push(quotation);
+    await saveQuotations(quotations);
+    
+    res.status(201).json(quotation);
+  } catch (error) {
+    console.error('Error creating quotation:', error);
+    res.status(500).json({ message: 'Failed to create quotation' });
+  }
+});
+
+// Update quotation
+app.put('/api/quotations/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updatedQuotation = req.body;
+    const quotations = await loadQuotations();
+    
+    const index = quotations.findIndex(q => q.id === id);
+    if (index === -1) {
+      return res.status(404).json({ message: 'Quotation not found' });
+    }
+    
+    updatedQuotation.updated_by = req.user.id;
+    updatedQuotation.updated_at = new Date().toISOString();
+    
+    quotations[index] = { ...quotations[index], ...updatedQuotation };
+    await saveQuotations(quotations);
+    
+    res.json(quotations[index]);
+  } catch (error) {
+    console.error('Error updating quotation:', error);
+    res.status(500).json({ message: 'Failed to update quotation' });
+  }
+});
+
+// Delete quotation
+app.delete('/api/quotations/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const quotations = await loadQuotations();
+    
+    const index = quotations.findIndex(q => q.id === id);
+    if (index === -1) {
+      return res.status(404).json({ message: 'Quotation not found' });
+    }
+    
+    quotations.splice(index, 1);
+    await saveQuotations(quotations);
+    
+    res.json({ message: 'Quotation deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting quotation:', error);
+    res.status(500).json({ message: 'Failed to delete quotation' });
   }
 });
 
@@ -2866,7 +2981,10 @@ app.post('/api/stock/inventory/relocate', authenticateToken, async (req, res) =>
     console.log(`📋 Destination sheet: ${destinationSpreadsheetId}`);
     
     // Create auth and sheets client
-    const auth = createGoogleAuth();
+    const auth = new google.auth.GoogleAuth({
+      keyFile: 'credentials.json',
+      scopes: ['https://www.googleapis.com/auth/spreadsheets']
+    });
     const sheets = google.sheets({ version: 'v4', auth });
     
     // Fetch current data from source sheet
@@ -3052,3 +3170,212 @@ app.post('/api/stock/inventory/relocate', authenticateToken, async (req, res) =>
     });
   }
 }); 
+
+// Fetch quotation items from Google Sheets
+app.get('/api/quotation-items/:quotationNumber', authenticateToken, async (req, res) => {
+  try {
+    if (!sheets) {
+      return res.status(500).json({ 
+        error: 'Google Sheets API not configured. Please ensure credentials.json exists in the server directory.' 
+      });
+    }
+
+    const { quotationNumber } = req.params;
+    const spreadsheetId = '1e2x7iqV6H7a9J7g1Mit9PU98B4hNWykd7TTMtjHQv2Q';
+    const sheetNames = ['BG Full 2025', 'BG 2023-2024'];
+    
+    console.log(`Searching for quotation number: ${quotationNumber}`);
+    
+    // First, let's check what sheets are actually available
+    try {
+      const spreadsheetInfo = await sheets.spreadsheets.get({
+        spreadsheetId,
+      });
+      const availableSheets = spreadsheetInfo.data.sheets.map(sheet => sheet.properties.title);
+      console.log('Available sheets in spreadsheet:', availableSheets);
+    } catch (error) {
+      console.error('Error getting spreadsheet info:', error);
+    }
+    
+    let items = [];
+    
+    // Try to fetch from both sheets
+    for (const sheetName of sheetNames) {
+      try {
+        const range = `${sheetName}!A2:Q`;
+        console.log(`Fetching from sheet: ${sheetName}, range: ${range}`);
+        
+        const response = await sheets.spreadsheets.values.get({
+          spreadsheetId,
+          range,
+        });
+        
+        const rows = response.data.values || [];
+        console.log(`Total rows fetched from ${sheetName}: ${rows.length}`);
+        
+        // Log all quotation numbers found (first 10 for debugging)
+        const allQuotationNumbers = rows.slice(0, 10).map(row => row[0]).filter(Boolean);
+        console.log(`Sample quotation numbers from ${sheetName}:`, allQuotationNumbers);
+        
+        // Filter rows where column A matches the quotation number
+        const matchingRows = rows.filter(row => {
+          const rowQuotationNumber = row[0] ? row[0].toString().trim() : '';
+          const searchQuotationNumber = quotationNumber.toString().trim();
+          const matches = rowQuotationNumber === searchQuotationNumber;
+          if (matches) {
+            console.log(`Found matching row in ${sheetName}:`, row);
+          } else {
+            // Debug: log some non-matching rows to see the format
+            if (row[0] && row[0].toString().includes('10957')) {
+              console.log(`Found partial match in ${sheetName}:`, row);
+            }
+          }
+          return matches;
+        });
+        
+        console.log(`Matching rows found in ${sheetName}: ${matchingRows.length}`);
+        
+        // Convert rows to items format
+        // Based on actual structure: Stt, Hãng, Mã, Tên Hàng, Quy Cách, SL, Đơn giá, Thành Tiền, Ghi chú
+        // A=quotation_number, B=product_code, C=product_name, D=quantity, E=unit_price, F=notes, G=brand, H=unit
+        matchingRows.forEach((row, index) => {
+          console.log(`Processing row ${index}:`, row);
+          console.log(`Raw row data:`, {
+            quotation: row[0],
+            product_code: row[1],
+            product_name: row[2],
+            quantity: row[3],
+            unit_price: row[4],
+            notes: row[5],
+            brand: row[6],
+            unit: row[7]
+          });
+          if (row.length >= 8) {
+            const item = {
+              id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+              product_code: row[1] || '', // B column - Mã
+              product_name: row[2] || '', // C column - Tên Hàng
+              brand: row[6] || '', // G column - Hãng
+              quantity: parseFloat(row[3]) || 0, // D column - SL
+              unit: row[7] || '', // H column - Quy Cách
+              unit_price: parseFloat((row[4] || '').replace(/,/g, '')) || 0, // E column - Đơn giá (remove commas)
+              total_price: parseFloat((row[3] || '').replace(/,/g, '')) * parseFloat((row[4] || '').replace(/,/g, '')) || 0, // D * E (calculated, remove commas)
+              notes: row[5] || '' // F column - Ghi chú
+            };
+            console.log(`Created item:`, item);
+            items.push(item);
+          } else {
+            console.log(`Row ${index} has insufficient columns:`, row);
+          }
+        });
+        
+        // If we found items in this sheet, no need to check the other
+        if (items.length > 0) {
+          console.log(`Found ${items.length} items in ${sheetName}, stopping search`);
+          break;
+        }
+      } catch (error) {
+        console.error(`Error fetching from ${sheetName}:`, error);
+      }
+    }
+    
+    console.log(`Total items found: ${items.length}`);
+    res.json({ items });
+  } catch (error) {
+    console.error('Error fetching quotation items:', error);
+    res.status(500).json({ error: 'Failed to fetch quotation items' });
+  }
+});
+
+// Test Google Sheets connection
+app.get('/api/test-sheets', authenticateToken, async (req, res) => {
+  try {
+    if (!sheets) {
+      return res.status(500).json({ 
+        error: 'Google Sheets API not configured. Please ensure credentials.json exists in the server directory.' 
+      });
+    }
+
+    const spreadsheetId = '1e2x7iqV6H7a9J7g1Mit9PU98B4hNWykd7TTMtjHQv2Q';
+    
+    // Get spreadsheet info
+    const spreadsheetInfo = await sheets.spreadsheets.get({
+      spreadsheetId,
+    });
+    
+    const availableSheets = spreadsheetInfo.data.sheets.map(sheet => sheet.properties.title);
+    console.log('Available sheets:', availableSheets);
+    
+    // Try to get first few rows from first sheet
+    const firstSheet = availableSheets[0];
+    const testRange = `${firstSheet}!A1:D5`;
+    
+    const testResponse = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: testRange,
+    });
+    
+    res.json({
+      availableSheets,
+      firstSheet,
+      testData: testResponse.data.values || []
+    });
+  } catch (error) {
+    console.error('Test sheets error:', error);
+    res.status(500).json({ 
+      error: error.message,
+      details: 'Check if credentials.json exists and has proper permissions for the Google Sheets API'
+    });
+  }
+});
+
+// Get all available quotation numbers from Google Sheets
+app.get('/api/quotation-numbers', authenticateToken, async (req, res) => {
+  try {
+    if (!sheets) {
+      return res.status(500).json({ 
+        error: 'Google Sheets API not configured. Please ensure credentials.json exists in the server directory.' 
+      });
+    }
+
+    const spreadsheetId = '1e2x7iqV6H7a9J7g1Mit9PU98B4hNWykd7TTMtjHQv2Q';
+    const sheetNames = ['BG Full 2025', 'BG 2023-2024'];
+    
+    let allQuotationNumbers = new Set();
+    
+    // Get quotation numbers from both sheets
+    for (const sheetName of sheetNames) {
+      try {
+        const range = `${sheetName}!A2:A`;
+        const response = await sheets.spreadsheets.values.get({
+          spreadsheetId,
+          range,
+        });
+        
+        const rows = response.data.values || [];
+        rows.forEach(row => {
+          if (row[0] && row[0].toString().trim()) {
+            allQuotationNumbers.add(row[0].toString().trim());
+          }
+        });
+      } catch (error) {
+        console.error(`Error fetching from ${sheetName}:`, error);
+      }
+    }
+    
+    const sortedNumbers = Array.from(allQuotationNumbers).sort((a, b) => {
+      // Sort numerically if possible, otherwise alphabetically
+      const numA = parseInt(a);
+      const numB = parseInt(b);
+      if (!isNaN(numA) && !isNaN(numB)) {
+        return numA - numB;
+      }
+      return a.localeCompare(b);
+    });
+    
+    res.json({ quotationNumbers: sortedNumbers });
+  } catch (error) {
+    console.error('Error fetching quotation numbers:', error);
+    res.status(500).json({ error: 'Failed to fetch quotation numbers' });
+  }
+});

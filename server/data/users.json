@@ -1,9 +1,66 @@
 [
   {
     "id": "1",
-    "email": "admin@example.com",
+    "email": "tam@tamhunglong.vn",
     "password": "$2b$10$xV3I33xrB9lvSHIQawKRTOFHeZMfLj1bWvArQ54C656X1B0gpaG26",
-    "name": "Admin User",
-    "role": "admin"
+    "name": "Tam Giang",
+    "role": "admin",
+    "phone": "0916999013"
+  },
+  {
+    "id": "2",
+    "email": "vomai@tamhunglong.vn",
+    "password": "$2b$10$xV3I33xrB9lvSHIQawKRTOFHeZMfLj1bWvArQ54C656X1B0gpaG26",
+    "name": "Mai Võ",
+    "role": "user",
+    "phone": "0913837314"
+  },
+  {
+    "id": "3",
+    "email": "admin@tamhunglong.vn",
+    "password": "$2b$10$xV3I33xrB9lvSHIQawKRTOFHeZMfLj1bWvArQ54C656X1B0gpaG26",
+    "name": "Yến Nhi",
+    "role": "user",
+    "phone": "0933922995"
+  },
+  {
+    "id": "4",
+    "email": "xuyen.huynh@tamhunglong.vn",
+    "password": "$2b$10$xV3I33xrB9lvSHIQawKRTOFHeZMfLj1bWvArQ54C656X1B0gpaG26",
+    "name": "Như Xuyến",
+    "role": "user",
+    "phone": "0901371318"
+  },
+  {
+    "id": "5",
+    "email": "ngoc.lam@tamhunglong.vn",
+    "password": "$2b$10$xV3I33xrB9lvSHIQawKRTOFHeZMfLj1bWvArQ54C656X1B0gpaG26",
+    "name": "Bích Ngọc",
+    "role": "user",
+    "phone": "0774139506"
+  },
+  {
+    "id": "6",
+    "email": "vy.duong@tamhunglong.vn",
+    "password": "$2b$10$xV3I33xrB9lvSHIQawKRTOFHeZMfLj1bWvArQ54C656X1B0gpaG26",
+    "name": "Thảo Vy",
+    "role": "user",
+    "phone": "0392033578"
+  },
+  {
+    "id": "7",
+    "email": "dang.pham@tamhunglong.vn",
+    "password": "$2b$10$xV3I33xrB9lvSHIQawKRTOFHeZMfLj1bWvArQ54C656X1B0gpaG26",
+    "name": "Hải Đăng",
+    "role": "user",
+    "phone": "0372094627"
+  },
+  {
+    "id": "8",
+    "email": "minhthu@tamhunglong.vn",
+    "password": "$2b$10$xV3I33xrB9lvSHIQawKRTOFHeZMfLj1bWvArQ54C656X1B0gpaG26",
+    "name": "Minh Thư",
+    "role": "user",
+    "phone": "0384337266"
   }
 ]
