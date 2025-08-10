@@ -2708,6 +2708,10 @@ let lastUpdateTime = 0;
 const UPDATE_DEBOUNCE_MS = 5000; // 5 seconds debounce
 let isManualDeletionInProgress = false;
 
+// Quotation auto-sync system
+// Removed - no longer needed for simplified sync
+let quotationSyncInterval = null;
+
 async function startGoogleSheetsPolling() {
   try {
     const config = await loadConfig();
@@ -2924,12 +2928,17 @@ function detectInventoryChanges(oldInventory, newInventory) {
 
 // Start polling when server starts
 startGoogleSheetsPolling();
+startQuotationAutoSync();
 
 // Clean up polling on server shutdown
 const cleanup = () => {
   if (pollingInterval) {
     clearInterval(pollingInterval);
     console.log('🛑 Google Sheets polling stopped');
+  }
+  if (quotationSyncInterval) {
+    clearInterval(quotationSyncInterval);
+    console.log('🛑 Quotation auto-sync stopped');
   }
   if (server) {
     server.close();
@@ -3379,3 +3388,391 @@ app.get('/api/quotation-numbers', authenticateToken, async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch quotation numbers' });
   }
 });
+
+// Update quotation items in Google Sheets
+app.put('/api/quotation-items/:quotationNumber', authenticateToken, async (req, res) => {
+  try {
+    if (!sheets) {
+      return res.status(500).json({ 
+        error: 'Google Sheets API not configured. Please ensure credentials.json exists in the server directory.' 
+      });
+    }
+
+    const { quotationNumber } = req.params;
+    const { items } = req.body;
+    
+    if (!items || !Array.isArray(items)) {
+      return res.status(400).json({ error: 'Items array is required' });
+    }
+
+    const spreadsheetId = '1e2x7iqV6H7a9J7g1Mit9PU98B4hNWykd7TTMtjHQv2Q';
+    const sheetNames = ['BG Full 2025', 'BG 2023-2024'];
+    let updated = false;
+
+    // Find the sheet containing this quotation number
+    for (const sheetName of sheetNames) {
+      try {
+        const range = `${sheetName}!A2:A`;
+        const response = await sheets.spreadsheets.values.get({
+          spreadsheetId,
+          range,
+        });
+        
+        const rows = response.data.values || [];
+        const quotationRowIndex = rows.findIndex(row => row[0] && row[0].toString().trim() === quotationNumber);
+        
+        if (quotationRowIndex !== -1) {
+          // Found the quotation, now update the items
+          const actualRowIndex = quotationRowIndex + 2; // +2 because we start from A2 and array is 0-indexed
+          
+          // Update each item field
+          for (let i = 0; i < items.length; i++) {
+            const item = items[i];
+            const itemRowIndex = actualRowIndex + i;
+            
+            // Update product code (B column)
+            await sheets.spreadsheets.values.update({
+              spreadsheetId,
+              range: `${sheetName}!B${itemRowIndex}`,
+              valueInputOption: 'RAW',
+              resource: { values: [[item.product_code || '']] }
+            });
+            
+            // Update product name (C column)
+            await sheets.spreadsheets.values.update({
+              spreadsheetId,
+              range: `${sheetName}!C${itemRowIndex}`,
+              valueInputOption: 'RAW',
+              resource: { values: [[item.product_name || '']] }
+            });
+            
+            // Update quantity (D column)
+            await sheets.spreadsheets.values.update({
+              spreadsheetId,
+              range: `${sheetName}!D${itemRowIndex}`,
+              valueInputOption: 'RAW',
+              resource: { values: [[item.quantity || 0]] }
+            });
+            
+            // Update unit price (E column)
+            await sheets.spreadsheets.values.update({
+              spreadsheetId,
+              range: `${sheetName}!E${itemRowIndex}`,
+              valueInputOption: 'RAW',
+              resource: { values: [[item.unit_price || 0]] }
+            });
+            
+            // Update notes (F column)
+            await sheets.spreadsheets.values.update({
+              spreadsheetId,
+              range: `${sheetName}!F${itemRowIndex}`,
+              valueInputOption: 'RAW',
+              resource: { values: [[item.notes || '']] }
+            });
+            
+            // Update brand (G column)
+            await sheets.spreadsheets.values.update({
+              spreadsheetId,
+              range: `${sheetName}!G${itemRowIndex}`,
+              valueInputOption: 'RAW',
+              resource: { values: [[item.brand || '']] }
+            });
+            
+            // Update unit (H column)
+            await sheets.spreadsheets.values.update({
+              spreadsheetId,
+              range: `${sheetName}!H${itemRowIndex}`,
+              valueInputOption: 'RAW',
+              resource: { values: [[item.unit || '']] }
+            });
+          }
+          
+          updated = true;
+          console.log(`Updated ${items.length} items for quotation ${quotationNumber} in sheet ${sheetName}`);
+          break;
+        }
+      } catch (error) {
+        console.error(`Error updating in sheet ${sheetName}:`, error);
+      }
+    }
+
+    if (!updated) {
+      return res.status(404).json({ error: 'Quotation not found in any sheet' });
+    }
+
+    // Update last sync timestamp
+    lastGoogleSheetsSync = new Date().toISOString();
+    
+    // Broadcast sync status to all connected clients
+    io.emit('sheets_sync_status', {
+      lastSync: lastGoogleSheetsSync,
+      status: 'synced',
+      quotationNumber
+    });
+
+    res.json({ 
+      message: 'Quotation items updated successfully',
+      updatedItems: items.length,
+      lastSync: lastGoogleSheetsSync
+    });
+  } catch (error) {
+    console.error('Error updating quotation items:', error);
+    res.status(500).json({ error: 'Failed to update quotation items' });
+  }
+});
+
+// Update single field in quotation item
+app.patch('/api/quotation-items/:quotationNumber/:itemIndex/:field', authenticateToken, async (req, res) => {
+  try {
+    if (!sheets) {
+      return res.status(500).json({ 
+        error: 'Google Sheets API not configured. Please ensure credentials.json exists in the server directory.' 
+      });
+    }
+
+    const { quotationNumber, itemIndex, field } = req.params;
+    const { value } = req.body;
+    
+    const spreadsheetId = '1e2x7iqV6H7a9J7g1Mit9PU98B4hNWykd7TTMtjHQv2Q';
+    const sheetNames = ['BG Full 2025', 'BG 2023-2024'];
+    let updated = false;
+
+    // Find the sheet containing this quotation number
+    for (const sheetName of sheetNames) {
+      try {
+        const range = `${sheetName}!A2:A`;
+        const response = await sheets.spreadsheets.values.get({
+          spreadsheetId,
+          range,
+        });
+        
+        const rows = response.data.values || [];
+        const quotationRowIndex = rows.findIndex(row => row[0] && row[0].toString().trim() === quotationNumber);
+        
+        if (quotationRowIndex !== -1) {
+          // Found the quotation, now update the specific field
+          const actualRowIndex = quotationRowIndex + 2; // +2 because we start from A2 and array is 0-indexed
+          const itemRowIndex = actualRowIndex + parseInt(itemIndex);
+          
+          // Map field names to column letters
+          const fieldToColumn = {
+            'product_code': 'B',
+            'product_name': 'C',
+            'quantity': 'D',
+            'unit_price': 'E',
+            'notes': 'F',
+            'brand': 'G',
+            'unit': 'H'
+          };
+          
+          const column = fieldToColumn[field];
+          if (!column) {
+            return res.status(400).json({ error: 'Invalid field name' });
+          }
+          
+          // Update the specific field
+          await sheets.spreadsheets.values.update({
+            spreadsheetId,
+            range: `${sheetName}!${column}${itemRowIndex}`,
+            valueInputOption: 'RAW',
+            resource: { values: [[value]] }
+          });
+          
+          updated = true;
+          console.log(`Updated field ${field} for quotation ${quotationNumber}, item ${itemIndex} in sheet ${sheetName}`);
+          break;
+        }
+      } catch (error) {
+        console.error(`Error updating field in sheet ${sheetName}:`, error);
+      }
+    }
+
+    if (!updated) {
+      return res.status(404).json({ error: 'Quotation not found in any sheet' });
+    }
+
+    // Update last sync timestamp
+    lastGoogleSheetsSync = new Date().toISOString();
+    
+    // Broadcast sync status to all connected clients
+    io.emit('sheets_sync_status', {
+      lastSync: lastGoogleSheetsSync,
+      status: 'synced',
+      quotationNumber,
+      field,
+      itemIndex
+    });
+
+    res.json({ 
+      message: 'Field updated successfully',
+      field,
+      value,
+      lastSync: lastGoogleSheetsSync
+    });
+  } catch (error) {
+    console.error('Error updating field:', error);
+    res.status(500).json({ error: 'Failed to update field' });
+  }
+});
+
+// Manual refresh endpoint for quotations
+app.post('/api/quotations/refresh', authenticateToken, async (req, res) => {
+  try {
+    console.log('🔄 Manual quotation refresh requested');
+
+    // Trigger immediate sync to get latest data
+    await fetchLatestQuotationData();
+
+    res.json({ 
+      message: 'Manual refresh completed',
+      timestamp: Date.now()
+    });
+  } catch (error) {
+    console.error('Error in manual refresh:', error);
+    res.status(500).json({ error: 'Failed to refresh quotations' });
+  }
+});
+
+// Start quotation auto-sync with Google Sheets
+async function startQuotationAutoSync() {
+  try {
+    if (!sheets) {
+      console.log('⚠️ Google Sheets API not configured, skipping quotation auto-sync');
+      return;
+    }
+
+    console.log('🔄 Starting quotation auto-sync every 30 seconds...');
+    
+    // Initial sync check
+    await fetchLatestQuotationData();
+    
+    // Set up auto-sync interval
+    quotationSyncInterval = setInterval(async () => {
+      try {
+        await fetchLatestQuotationData();
+      } catch (error) {
+        console.error('❌ Error in quotation sync cycle:', error);
+        // Don't let sync errors crash the server
+      }
+    }, 30000); // 30 seconds
+    
+  } catch (error) {
+    console.error('❌ Error starting quotation auto-sync:', error);
+  }
+}
+
+// Fetch latest quotation data from Google Sheets
+async function fetchLatestQuotationData() {
+  try {
+    if (!sheets) {
+      return;
+    }
+
+    console.log('📊 Fetching latest quotation data from Google Sheets...');
+    
+    // Broadcast sync start
+    io.emit('quotation_sync_start', {
+      timestamp: Date.now()
+    });
+    
+    const spreadsheetId = '1e2x7iqV6H7a9J7g1Mit9PU98B4hNWykd7TTMtjHQv2Q';
+    const sheetNames = ['BG Full 2025', 'BG 2023-2024'];
+    
+    let allQuotations = [];
+    
+    // Fetch quotation data from both sheets
+    for (const sheetName of sheetNames) {
+      try {
+        const range = `${sheetName}!A:Z`;
+        const response = await sheets.spreadsheets.values.get({
+          spreadsheetId,
+          range,
+        });
+        
+        const rows = response.data.values || [];
+        if (rows.length < 2) continue; // Skip if no data or only header
+        
+        // Process rows to extract quotation data
+        let currentQuotation = null;
+        let currentItems = [];
+        
+        for (let i = 1; i < rows.length; i++) { // Start from row 2 (index 1)
+          const row = rows[i];
+          if (row.length === 0) continue;
+          
+          const quotationNumber = row[0]?.toString().trim();
+          if (quotationNumber && quotationNumber !== '') {
+            // If we have a previous quotation, save it
+            if (currentQuotation && currentItems.length > 0) {
+              allQuotations.push({
+                sheetName,
+                quotationNumber: currentQuotation,
+                items: [...currentItems]
+              });
+            }
+            
+            // Start new quotation
+            currentQuotation = quotationNumber;
+            currentItems = [];
+          }
+          
+          // If we have a current quotation and this row has item data
+          if (currentQuotation && row.length >= 8) {
+            const item = {
+              product_code: row[1] || '',
+              product_name: row[2] || '',
+              quantity: parseFloat(row[3]) || 0,
+              unit_price: parseFloat((row[4] || '').replace(/,/g, '')) || 0,
+              notes: row[5] || '',
+              brand: row[6] || '',
+              unit: row[7] || ''
+            };
+            
+            // Only add if it's a valid item (has at least product name or code)
+            if (item.product_name || item.product_code) {
+              currentItems.push(item);
+            }
+          }
+        }
+        
+        // Don't forget the last quotation
+        if (currentQuotation && currentItems.length > 0) {
+          allQuotations.push({
+            sheetName,
+            quotationNumber: currentQuotation,
+            items: [...currentItems]
+          });
+        }
+        
+      } catch (error) {
+        console.error(`Error fetching from sheet ${sheetName}:`, error);
+      }
+    }
+    
+    // Update the last sync time
+    lastGoogleSheetsSync = Date.now();
+    console.log('🔄 Quotation sync completed at:', new Date(lastGoogleSheetsSync).toLocaleTimeString());
+    
+    // Always broadcast the latest data to all clients
+    io.emit('quotation_sync_success', {
+      timestamp: Date.now(),
+      message: 'Latest quotation data fetched',
+      quotationsCount: allQuotations.length
+    });
+    
+    // Broadcast quotation update to all clients with latest data
+    io.emit('quotation_update', {
+      quotations: allQuotations,
+      source: 'google_sheets'
+    });
+    
+  } catch (error) {
+    console.error('❌ Error fetching quotation data:', error);
+    
+    // Broadcast sync error
+    io.emit('quotation_sync_error', {
+      timestamp: Date.now(),
+      error: error.message
+    });
+  }
+}

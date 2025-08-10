@@ -5,17 +5,12 @@ import { useNavigate } from 'react-router-dom';
 import QuotationHeader from '../components/QuotationHeader';
 import QuotationFooter from '../components/QuotationFooter';
 import { 
-  PlusIcon, 
   TrashIcon, 
-  ClipboardDocumentIcon,
   DocumentTextIcon,
   UserIcon,
   CalculatorIcon,
-  CurrencyDollarIcon,
   ChevronDownIcon,
-  ChevronRightIcon,
-  EyeIcon,
-  PencilIcon
+  ChevronRightIcon
 } from '@heroicons/react/24/outline';
 
 interface QuotationItem {
@@ -55,9 +50,10 @@ interface Quotation {
 }
 
 const Quotation: React.FC = () => {
-  const navigate = useNavigate();
-  const { isConnected } = useWebSocket();
-  const { user } = useAuth();
+  const { quotationSyncStatus, quotationUpdates } = useWebSocket();
+  
+  // Last sync time state
+  const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
   
   // Duration state for expiry date
   const [expiryDuration, setExpiryDuration] = useState(() => {
@@ -87,7 +83,7 @@ const Quotation: React.FC = () => {
   };
   
   const [quotations, setQuotations] = useState<Quotation[]>([]);
-  const [currentQuotation, setCurrentQuotation] = useState<Quotation | null>(null);
+
   const [expandedQuotations, setExpandedQuotations] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -133,16 +129,14 @@ const Quotation: React.FC = () => {
   });
 
   // Footer state with localStorage persistence
-  const [footerValidUntil, setFooterValidUntil] = useState(() => {
+  const [footerValidUntil] = useState(() => {
     const saved = localStorage.getItem('quotation_footerValidUntil');
     return saved || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('en-GB');
   });
   
   // Paste functionality
-  const [showPasteModal, setShowPasteModal] = useState(false);
-  const [pasteData, setPasteData] = useState('');
-  const [pasteType, setPasteType] = useState<'inventory' | 'manual'>('inventory');
-  const pasteTextareaRef = useRef<HTMLTextAreaElement>(null);
+
+  
 
   // Customer search functionality
   const [customers, setCustomers] = useState<any[]>([]);
@@ -232,6 +226,63 @@ const Quotation: React.FC = () => {
   useEffect(() => {
     setExpiryDate(getDefaultExpiryDate());
   }, [expiryDuration]);
+
+  // Handle real-time quotation updates from WebSocket
+  useEffect(() => {
+    if (quotationUpdates.length > 0) {
+      const update = quotationUpdates[0];
+      console.log('Received real-time quotation update:', update);
+      
+      // If the current quotation number is in the updates, refresh the data
+      if (update.quotations && update.source === 'google_sheets') {
+        const currentQuotation = update.quotations.find((q: any) => q.quotationNumber === quotationNumber);
+        if (currentQuotation) {
+          console.log('Current quotation updated, refreshing data...');
+          // Convert the Google Sheets format to our local format
+          const updatedItems = currentQuotation.items.map((item: any, index: number) => ({
+            id: `item-${index}`,
+            product_code: item.product_code || '',
+            product_name: item.product_name || '',
+            brand: item.brand || '',
+            quantity: item.quantity || 0,
+            unit: item.unit || '',
+            unit_price: item.unit_price || 0,
+            total_price: (item.quantity || 0) * (item.unit_price || 0),
+            notes: item.notes || ''
+          }));
+          
+          setItems(updatedItems);
+          
+          // Show notification
+          setGoogleSheetsNotification({
+            show: true,
+            message: `Quotation ${quotationNumber} updated from Google Sheets`,
+            type: 'success'
+          });
+        }
+      }
+    }
+  }, [quotationUpdates, quotationNumber]);
+
+  // Auto-sync every 30 seconds for the current quotation number
+  useEffect(() => {
+    if (!quotationNumber || !quotationNumber.trim()) {
+      return;
+    }
+
+    console.log('🔄 Setting up auto-sync every 30 seconds for quotation:', quotationNumber);
+    
+    const interval = setInterval(() => {
+      console.log('🔄 Auto-sync triggered for quotation:', quotationNumber);
+      handleFetchFromGoogleSheets();
+    }, 30000); // 30 seconds
+
+    // Cleanup interval on unmount or when quotation number changes
+    return () => {
+      console.log('🔄 Clearing auto-sync interval for quotation:', quotationNumber);
+      clearInterval(interval);
+    };
+  }, [quotationNumber]); // Re-run when quotation number changes
 
   // Calculate and update duration when expiry date changes (from header)
   useEffect(() => {
@@ -327,23 +378,76 @@ const Quotation: React.FC = () => {
     return { subtotal, taxAmount, total };
   };
 
-  const handleAddItem = () => {
-    const newItem: QuotationItem = {
-      id: Date.now().toString(),
-      product_code: '',
-      product_name: '',
-      brand: '',
-      quantity: 1,
-      unit: 'pcs',
-      unit_price: 0,
-      total_price: 0,
-      notes: ''
-    };
-    setItems([...items, newItem]);
+
+
+  // Notification state for Google Sheets updates
+  const [googleSheetsNotification, setGoogleSheetsNotification] = useState<{
+    show: boolean;
+    message: string;
+    type: 'success' | 'error';
+  }>({ show: false, message: '', type: 'success' });
+
+  // Debounced Google Sheets sync for immediate updates
+  const debouncedSyncToGoogleSheets = useRef<NodeJS.Timeout | null>(null);
+  
+  const immediateSyncToGoogleSheets = (itemIndex: number, field: keyof QuotationItem, value: any) => {
+    // Clear existing timeout
+    if (debouncedSyncToGoogleSheets.current) {
+      clearTimeout(debouncedSyncToGoogleSheets.current);
+    }
+    
+    // Set new timeout for immediate sync (500ms delay to prevent excessive API calls)
+    debouncedSyncToGoogleSheets.current = setTimeout(() => {
+      updateSingleFieldInGoogleSheets(itemIndex, field, value);
+    }, 500);
+  };
+
+  const updateSingleFieldInGoogleSheets = async (itemIndex: number, field: keyof QuotationItem, value: any) => {
+    if (!quotationNumber) return;
+    
+    try {
+      const response = await fetch(`/api/quotation-items/${quotationNumber}/${itemIndex}/${field}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ value })
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        console.log('Single field updated successfully:', result);
+        setGoogleSheetsNotification({
+          show: true,
+          message: `Field ${field} updated successfully in Google Sheets`,
+          type: 'success'
+        });
+      } else {
+        console.error('Failed to update single field:', response.statusText);
+        setGoogleSheetsNotification({
+          show: true,
+          message: `Failed to update field ${field}: ${response.statusText}`,
+          type: 'error'
+        });
+      }
+    } catch (error) {
+      console.error('Error updating single field:', error);
+      setGoogleSheetsNotification({
+        show: true,
+        message: 'Error updating field in Google Sheets. Please check your connection.',
+        type: 'error'
+      });
+    }
+    
+    // Hide notification after 3 seconds
+    setTimeout(() => {
+      setGoogleSheetsNotification({ show: false, message: '', type: 'success' });
+    }, 3000);
   };
 
   const handleUpdateItem = (id: string, field: keyof QuotationItem, value: any) => {
-    setItems(items.map(item => {
+    const updatedItems = items.map(item => {
       if (item.id === id) {
         const updatedItem = { ...item, [field]: value };
         if (field === 'quantity' || field === 'unit_price') {
@@ -352,16 +456,31 @@ const Quotation: React.FC = () => {
         return updatedItem;
       }
       return item;
-    }));
+    });
+    
+    setItems(updatedItems);
+    
+    // IMMEDIATE SYNC: Update Google Sheets as user types (with debouncing)
+    const itemIndex = items.findIndex(item => item.id === id);
+    if (itemIndex !== -1) {
+      immediateSyncToGoogleSheets(itemIndex, field, value);
+    }
   };
 
-  const handleRemoveItem = (id: string) => {
-    setItems(items.filter(item => item.id !== id));
+  const handleFieldBlur = (id: string, field: keyof QuotationItem, value: any) => {
+    // Clear any pending debounced sync and update immediately on blur
+    if (debouncedSyncToGoogleSheets.current) {
+      clearTimeout(debouncedSyncToGoogleSheets.current);
+    }
+    
+    // Update Google Sheets immediately when the field loses focus
+    const itemIndex = items.findIndex(item => item.id === id);
+    if (itemIndex !== -1) {
+      updateSingleFieldInGoogleSheets(itemIndex, field, value);
+    }
   };
 
-  const handlePasteData = () => {
-    setShowPasteModal(true);
-  };
+  
 
   const handleCustomerSelect = (selectedCustomer: any) => {
     const contactInfo = selectedCustomer.contact || '';
@@ -396,52 +515,7 @@ const Quotation: React.FC = () => {
     setShowCustomerResults(false);
   };
 
-  const processPastedData = () => {
-    if (!pasteData.trim()) return;
 
-    const lines = pasteData.trim().split('\n');
-    const newItems: QuotationItem[] = [];
-
-    lines.forEach((line, index) => {
-      if (line.trim()) {
-        const columns = line.split('\t');
-        
-        if (pasteType === 'inventory') {
-          if (columns.length >= 6) {
-            const newItem: QuotationItem = {
-              id: `pasted-${Date.now()}-${index}`,
-              product_code: columns[0]?.trim() || '',
-              product_name: columns[1]?.trim() || '',
-              brand: columns[2]?.trim() || '',
-              quantity: parseFloat(columns[3]?.trim() || '1'),
-              unit: columns[4]?.trim() || 'pcs',
-              unit_price: parseFloat(columns[5]?.trim() || '0'),
-              total_price: parseFloat(columns[3]?.trim() || '1') * parseFloat(columns[5]?.trim() || '0'),
-              notes: columns[6]?.trim() || ''
-            };
-            newItems.push(newItem);
-          }
-        } else {
-          const newItem: QuotationItem = {
-            id: `manual-${Date.now()}-${index}`,
-            product_code: columns[0]?.trim() || '',
-            product_name: columns[1]?.trim() || '',
-            brand: columns[2]?.trim() || '',
-            quantity: parseFloat(columns[3]?.trim() || '1'),
-            unit: columns[4]?.trim() || 'pcs',
-            unit_price: parseFloat(columns[5]?.trim() || '0'),
-            total_price: parseFloat(columns[3]?.trim() || '1') * parseFloat(columns[5]?.trim() || '0'),
-            notes: columns[6]?.trim() || ''
-          };
-          newItems.push(newItem);
-        }
-      }
-    });
-
-    setItems([...items, ...newItems]);
-    setShowPasteModal(false);
-    setPasteData('');
-  };
 
   const handleSaveQuotation = async () => {
     if (!customer) {
@@ -583,19 +657,23 @@ const Quotation: React.FC = () => {
     setLoading(true);
     
     try {
+      console.log('🔄 Fetching latest data for quotation:', quotationNumber);
+      
       const fetchedItems = await fetchItemsFromGoogleSheets(quotationNumber);
       if (fetchedItems.length > 0) {
         setItems(fetchedItems);
         // Save to localStorage
         localStorage.setItem('quotation_items', JSON.stringify(fetchedItems));
-        console.log(`Successfully loaded ${fetchedItems.length} items for quotation ${quotationNumber}`);
+        console.log(`✅ Successfully loaded ${fetchedItems.length} items for quotation ${quotationNumber}`);
+        // Update last sync time
+        setLastSyncTime(new Date());
       } else {
-        console.log(`No items found for quotation number: ${quotationNumber}`);
-        // Don't show popup, just log to console
+        console.log(`ℹ️ No items found for quotation number: ${quotationNumber}`);
+        // Update last sync time even if no items found
+        setLastSyncTime(new Date());
       }
     } catch (error) {
-      console.error('Error fetching items:', error);
-      // Don't show popup, just log to console
+      console.error('❌ Error fetching items:', error);
     } finally {
       setLoading(false);
     }
@@ -659,6 +737,14 @@ const Quotation: React.FC = () => {
     autoResizeTextarea(element);
   };
 
+  const handleTextareaBlur = (id: string, field: keyof QuotationItem, value: string) => {
+    // Update Google Sheets when textarea loses focus
+    const itemIndex = items.findIndex(item => item.id === id);
+    if (itemIndex !== -1) {
+      updateSingleFieldInGoogleSheets(itemIndex, field, value);
+    }
+  };
+
   // Auto-resize textareas when items change
   useEffect(() => {
     const textareas = document.querySelectorAll('textarea');
@@ -666,6 +752,22 @@ const Quotation: React.FC = () => {
       autoResizeTextarea(textarea as HTMLTextAreaElement);
     });
   }, [items]);
+
+  // Cleanup debounced sync timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (debouncedSyncToGoogleSheets.current) {
+        clearTimeout(debouncedSyncToGoogleSheets.current);
+      }
+    };
+  }, []);
+
+  // Update last sync time when sync completes
+  useEffect(() => {
+    if (quotationSyncStatus === 'synced') {
+      setLastSyncTime(new Date());
+    }
+  }, [quotationSyncStatus]);
 
   return (
     <div className="space-y-6">
@@ -675,12 +777,24 @@ const Quotation: React.FC = () => {
           <h1 className="text-2xl font-bold text-gray-900">Quotations</h1>
           <p className="text-gray-600">Create and manage customer quotations</p>
         </div>
-        <button
-          onClick={resetForm}
-          className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-        >
-          Reset Form
-        </button>
+        <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2 text-sm text-gray-600">
+            <button
+              onClick={handleFetchFromGoogleSheets}
+              className="hover:scale-110 transition-transform duration-200 cursor-pointer"
+              title="Click to sync manually"
+            >
+              🔄
+            </button>
+            <span>Last sync: {lastSyncTime ? lastSyncTime.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : 'Never'}</span>
+          </div>
+          <button
+            onClick={resetForm}
+            className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          >
+            Reset Form
+          </button>
+        </div>
       </div>
 
       {/* Main Content - New Quotation Form */}
@@ -734,6 +848,56 @@ const Quotation: React.FC = () => {
                 <p className="text-red-800">{error}</p>
               </div>
             )}
+
+            {/* Google Sheets Sync Notification */}
+            {googleSheetsNotification.show && (
+              <div className={`mb-4 p-4 border rounded-md ${
+                googleSheetsNotification.type === 'success' 
+                  ? 'bg-green-50 border-green-200 text-green-800' 
+                  : 'bg-red-50 border-red-200 text-red-800'
+              }`}>
+                <div className="flex items-center justify-between">
+                  <p className="flex items-center">
+                    {googleSheetsNotification.type === 'success' ? '✅' : '❌'}
+                    <span className="ml-2">{googleSheetsNotification.message}</span>
+                  </p>
+                  <button
+                    onClick={() => setGoogleSheetsNotification({ show: false, message: '', type: 'success' })}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Real-time Sync Status */}
+            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="flex items-center space-x-2">
+                    <div className={`w-3 h-3 rounded-full ${
+                      quotationSyncStatus === 'syncing' ? 'bg-yellow-500 animate-pulse' :
+                      quotationSyncStatus === 'synced' ? 'bg-green-500' :
+                      quotationSyncStatus === 'error' ? 'bg-red-500' : 'bg-gray-400'
+                    }`}></div>
+                    <span className="text-sm font-medium text-blue-800">
+                      {quotationSyncStatus === 'syncing' ? 'Syncing...' :
+                       quotationSyncStatus === 'synced' ? 'Synced' :
+                       quotationSyncStatus === 'error' ? 'Sync Error' : ''}
+                    </span>
+                  </div>
+
+                </div>
+                <div className="text-xs text-blue-600">
+                  {quotationUpdates.length > 0 && (
+                    <span className="bg-blue-100 px-2 py-1 rounded-full">
+                      {quotationUpdates[0]?.changes?.length || 0} changes detected
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Customer Information */}
@@ -941,30 +1105,30 @@ const Quotation: React.FC = () => {
                       )}
               </div>
             </div>
-                <div className="flex space-x-2">
-                  <button
-                    onClick={handlePasteData}
-                    className="inline-flex items-center px-3 py-1 border border-gray-300 text-sm rounded-md text-gray-700 bg-white hover:bg-gray-50"
-                  >
-                    <ClipboardDocumentIcon className="h-4 w-4 mr-1" />
-                    Paste Data
-                  </button>
-                  <button
-                    onClick={handleAddItem}
-                    className="inline-flex items-center px-3 py-1 border border-transparent text-sm rounded-md text-white bg-blue-600 hover:bg-blue-700"
-                  >
-                    <PlusIcon className="h-4 w-4 mr-1" />
-                    Add Item
-                  </button>
-                  </div>
+
                 </div>
               </div>
 
-              {items.length === 0 ? (
+              {/* Items Table Section */}
+              <div className="mt-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="text-lg font-medium text-gray-900 flex items-center">
+                    <CalculatorIcon className="h-5 w-5 mr-2" />
+                    Items Table
+                    {quotationNumber && (
+                      <span className="ml-2 text-sm text-gray-500 font-normal">
+                        (Auto-syncing to Google Sheets)
+                      </span>
+                    )}
+                  </h4>
+
+                </div>
+
+                {items.length === 0 ? (
                 <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
                   <CalculatorIcon className="h-12 w-12 mx-auto mb-4 text-gray-400" />
                   <p className="text-gray-500 mb-2">No items added yet</p>
-                  <p className="text-sm text-gray-400">Add items manually or paste from inventory</p>
+                  <p className="text-sm text-gray-400">No items available</p>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
@@ -1013,6 +1177,7 @@ const Quotation: React.FC = () => {
                               <textarea
                                 value={item.brand}
                                 onChange={(e) => handleTextareaChange(item.id, 'brand', e.target.value, e.target)}
+                                onBlur={(e) => handleTextareaBlur(item.id, 'brand', e.target.value)}
                                 className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm resize-none"
                                 style={{ minHeight: '32px', maxHeight: '120px' }}
                               />
@@ -1023,7 +1188,8 @@ const Quotation: React.FC = () => {
                               <textarea
                             value={item.product_code}
                                 onChange={(e) => handleTextareaChange(item.id, 'product_code', e.target.value, e.target)}
-                                className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm resize-none"
+                                onBlur={(e) => handleTextareaBlur(item.id, 'product_code', e.target.value)}
+                                className="block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 text-sm resize-none"
                                 style={{ minHeight: '32px', maxHeight: '120px' }}
                           />
                         </div>
@@ -1033,6 +1199,7 @@ const Quotation: React.FC = () => {
                               <textarea
                             value={item.product_name}
                                 onChange={(e) => handleTextareaChange(item.id, 'product_name', e.target.value, e.target)}
+                                onBlur={(e) => handleTextareaBlur(item.id, 'product_name', e.target.value)}
                                 className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm resize-none"
                                 style={{ minHeight: '32px', maxHeight: '120px' }}
                           />
@@ -1043,6 +1210,7 @@ const Quotation: React.FC = () => {
                             type="text"
                               value={item.unit}
                               onChange={(e) => handleUpdateItem(item.id, 'unit', e.target.value)}
+                              onBlur={(e) => handleFieldBlur(item.id, 'unit', e.target.value)}
                               className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm"
                           />
                           </td>
@@ -1054,16 +1222,24 @@ const Quotation: React.FC = () => {
                                 const value = e.target.value.replace(/[^\d]/g, '');
                                 handleUpdateItem(item.id, 'quantity', parseFloat(value) || 0);
                               }}
+                              onBlur={(e) => {
+                                const value = e.target.value.replace(/[^\d]/g, '');
+                                handleFieldBlur(item.id, 'quantity', parseFloat(value) || 0);
+                              }}
                               className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm"
                           />
                           </td>
                           <td className="px-2 py-2 align-top">
                           <input
-                            type="text"
+                              type="text"
                               value={item.unit_price ? item.unit_price.toLocaleString('en-US') : ''}
                               onChange={(e) => {
                                 const value = e.target.value.replace(/[^\d]/g, '');
                                 handleUpdateItem(item.id, 'unit_price', parseFloat(value) || 0);
+                              }}
+                              onBlur={(e) => {
+                                const value = e.target.value.replace(/[^\d]/g, '');
+                                handleFieldBlur(item.id, 'unit_price', parseFloat(value) || 0);
                               }}
                               className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm text-right"
                               placeholder="0"
@@ -1080,18 +1256,19 @@ const Quotation: React.FC = () => {
                               <textarea
                                 value={item.notes}
                                 onChange={(e) => handleTextareaChange(item.id, 'notes', e.target.value, e.target)}
+                                onBlur={(e) => handleTextareaBlur(item.id, 'notes', e.target.value)}
                                 className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm resize-none"
                                 style={{ minHeight: '32px', maxHeight: '120px' }}
                           />
                         </div>
                           </td>
+
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
               )}
-            </div>
 
             {/* Totals */}
             {items.length > 0 && (
@@ -1114,6 +1291,9 @@ const Quotation: React.FC = () => {
                 </div>
               </div>
             )}
+            
+            {/* Close Items Table Section */}
+          </div>
 
             {/* Notes */}
             <div className="mt-6">
@@ -1147,6 +1327,7 @@ const Quotation: React.FC = () => {
             </div>
           </div>
         </div>
+      </div>
 
       {/* Recent Quotations - Expandable Tabs */}
       <div className="bg-white shadow rounded-lg">
@@ -1168,104 +1349,68 @@ const Quotation: React.FC = () => {
                     className="flex justify-between items-center p-4 hover:bg-gray-50 cursor-pointer"
                     onClick={() => toggleQuotationExpansion(quotation.id)}
                   >
-                    <div className="flex items-center space-x-3">
-                      {expandedQuotations.has(quotation.id) ? (
-                        <ChevronDownIcon className="h-5 w-5 text-gray-500" />
-                      ) : (
-                        <ChevronRightIcon className="h-5 w-5 text-gray-500" />
-                      )}
-                      <div>
-                        <h4 className="font-medium text-gray-900">{quotation.quotation_number}</h4>
-                        <p className="text-sm text-gray-600">{quotation.customer?.name}</p>
-                        <p className="text-xs text-gray-500">
-                          Created: {new Date(quotation.created_date).toLocaleDateString()}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-3">
-                      <div className="text-right">
-                        <p className="font-medium text-gray-900">${quotation.total.toFixed(2)}</p>
-                        <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-                          quotation.status === 'draft' ? 'bg-gray-100 text-gray-800' :
-                          quotation.status === 'sent' ? 'bg-blue-100 text-blue-800' :
-                          quotation.status === 'accepted' ? 'bg-green-100 text-green-800' :
-                          'bg-red-100 text-red-800'
-                        }`}>
-                          {quotation.status}
+                    <div className="flex items-center space-x-4">
+                      <div className="flex items-center">
+                        {expandedQuotations.has(quotation.id) ? (
+                          <ChevronDownIcon className="h-4 w-4 text-gray-500 mr-2" />
+                        ) : (
+                          <ChevronRightIcon className="h-4 w-4 text-gray-500 mr-2" />
+                        )}
+                        <span className="font-medium text-gray-900">
+                          Quotation #{quotation.quotation_number}
                         </span>
                       </div>
-                      <div className="flex space-x-2">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            // View quotation details
-                          }}
-                          className="p-1 text-gray-400 hover:text-gray-600"
-                          title="View details"
-                        >
-                          <EyeIcon className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            // Edit quotation
-                          }}
-                          className="p-1 text-gray-400 hover:text-gray-600"
-                          title="Edit quotation"
-                        >
-                          <PencilIcon className="h-4 w-4" />
-                        </button>
-                      </div>
+                      <span className="text-sm text-gray-500">
+                        {quotation.customer?.name || 'No Customer'}
+                      </span>
+                      <span className="text-sm text-gray-500">
+                        {quotation.created_date}
+                      </span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        quotation.status === 'draft' ? 'bg-gray-100 text-gray-800' :
+                        quotation.status === 'sent' ? 'bg-blue-100 text-blue-800' :
+                        quotation.status === 'accepted' ? 'bg-green-100 text-green-800' :
+                        'bg-red-100 text-red-800'
+                      }`}>
+                        {quotation.status}
+                      </span>
+
                     </div>
                   </div>
 
                   {/* Quotation Details - Expandable */}
                   {expandedQuotations.has(quotation.id) && (
-                    <div className="border-t border-gray-200 p-4 bg-gray-50">
+                    <div className="border-t p-4 bg-gray-50">
                       <div className="space-y-4">
                         {/* Customer Info */}
-                        <div>
-                          <h5 className="font-medium text-gray-900 mb-2">Customer Information</h5>
-                          <div className="text-sm text-gray-600">
-                            <p><strong>Name:</strong> {quotation.customer?.name}</p>
-                            <p><strong>Phone:</strong> {quotation.customer?.phone}</p>
-                            <p><strong>Email:</strong> {quotation.customer?.email}</p>
-                            <p><strong>Address:</strong> {quotation.customer?.address}</p>
+                        {quotation.customer && (
+                          <div>
+                            <h5 className="font-medium text-gray-900 mb-2">Customer</h5>
+                            <div className="text-sm text-gray-600">
+                              <div>{quotation.customer.name}</div>
+                              {quotation.customer.email && <div>{quotation.customer.email}</div>}
+                              {quotation.customer.phone && <div>{quotation.customer.phone}</div>}
+                              {quotation.customer.address && <div>{quotation.customer.address}</div>}
+                            </div>
                           </div>
-                        </div>
+                        )}
 
                         {/* Items */}
-                        <div>
-                          <h5 className="font-medium text-gray-900 mb-2">Items</h5>
-                          <div className="overflow-x-auto">
-                            <table className="min-w-full divide-y divide-gray-200">
-                              <thead className="bg-gray-50">
-                                <tr>
-                                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Code</th>
-                                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
-                                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Brand</th>
-                                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Qty</th>
-                                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit</th>
-                                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit Price</th>
-                                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
-                                </tr>
-                              </thead>
-                              <tbody className="bg-white divide-y divide-gray-200">
-                                {quotation.items.map((item, index) => (
-                                  <tr key={index}>
-                                    <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">{item.product_code}</td>
-                                    <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">{item.product_name}</td>
-                                    <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">{item.brand}</td>
-                                    <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">{item.quantity}</td>
-                                    <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">{item.unit}</td>
-                                    <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${item.unit_price.toFixed(2)}</td>
-                                    <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${item.total_price.toFixed(2)}</td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
+                        {quotation.items.length > 0 && (
+                          <div>
+                            <h5 className="font-medium text-gray-900 mb-2">Items</h5>
+                            <div className="space-y-2">
+                              {quotation.items.map((item, index) => (
+                                <div key={item.id} className="flex justify-between text-sm">
+                                  <span>{index + 1}. {item.product_name}</span>
+                                  <span>{item.quantity} x ${item.unit_price}</span>
+                                </div>
+                              ))}
+                            </div>
                           </div>
-                        </div>
+                        )}
 
                         {/* Totals */}
                         <div className="flex justify-end">
@@ -1302,64 +1447,7 @@ const Quotation: React.FC = () => {
         </div>
       </div>
 
-      {/* Paste Modal */}
-      {showPasteModal && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-            <div className="mt-3">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Paste Data</h3>
-              
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Data Type</label>
-                <select
-                  value={pasteType}
-                  onChange={(e) => setPasteType(e.target.value as any)}
-                  className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="inventory">Inventory Items</option>
-                  <option value="manual">Manual Format</option>
-                </select>
-              </div>
 
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {pasteType === 'inventory' ? 'Paste inventory data (tab-separated):' :
-                   'Paste data (tab-separated):'}
-                </label>
-                <textarea
-                  ref={pasteTextareaRef}
-                  value={pasteData}
-                  onChange={(e) => setPasteData(e.target.value)}
-                  rows={8}
-                  className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                  placeholder={
-                    pasteType === 'inventory' ? 'Product Code\tProduct Name\tBrand\tQuantity\tUnit\tUnit Price\tNotes' :
-                    'Product Code\tProduct Name\tBrand\tQuantity\tUnit\tUnit Price\tNotes'
-                  }
-                />
-              </div>
-
-              <div className="flex justify-end space-x-3">
-                <button
-                  onClick={() => {
-                    setShowPasteModal(false);
-                    setPasteData('');
-                  }}
-                  className="px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={processPastedData}
-                  className="px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
-                >
-                  Process Data
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

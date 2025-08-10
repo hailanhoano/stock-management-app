@@ -14,6 +14,8 @@ interface WebSocketContextType {
   inventoryUpdates: any[];
   lastSyncTime: Date | null;
   syncStatus: 'syncing' | 'synced' | 'error' | 'unknown';
+  quotationUpdates: any[];
+  quotationSyncStatus: 'syncing' | 'synced' | 'error' | 'unknown';
   connect: (token: string) => void;
   disconnect: () => void;
   updateSyncTime: () => void;
@@ -40,6 +42,8 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
   const [inventoryUpdates, setInventoryUpdates] = useState<any[]>([]);
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
   const [syncStatus, setSyncStatus] = useState<'syncing' | 'synced' | 'error' | 'unknown'>('unknown');
+  const [quotationUpdates, setQuotationUpdates] = useState<any[]>([]);
+  const [quotationSyncStatus, setQuotationSyncStatus] = useState<'syncing' | 'synced' | 'error' | 'unknown'>('unknown');
 
   const connect = (token: string) => {
     if (socket) {
@@ -135,6 +139,27 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
       }
     });
 
+    // Quotation sync events
+    newSocket.on('quotation_sync_start', () => {
+      console.log('🔄 Quotation sync started');
+      setQuotationSyncStatus('syncing');
+    });
+
+    newSocket.on('quotation_sync_success', (data) => {
+      console.log('✅ Quotation sync successful:', data);
+      setQuotationSyncStatus('synced');
+    });
+
+    newSocket.on('quotation_sync_error', (error) => {
+      console.error('❌ Quotation sync error:', error);
+      setQuotationSyncStatus('error');
+    });
+
+    newSocket.on('quotation_update', (data) => {
+      console.log('📋 Received quotation update:', data);
+      setQuotationUpdates([data]);
+    });
+
     setSocket(newSocket);
   };
 
@@ -148,6 +173,8 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
       setInventoryUpdates([]);
       setLastSyncTime(null);
       setSyncStatus('unknown');
+      setQuotationUpdates([]);
+      setQuotationSyncStatus('unknown');
     }
   };
 
@@ -174,6 +201,8 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
     inventoryUpdates,
     lastSyncTime,
     syncStatus,
+    quotationUpdates,
+    quotationSyncStatus,
     connect,
     disconnect,
     updateSyncTime
